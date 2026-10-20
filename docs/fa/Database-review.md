@@ -1,0 +1,47 @@
+> به‌روزرسانی bootstrap در ۲۰ اکتبر ۲۰۲۶: SQL Server جای هدف پیشنهادی قبلی Oracle را گرفته است. P0 شروع شده و کامل نیست. dependency و تست health اثبات صحت مالی نیستند.
+
+# مرور صحت دیتابیس و هزینهٔ آن
+
+وضعیت: پیشنهاد پیش از schema؛ DDL اجرا نشده و اندازه‌گیری نداریم. [English](../en/Database-review.md) · [تصمیم‌ها](Decisions.md)
+
+## مرور قبل از migration اول
+
+ابتدا `accounts` و `operations` مفهومی هستند. مراحل بعد `transfer_intents`، `outbox_events`، `processed_events` و `transaction_history` را اضافه می‌کنند. نام‌ها پیشنهادی‌اند. یک operation، credit یا debit یا انتقال کامل و نتیجهٔ ماندگار آن را نشان می‌دهد. شناسهٔ داخلی ردیف با transaction ID کاربر متفاوت است.
+
+پیش از V1 تعیین شود: نسخه/image SQL Server و مرز portability، نوع شناسه، واحد و ارز، مرجع مقداردهی حساب، دامنهٔ یکتایی شناسه، حداکثر مقدار، ثبت رد درخواست، retention، بستن/حذف حساب و زمان ورود double-entry. تصمیم‌ها قبل از migration ثبت شوند.
+
+| invariant | حفاظت پیشنهادی | چیزی که تضمین نمی‌کند | فرض هزینه و شواهد لازم |
+| --- | --- | --- | --- |
+| وجود فیلدهای هویت، مبلغ و نتیجه | NOT NULL نام‌دار و اعتبارسنجی برنامه | دسترسی یا معنای صحیح درخواست | CPU اعتبارسنجی و تست SQL نامعتبر |
+| مبلغ مثبت، صحیح و قابل‌نمایش با long | شرط مثبت، نمایش صحیح و سقف صریح long | امن‌بودن جمع چند مبلغ | کنترل ردیف، تست overflow و حساب checked |
+| موجودی غیرمنفی در بازهٔ long | NOT NULL و CHECK بازه | هم‌زمانی صحیح read-check-write | کنترل هر update؛ SQL مستقیم و debit هم‌زمان |
+| transaction ID یکتا میان همهٔ عملیات | NOT NULL و UNIQUE سراسری | تطابق محتوا، دسترسی یا intent یکسان با ID جدید | نوشتن index، رقابت duplicate و فضا |
+| وجود حساب‌های ارجاع‌شده | FK نام‌دار حساب‌ها | مالکیت، وضعیت و تطابق ارز | lookup و index؛ تست orphan و مرور index FK |
+| شکل ردیف متناسب با نوع عملیات | allowlist و CHECK شرطی مبدأ/مقصد | وضعیت ردیف دیگر | ارزیابی شرط و migration نوع جدید |
+| تفاوت مبدأ و مقصد انتقال | CHECK شرطی و کنترل سرویس | commit هم‌زمان دو تغییر | کنترل ردیف و تست SQL |
+| برابری مبلغ دو سمت | یک مبلغ و یک تراکنش برای دو حساب | reconciliation کامل دفترکل | دو update، مدت قفل، transaction log/version store و تزریق خطا |
+| نبود lost update | قفل مرتب قبل از اعتبارسنجی و رعایت پروتکل در همهٔ writerها | throughput نامحدود حساب پرترافیک | انتظار قفل، اشباع اتصال و تست hot account |
+| تأیید فقط یک intent تغییرناپذیر | اتصال به مالک، قفل intent، دادهٔ ثابت و ارجاع اجرای یکتا | امنیت کانال ارسال | نوشتن intent و رقابت؛ تست تأیید هم‌زمان |
+| یک اثر در consumer | UNIQUE روی `(consumer_name, event_id)` همراه اثر در یک تراکنش | تحویل دقیقاً یک‌بار Kafka | نوشتن dedup index، retention و تست تکرار |
+
+CHECK با نتیجهٔ unknown ممکن است null را بپذیرد؛ فیلد اجباری NOT NULL و شرط شکل عملیات روشن داشته باشد. collation و مقایسهٔ فاصلهٔ انتهایی SQL Server می‌توانند بر هویت رشته‌ای اثر بگذارند. قواعد مقایسهٔ transaction ID صریح و آزموده و شناسهٔ خالی در برنامه رد شود. برای واحد پول صحیح از `BIGINT` متناظر long و CHECK مبلغ مثبت و موجودی غیرمنفی استفاده شود. ورودی قبل از تبدیل کنترل شود؛ coercion دیتابیس قرارداد اعتبارسنجی API نیست.
+
+CHECK معمولی یک ردیف، انتقال دوحسابی، مالکیت در جدول دیگر یا جمع postingها را کنترل نمی‌کند. چنین قواعدی نباید «تضمین‌شده با CHECK» معرفی شوند. با اضافه‌شدن double-entry، ساخت متوازن، ثبت تراکنشی، محدودیت writer و reconciliation با موجودی cached لازم است.
+
+## مرور index
+
+برای هر index ثبت شود: query و مرحله، predicate مساوی/بازه/مرتب‌سازی، توزیع داده، ترتیب ستون، indexهای PK/UNIQUE موجود، نرخ نوشتن، فضا و لینک پلن/benchmark. index اضافی هم‌معنی با unique transaction ID نسازیم. نیاز index برای FK با رفتار واقعی حذف/تغییر parent و هم‌زمانی بررسی شود؛ ساخت خودکار index برای همهٔ FKها فرض نشود.
+
+نامزدها: PK حساب و قفل آن، lookup یکتای transaction ID، تاریخچهٔ مالک/حساب با keyset، outbox منتظر بر اساس وضعیت و زمان تلاش، هویت event مصرف‌کننده و یکتایی intent اجراشده. همهٔ این‌ها نیاز V1 نیستند. index تنها روی status ممکن است selectivity ضعیف داشته باشد. index تاریخچه برای هر insert هزینه دارد و index وضعیت outbox هنگام تغییر status هم نگهداری می‌شود.
+
+## اندازه‌گیری هزینه
+
+از schema آزمایشی قابل‌حذف و دادهٔ مصنوعی استفاده شود؛ constraintهای صحت در schema قابل‌تحویل باقی بمانند. مقایسهٔ variantها در محیط آزمایش، تغییر index و پلن همراه و fixture بازتولیدپذیر ثبت شود. حذف UNIQUE هم کنترل صحت و هم index پشتیبان را تغییر می‌دهد؛ همهٔ اختلاف را به CHECK نسبت ندهیم.
+
+سخت‌افزار، نسخه، حجم و توزیع داده، ترکیب درخواست، durability، connection pool، concurrency و statistics قابل‌مقایسه باشند. warmup و چند تکرار با گزارش پراکندگی انجام شود. حساب‌های مستقل و hot account جدا، و درخواست یکتا و duplicate-heavy نیز جدا سنجیده شوند. اختلاف انتظار قفل با هزینهٔ ارزیابی ردیف مخلوط نشود.
+
+عملیات مالی commitشده در ثانیه، p50/p95/p99 انتهابه‌انتها، نرخ رد و خرابی، CPU دیتابیس، logical reads، log bytes هر عملیات، lock wait، pool wait و اندازهٔ index ثبت شوند. حجم کار موفق برابر مقایسه شود؛ رد بیشتر درخواست‌ها نباید به‌عنوان سرعت بیشتر گزارش شود. فرمول `overhead_pct = (variant_latency - baseline_latency) / baseline_latency * 100` فقط روی latency قابل‌مقایسه با تعداد نمونه و پراکندگی استفاده شود. تغییر throughput معیار جداست.
+
+قالب گزارش: شناسهٔ آزمایش، تاریخ/commit، invariant، variantها، تفاوت SQL/DDL، workload ثابت، سخت‌افزار/نسخه، warmup/تکرار، نتیجهٔ خام، درصد همراه پراکندگی، نتیجهٔ صحت، عوامل مخدوش‌کننده، تصمیم و مسیر شواهد. نتیجهٔ فعلی همهٔ موارد: **اندازه‌گیری نشده**. هدف عددی بعد از baseline و تعیین محیط کاربر مشخص شود.
+
+منابع: [SQL Server constraints](https://learn.microsoft.com/en-us/sql/relational-databases/tables/unique-constraints-and-check-constraints) و [optimizer statistics](https://learn.microsoft.com/en-us/sql/relational-databases/statistics/statistics). با نسخهٔ ثابت پروژه دوباره تطبیق داده شوند.

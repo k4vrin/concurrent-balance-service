@@ -40,3 +40,7 @@ CBS08 adds the real JDBC integration harness and proves failure when the databas
 Native Windows installation remains an [optional alternative](Windows-sqlserver.md).
 
 Sources: [Microsoft container deployment and architecture support](https://learn.microsoft.com/en-us/sql/linux/sql-server-linux-docker-container-deployment?view=sql-server-ver17), [Docker Compose environment variables](https://docs.docker.com/compose/how-tos/environment-variables/).
+
+## Accepted option E scope, 2026-10-22
+
+After CBS02–04 review, CBS09 applies the four-table schema in [Ledger.md](Ledger.md). Keep the database empty before migration. Development/test fixtures create zero projections and record nonzero initialization through opening operations and balanced postings; do not seed balances with unaudited SQL updates. Docker setup does not prove ledger correctness. Compose and business migrations remain unimplemented.

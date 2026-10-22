@@ -14,7 +14,7 @@ Boot 4 starterهای ماژولار مانند `spring-boot-starter-webmvc`، `s
 
 Web MVC سرور HTTP، Validation زیرساخت اعتبارسنجی و Actuator health اسکلت را می‌دهند. هیچ‌کدام منطق مالی نیستند. تست، سرور واقعی روی پورت تصادفی را با HTTP client خود JDK بررسی می‌کند.
 
-JPA، Flyway، `org.flywaydb:flyway-sqlserver` و driver زمان اجرای `com.microsoft.sqlserver:mssql-jdbc` dependency عادی Maven هستند. تنظیم SQL Server در `application.yaml` است؛ اجرای عادی بدون profile به دیتابیس نیاز دارد. تست HTTP از profile مخصوص تست `smoke` برای کنارگذاشتن auto-configuration مربوط به JDBC، Hibernate، JPA repositories و Flyway استفاده می‌کند و persistence را بررسی نمی‌کند. تنظیم SQL Server اعتبارنامهٔ محیطی و schema validation دارد؛ migration اول منتظر مرور صحت است و fallback به H2 نداریم.
+JPA، Flyway، `org.flywaydb:flyway-sqlserver` و driver زمان اجرای `com.microsoft.sqlserver:mssql-jdbc` dependency عادی Maven هستند. تنظیم SQL Server در `application.yaml` است؛ اجرای عادی بدون profile به دیتابیس نیاز دارد. تست HTTP با profile مخصوص تست `smoke` اجرا می‌شود که پیکربندی خودکار datasource، Hibernate JPA، repositoryهای JPA و Flyway را غیرفعال می‌کند. بنابراین اتصال اجزای HTTP بدون دیتابیس بررسی می‌شود. اجرای عادی این بخش‌ها را فعال نگه می‌دارد و به `DB_URL`، `DB_USERNAME`، `DB_PASSWORD` و SQL Server در دسترس نیاز دارد. این تست persistence را بررسی نمی‌کند. تنظیم SQL Server اعتبارنامهٔ محیطی و schema validation دارد؛ migration اول منتظر مرور صحت است و fallback به H2 نداریم.
 
 `redis` دسترسی آینده به پاسخ نهایی و `kafka` ابزار producer/consumer مرحلهٔ outbox و تاریخچه را فراهم می‌کنند. تنظیمات نمونه به معنی پیاده‌سازی cache، event schema یا listener نیستند. idempotence تولیدکنندهٔ Kafka، بازنشر application outbox را حذف نمی‌کند و consumer همچنان dedup می‌خواهد.
 
@@ -27,3 +27,7 @@ JPA، Flyway، `org.flywaydb:flyway-sqlserver` و driver زمان اجرای `co
 `./mvnw verify` اسکلت پیش‌فرض را بررسی می‌کند. فرمان `./mvnw -Predis,kafka,security -DskipTests package` سازگاری dependency و compile کلاس‌پث کامل را بررسی می‌کند؛ اتصال زیرساخت یا تست persistence/خرابی نیست. معیارهای واقعی هر قابلیت هم‌زمان با آن اضافه شوند.
 
 منابع: [Initializr](https://start.spring.io/)، [Spring Boot](https://docs.spring.io/spring-boot/)، [profiles](https://docs.spring.io/spring-boot/reference/features/profiles.html)، [Flyway SQL Server](https://documentation.red-gate.com/fd/sql-server-database-277579330.html). مرجع نسخهٔ دقیق POM پروژه است.
+
+## دامنهٔ پذیرفته‌شدهٔ گزینهٔ E در ۲۰۲۶-۱۰-۲۲
+
+[Ledger.md](Ledger.md) مسئولیت projection حساب، هویت عملیات و ساخت/ثبت سند را مشخص می‌کند. هنگام پیاده‌سازی مرزهای feature حفظ شوند؛ اکنون package خالی یا سرویس دوم ساخته نشود. `BalanceService` قرارداد داخلی بدون پیاده‌سازی است و کد مالی موجودی برای جایگزینی نداریم. قواعد دامنه در CBS05 و persistence بررسی‌شده در CBS09–10 اضافه می‌شوند.

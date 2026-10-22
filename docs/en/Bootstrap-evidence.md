@@ -34,3 +34,9 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 ```
 
 Java 21.0.11 passed the enforcer check. BUILD SUCCESS in 6.889 seconds: one HTTP smoke test, zero failures/errors/skips; the smoke Spring profile was active and the executable JAR was packaged. Upstream Flyway repository metadata requests returned 401 warnings and Mockito reported dynamic-agent warnings; neither prevented completion. This is learner-supplied bootstrap execution evidence only. SQL Server connectivity, migrations and financial behavior remain unverified. CBS00 explanation, changed-case reasoning and remaining Git/CI review evidence must be assessed separately.
+
+## Accepted option E scope, 2026-10-22
+
+On 2026-10-22 the user accepted option E, recorded in [ADR-007](../adr/ADR-007-double-entry-ledger.en.md). This changes planned V1 scope to the four-table ledger and synchronous projections. Historical bootstrap build counts above remain bootstrap evidence only. This design update does not demonstrate financial endpoints, migrations, accounting correctness, SQL Server compatibility or learner mastery.
+
+Option E alignment verification on 2026-10-22: Java 21 `./mvnw -B -ntp clean verify` passed one HTTP smoke test with zero failures, errors or skips; total 7.251 seconds. The first sandboxed attempt could not open the Maven cache lock; rerun with cache/loopback access succeeded. Only interface documentation changed in Java. No SQL Server accounting test was run. The associated Learning Loop vault validator returned valid with no errors. No learner task was accepted by these checks.

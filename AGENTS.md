@@ -9,3 +9,7 @@ Use feature-based packages and constructor injection. Comments explain intent an
 Branches use descriptive lowercase names with feature/, fix/, refactor/, docs/, test/, perf/, build/, ci/ or chore/. Never include assistant/tool identities. Commit messages have three sections: a capitalized imperative Type: summary; a 1–3 sentence reason; and Key changes include: with implementation bullets. See docs/en/Workflow.md.
 
 Run ./mvnw verify for bootstrap changes and appropriate real integration/failure tests for financial changes. Never claim skipped tests passed. Keep credentials, OTP secrets, production data and the company PDF out of Git.
+
+## Accepted ledger scope, 2026-10-22
+
+Follow accepted ADR-007 and docs/en/Ledger.md with their Persian pairs. V1 requires accounts, operations, journals and postings. Commit balanced immutable posting history, account balance projections and operation success together; rejection has no journal, replay adds none. Opening balances require journals and credit/debit require funding counterparts. Preserve CBS02–04 constraint/transaction review before business migrations and the guided implementation sequence. Do not treat double-entry as optional or introduce a separate ledger service. Design acceptance is not financial implementation or measured evidence.

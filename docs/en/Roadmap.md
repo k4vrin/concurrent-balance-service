@@ -11,7 +11,7 @@ A phase is complete only when its code, tests, migrations where applicable, and 
 | Phase | Deliverable | Required evidence before moving on | Example branch |
 | --- | --- | --- | --- |
 | P0 | Requirements, threat assumptions, ADR review, pinned toolchain, repository skeleton and CI | Four-operation contract; transaction ID policy; failure matrix; database choice; invariant and query inventory; wrapper runs on Java 21 | `docs/balance-service-design` |
-| P1 | V1 JSON HTTP API for all four operations backed by SQL Server; Docker setup and account initialization | All four operations; checked integer money; atomic transfer; ordered row locks; durable operation identity; DTO validation; stable errors; HTTP-to-database, unit and real SQL Server integration tests | `feature/core-balance-service` |
+| P1 | V1 JSON HTTP API for all four operations backed by SQL Server; Docker setup, four-table ledger and journal-backed initialization | Balanced immutable journals/postings; atomic projections; independent reconciliation; all four operations; checked integer money; atomic transfer; ordered row locks; durable operation identity; DTO validation; stable errors; HTTP-to-database, unit and real SQL Server integration tests | `feature/core-balance-service` |
 | P2 | SQL correctness and query baseline | Direct-SQL constraint tests; rollback evidence; actual cursor plans for hot queries; baseline mixed and hot-account load report | `test/database-correctness-baseline` |
 | P3 | Authenticated access and API security hardening | Request validation; owner/role checks; cross-user replay denied; credit/debit funding privileges; error contract; bypass tests | `feature/balance-http-api` |
 | P4 | Transaction-bound one-time transfer confirmation | Immutable intent; expiration and attempts; atomic consumption with transfer; replay and concurrent-confirmation tests; no secret logging | `feature/transfer-confirmation` |
@@ -24,7 +24,7 @@ P1 should be split into small PRs: HTTP contract and adapter foundation, schema,
 
 ## Challenge baseline
 
-V1 delivers `credit`, `debit`, `transfer`, and `getBalance` semantics through the [HTTP API](API-v1.md). The existing Java interface is internal scaffolding; its signatures may evolve and are not the release boundary. String account IDs may map internally to typed identifiers. Use `long` minor units, one explicit currency initially, positive amounts, and overflow rejection. Seed balances are fixture/bootstrap behavior and must be documented. A successful transfer moves the exact same amount between two existing, distinct accounts.
+V1 delivers `credit`, `debit`, `transfer`, and `getBalance` semantics through the [HTTP API](API-v1.md). The existing Java interface is internal scaffolding; its signatures may evolve and are not the release boundary. String account IDs may map internally to typed identifiers. Use `long` minor units, one explicit currency initially, positive amounts, and overflow rejection. Nonzero fixture/bootstrap balances require internal opening operations with balanced postings, as defined in Ledger.md. A successful transfer moves the exact same amount between two existing, distinct accounts.
 
 All operation types share a global transaction ID namespace for this single-tenant baseline. A different payload or operation type under an existing ID conflicts. Fingerprints include operation type, account IDs, amount, currency and authenticated actor when authentication exists; exclude OTP secrets, retry timestamps, and transport correlation IDs. Bind current authorization before returning a stored result. Define business rejection replay and transient failure retry separately in ADR-002.
 
@@ -43,3 +43,7 @@ Debezium is deliberately later than the polling outbox. SQL Server CDC may requi
 ## First concrete milestone
 
 Review ADR-001 through ADR-003 and the database-review table before writing migration V1. Use the existing Java 21/Spring Boot/Maven bootstrap, define the HTTP contract and build durable balance lookup, credit, debit and transfer paths through controllers to SQL Server. Tag the full tested P1/P2 baseline separately so optional infrastructure cannot obscure challenge completion.
+
+## Accepted option E scope, 2026-10-22
+
+P0 now includes accepted ADR-007 plus pending CBS02–04 constraint/identity/transaction review. P1 requires all four ledger tables, accounting domain rules, opening entries, funding counterparts, immutable journals/postings and atomic synchronous projections alongside the four HTTP operations. The P1 gate includes journal counts on replay, absence on rejection, write-boundary rollback and independent reconstruction of every account from postings. P2 adds reconciliation/history query plans, posting/index/log cost and shared funding-account contention. Future FX extends this existing single-currency ledger; it does not introduce the first ledger.

@@ -6,27 +6,27 @@ Status: pre-schema proposal, no DDL applied and no measurements. [فارسی](..
 
 ## Review before migration V1
 
-Start with conceptual `accounts` and `operations`. Later phases add `transfer_intents`, `outbox_events`, `processed_events` and `transaction_history`. Table and column names below are proposed. An operation row represents one credit, debit or complete transfer and its durable outcome. Internal generated row IDs and client transaction IDs are different concepts.
+Accepted option E starts with conceptual `accounts`, `operations`, `journals` and `postings`; see [Ledger.md](Ledger.md) and [ADR-007](../adr/ADR-007-double-entry-ledger.en.md). Later phases add `transfer_intents`, `outbox_events`, `processed_events` and `transaction_history`. Table and column names below are proposed. An operation row represents one credit, debit or complete transfer and its durable outcome. Internal generated row IDs and client transaction IDs are different concepts.
 
-Before accepting V1 settle: SQL Server image/version and portability boundary; identifier representation; a fixed money unit/currency; account initialization authority; global transaction ID scope; maximum value; rejection persistence; retention; account closure/deletion; and whether double-entry history starts now or later. Capture changes in ADRs before migrations.
+Before accepting V1 settle: SQL Server image/version and portability boundary; identifier representation; a fixed money unit/currency; account initialization authority; global transaction ID scope; maximum value; rejection persistence; retention; account closure/deletion; and detailed posting/account-category rules. Double-entry starts in V1 by accepted design; the detailed schema still needs review. Capture changes in ADRs before migrations.
 
 | Invariant | Proposed safeguard | What it does not prove | Cost hypothesis / evidence needed |
 | --- | --- | --- | --- |
 | Required identity/amount/outcome fields exist | Named NOT NULL plus application validation | Correct authorization or request meaning | Validation CPU; invalid direct-SQL tests |
 | Amount positive and Java-compatible integer | `amount > 0`, integer representation, explicit signed-long upper bound | Safe multi-value arithmetic | Row checks; overflow tests and checked Java arithmetic |
-| Balance nonnegative and within long range | NOT NULL and range CHECK | Correct read-check-write concurrency | Per-update validation; direct SQL and concurrent debits |
+| Customer balance nonnegative; system balance follows its category policy; all within long range | NOT NULL and category-aware range CHECK | Correct read-check-write concurrency | Per-update validation; direct SQL and concurrent debits |
 | One transaction ID across all mutation types | NOT NULL plus global UNIQUE transaction ID | Same payload, caller access or a new ID for the same intent | Unique-index writes, duplicate contention, storage |
 | Referenced accounts exist | Named foreign keys for participating accounts | Ownership, active status or currency match | Lookup/index maintenance; FK index review and orphan test |
 | Operation shape matches type | Type allowlist and conditional row CHECK for required/forbidden source/destination | Cross-row state | Check evaluation and migration cost for new types |
 | Transfer source differs from destination | Conditional CHECK plus service validation | Both updates commit together | Small row check; direct SQL rejection |
-| Equal debit and credit in a transfer | One amount and one database transaction covering both accounts | Complete ledger reconciliation | Account writes, lock duration, transaction-log/version-store work; failure injection |
+| Balanced journal and synchronous projections | Validated complete posting set and one transaction covering operation, journal, postings and all account projections | Independent reconstruction or correct account selection | Projection and posting writes, lock duration, transaction-log/version-store work; failure injection |
 | No lost updates | Ordered account row locks before validation; all balance writers obey protocol | Unlimited throughput on one hot account | Lock waits, connection saturation and hot-account test |
 | OTP authorizes one immutable intent | Owner binding, immutable financial fields, intent row lock, unique executed intent linkage | Secure delivery channel by itself | Intent writes and contention; concurrent-confirm tests |
 | History consumer applies an event once | Unique `(consumer_name, event_id)` with effect in same transaction | Exactly-once delivery from Kafka | Dedup-index writes, retention and duplicate test |
 
-A CHECK that evaluates to unknown can permit null values; pair required conditions with NOT NULL and explicit operation-shape handling. SQL Server collation and trailing-space comparisons can affect textual identity. Choose and test explicit transaction-ID comparison semantics; reject blank IDs at the application boundary. Use SQL Server `BIGINT` for Java long minor units and CHECK nonnegative balances/positive amounts. Validate input before conversion; database numeric coercion alone is not an API validation contract.
+A CHECK that evaluates to unknown can permit null values; pair required conditions with NOT NULL and explicit operation-shape handling. SQL Server collation and trailing-space comparisons can affect textual identity. Choose and test explicit transaction-ID comparison semantics; reject blank IDs at the application boundary. Use SQL Server `BIGINT` for Java long minor units and category-aware balance checks and positive posting amounts. Validate input before conversion; database numeric coercion alone is not an API validation contract.
 
-Normal row CHECK constraints cannot verify a transfer across two account rows, ownership in another table, or balanced totals over multiple postings. Do not label such invariants “database CHECK enforced.” If double-entry is added, enforce balanced construction and transactional persistence, restrict alternate writers, and reconcile postings against cached balances.
+Normal row CHECK constraints cannot verify a transfer across two account rows, ownership in another table, or balanced totals over multiple postings. Do not label such invariants “database CHECK enforced.” Double-entry is required by ADR-007. Enforce balanced construction and transactional persistence, restrict alternate writers, and reconcile postings against cached balances.
 
 ## Index review before adding indexes
 
@@ -45,3 +45,12 @@ Measure committed financial operations/second, end-to-end p50/p95/p99, failures 
 Report template: experiment ID; date/commit; invariant; variants; SQL/DDL diff; fixed workload; hardware/version; warmup/repeats; raw results; percentage with spread; correctness result; confounders; decision; evidence path. Initial result for every constraint: **not measured**. Set numeric performance targets after recording a baseline and the user's target environment, not as invented production SLOs.
 
 Sources: [SQL Server constraints](https://learn.microsoft.com/en-us/sql/relational-databases/tables/unique-constraints-and-check-constraints), [SQL Server optimizer statistics](https://learn.microsoft.com/en-us/sql/relational-databases/statistics/statistics). Recheck against the pinned database version.
+
+## Four-table review checklist for option E
+
+- `journals.operation_id` is mandatory and unique. Committed success has exactly one complete journal; rejected operations have none. Review this cross-row protocol explicitly, including internal opening operations.
+- Postings require journal/account foreign keys, positive BIGINT amounts, explicit DEBIT/CREDIT sides and currency-consistent account references. Review composite keys or equivalent safeguards for currency matching. No cascading deletion of posted history.
+- A journal has at least two lines, both sides and equal totals per currency. These are cross-row invariants, not ordinary row CHECK guarantees. Restrict alternate writes; test the controlled posting path and attempted history updates/deletes.
+- Customer liability projections cannot go below zero. Signed synthetic funding/clearing balances follow the documented account policy. Check every projected balance for overflow before applying any delta.
+- Opening balances use internal operation/journal/posting records. Reconcile each projection from the complete immutable history with a consistent committed view and an exact wider accumulator. Inject corruption in isolated tests and detect it independently.
+- Review posting access by account and stable journal/line identity, unique operation-to-journal lookup, FK indexes, reconciliation joins and append-only permissions. Measure storage, log bytes, lock duration and shared funding-row contention before choosing additional indexes.

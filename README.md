@@ -80,4 +80,8 @@ No migration has been written. Flyway may initialize its history table in the su
 - [Git and bilingual documentation workflow](docs/en/Workflow.md) / [فارسی](docs/fa/Workflow.md)
 - [Accepted bootstrap decision](docs/adr/ADR-000-bootstrap.en.md) / [فارسی](docs/adr/ADR-000-bootstrap.fa.md)
 
-The repository is authoritative for the evolving implementation plan. Earlier vault documents retain discussion history. Financial design ADRs remain proposed. No constraint-overhead or throughput numbers have been measured. The next milestone is accepting the P1 transaction/constraint protocol and writing its SQL Server migration, then implementing and testing all four operations.
+The repository is authoritative for the evolving implementation plan. Earlier vault documents retain discussion history. ADR-007 accepts the ledger architecture; detailed financial protocols remain proposed pending review. No constraint-overhead or throughput numbers have been measured. The next milestone is accepting the P1 transaction/constraint protocol and writing its SQL Server migration, then implementing and testing all four operations.
+
+## Accepted V1 ledger design
+
+The user selected option E on 2026-10-22. V1 includes `accounts`, `operations`, `journals` and `postings`, immutable balanced accounting history and synchronous balance projections committed in one SQL Server transaction. Credit/debit use funding counterparts and nonzero initialization uses opening journals. See [Ledger design](docs/en/Ledger.md) and [ADR-007](docs/adr/ADR-007-double-entry-ledger.en.md). The design is accepted; financial code, schema and SQL Server evidence remain absent. Detailed constraint/transaction review still precedes business migrations.

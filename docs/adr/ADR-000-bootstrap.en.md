@@ -11,3 +11,5 @@ Maven profiles alter packaged dependencies; Spring profiles alter runtime config
 Costs: profile commands are longer, and each integration classpath needs its own build/test gates. The default smoke test cannot certify the integrated classpath or real SQL Server behavior. CI compiles all staged libraries separately; real integration tests arrive with their features. Do not introduce H2 or silently disable migrations to call SQL Server tests passed.
 
 Spring Initializr generated an unavailable 4.1.1.RELEASE coordinate; normalize to published 4.1.1 and verify the resulting build. Source details are in the starter guide. Evidence status is recorded in the bootstrap evidence file after verification, not inferred from this decision.
+
+Scope update, 2026-10-22: [ADR-007](ADR-007-double-entry-ledger.en.md) accepts the four-table ledger architecture from V1. The original financial-design status above is historical; detailed transaction/constraint protocols still require review. No financial implementation is claimed.

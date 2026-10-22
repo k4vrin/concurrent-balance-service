@@ -61,3 +61,7 @@ README.fa.md
 Keep ADR IDs, phase IDs, query IDs, status labels and code identifiers stable across languages. Update paired documents in the same PR; translate meaning and examples, not only headings. Acceptance criteria and limitations must agree. Keep SQL/code blocks left-to-right and Persian explanation outside them. Record user-approved scope separately from proposed architecture, implemented code and measured evidence.
 
 For each phase record commit/PR, date, tests actually run, environment, sanitized result location, known gaps and next gate. Do not mark a feature complete from a design note, stale report or compile success. No credentials, live OTPs, production data or company PDF enter public Git.
+
+## Accepted option E scope, 2026-10-22
+
+Changes to financial behavior must preserve the accepted [ledger boundary](Ledger.md). Review four-table constraints and transaction protocol before migration. P1 reviews require one journal per success, none per rejection, no additional postings on replay, immutable history and atomic projection updates. Include independent reconciliation and real SQL Server rollback/race evidence in the core gate. P6 reporting consumers never post money again. Preserve the guided task sequence and separate design acceptance from implementation and learner evidence.

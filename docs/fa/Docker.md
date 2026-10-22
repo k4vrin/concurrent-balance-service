@@ -40,3 +40,7 @@ Spring Boot فایل `.env` مربوط به Compose را خودکار وارد �
 نصب بومی Windows یک [جایگزین اختیاری](Windows-sqlserver.md) است.
 
 منابع: [استقرار و پشتیبانی معماری مایکروسافت](https://learn.microsoft.com/en-us/sql/linux/sql-server-linux-docker-container-deployment?view=sql-server-ver17)، [متغیرهای محیطی Docker Compose](https://docs.docker.com/compose/how-tos/environment-variables/).
+
+## دامنهٔ پذیرفته‌شدهٔ گزینهٔ E در ۲۰۲۶-۱۰-۲۲
+
+پس از مرور CBS02–04، CBS09 schema چهارجدولی [Ledger.md](Ledger.md) را اعمال می‌کند. دیتابیس پیش از migration خالی باشد. fixture حساب را با projection صفر می‌سازد و افتتاحیهٔ غیرصفر از عملیات داخلی و posting متوازن عبور می‌کند؛ UPDATE بدون سند برای seed مجاز نیست. Docker صحت دفترکل را ثابت نمی‌کند. Compose و migration مالی هنوز پیاده‌سازی نشده‌اند.

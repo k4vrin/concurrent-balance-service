@@ -34,3 +34,9 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 ```
 
 Java 21.0.11 بررسی enforcer را گذراند. BUILD SUCCESS در ۶٫۸۸۹ ثانیه: یک تست HTTP smoke، صفر failure/error/skip؛ profile مربوط به smoke فعال و JAR اجرایی ساخته شد. درخواست metadata بعضی repositoryهای Flyway هشدار 401 و Mockito هشدار dynamic agent داشتند؛ مانع تکمیل نشدند. این فقط شاهد اجرای bootstrap ارائه‌شده توسط یادگیرنده است. اتصال SQL Server، migration و رفتار مالی بررسی نشده‌اند. توضیح CBS00، استدلال حالت تغییریافته و شواهد باقی‌ماندهٔ مرور Git/CI جدا ارزیابی شوند.
+
+## دامنهٔ پذیرفته‌شدهٔ گزینهٔ E در ۲۰۲۶-۱۰-۲۲
+
+کاربر در ۲۰۲۶-۱۰-۲۲ گزینهٔ E را در [ADR-007](../adr/ADR-007-double-entry-ledger.fa.md) پذیرفت. دامنهٔ V1 اکنون دفترکل چهارجدولی و projection هم‌زمان است. شمارش build قبلی فقط شاهد bootstrap باقی می‌ماند. این تغییر طراحی اثبات endpoint مالی، migration، صحت حسابداری، سازگاری SQL Server یا تسلط یادگیرنده نیست.
+
+بررسی هم‌راستایی گزینهٔ E در ۲۰۲۶-۱۰-۲۲: دستور `./mvnw -B -ntp clean verify` با Java 21 و یک تست HTTP، صفر failure/error/skip در ۷٫۲۵۱ ثانیه موفق شد. تلاش sandbox اولیه به قفل cache Maven دسترسی نداشت و اجرای مجاز با دسترسی cache/loopback موفق شد. تغییر جاوا فقط مستند قرارداد است؛ تست حسابداری SQL Server اجرا نشد. validator مسیر یادگیری vault بدون خطا معتبر بود. هیچ کار یادگیرنده با این بررسی پذیرفته نشد.

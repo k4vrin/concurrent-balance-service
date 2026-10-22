@@ -56,3 +56,7 @@ SET STATISTICS IO OFF;
 در `docs/performance/<query-id>/<run-id>/` تاریخ/commit، schema/نسخه/compatibility، SQL و bind پاک‌سازی‌شده، داده، پلن/statistics، تغییر، نمونهٔ خام، پراکندگی latency/throughput، کنترل صحت، گلوگاه و تصمیم حفظ/بازگشت ثبت شود. خروجی حجیم با روش بازتولید می‌تواند ignored باشد. Query Store در آینده برای تاریخچهٔ پلن مفید است؛ وجود و پیکربندی آن روی نسخهٔ منتخب بررسی شود.
 
 منابع: [پلن واقعی](https://learn.microsoft.com/en-us/sql/relational-databases/performance/display-an-actual-execution-plan)، [IO](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql)، [TIME](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-time-transact-sql)، [locking](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide). با نسخهٔ پروژه تطبیق داده شوند.
+
+## دامنهٔ پذیرفته‌شدهٔ گزینهٔ E در ۲۰۲۶-۱۰-۲۲
+
+queryهای P1/P2 برای سند با operation ID یکتا، posting حساب با شناسهٔ سطر پایدار، جمع سند به‌ازای ارز و بازسازی projection شامل افتتاحیه اضافه شوند. این queryهای دفترکل مرجع با تاریخچهٔ Kafka در P6 جدا هستند. تطبیق از fixture بدون writer یا snapshot سازگار استفاده کند. فضای posting/index، log و رقابت ردیف تأمین در credit/debit سنجیده شود. تست پیشرفت مستقل مجموعهٔ کامل حساب‌های مجزا لازم دارد. هیچ query یا اندازه‌گیری هنوز اجرا نشده است.

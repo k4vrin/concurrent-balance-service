@@ -2,9 +2,9 @@
 
 # Architecture decision register
 
-Status: all entries Proposed; no acceptance or implementation claimed. Date: 2026-10-20. [فارسی](../fa/Decisions.md)
+Status: ADR-001–005 protocols remain Proposed. ADR-007 accepts the V1 ledger design on 2026-10-22; implementation and financial evidence remain absent. Original register date: 2026-10-20. [فارسی](../fa/Decisions.md)
 
-Configuration decisions are separate: [ADR-006](../adr/ADR-006-default-sqlserver.en.md) records the accepted removal of the SQL Server Maven/Spring profiles on 2026-10-22. The financial entries below remain Proposed.
+Configuration decisions are separate: [ADR-006](../adr/ADR-006-default-sqlserver.en.md) records the accepted removal of the SQL Server Maven/Spring profiles on 2026-10-22. [ADR-007](../adr/ADR-007-double-entry-ledger.en.md) accepts option E and supersedes the optional ledger clause in ADR-003. The detailed financial protocols below still require review.
 
 ## ADR-001: Durable correctness boundary
 
@@ -12,7 +12,7 @@ Scope amendment, 2026-10-22: V1 is an HTTP API for all four operations, built as
 
 Context: money movement, retries and later external systems must agree after failures. Proposal: a modular Spring Boot service with SQL Server as the financial authority, Java 21, Maven wrapper, Flyway and real SQL Server integration tests. SQL Server is the selected bootstrap persistence target following the discussion. Pin the server edition/version and verify it against the chosen JDBC/Flyway versions before accepting schema behavior.
 
-Commit account changes, immutable financial operation identity/outcome and later outbox rows in one local database transaction. Lock participating account rows in a consistent sorted order. Each operation must have an identifiable point at which its committed result becomes visible. No global service lock. Set bounded lock waits and distinguish business rejection from retryable infrastructure failure. Account read returns committed data; multiple separate reads do not promise a shared snapshot.
+Commit account projections, operation identity/outcome, one journal, its immutable postings and later outbox rows in one local database transaction. Lock all participating customer and system account rows in a consistent sorted order. Each operation must have an identifiable point at which its committed result becomes visible. No global service lock. Set bounded lock waits and distinguish business rejection from retryable infrastructure failure. Account read returns committed data; multiple separate reads do not promise a shared snapshot.
 
 Alternatives: in-memory state loses restart durability; optimistic updates can work but require bounded whole-transaction retries; conditional SQL can work but needs an explicit two-account protocol. Redis locks introduce leases and another failure boundary without replacing database correctness. Costs: account contention, lock waits, connection usage, transaction-log/version-store work and operation-table growth. Acceptance evidence: direct SQL tests, simultaneous requests, opposite transfers and fail-before-commit rollback.
 
@@ -22,7 +22,7 @@ Context: a client controls transaction IDs; a new ID can represent a genuinely n
 
 Proposal: one globally unique transaction ID across credit/debit/transfer for the single-tenant service. Store canonical request fingerprint, actor binding and terminal outcome with the financial transaction. Distinct IDs for the same future transfer intent cannot execute it twice; add independent uniqueness on the executed intent ID in P4. Duplicate requests return the original business outcome, while payload mismatch conflicts. Authenticate and authorize the current caller before returning any replay; unknown ownership must not disclose another actor's result.
 
-Proposed rejection policy: well-formed, authorized requests rejected for business reasons persist a terminal rejection without balance changes. Retrying the same ID returns that rejection even after funds change. Syntax/authentication/authorization failures do not create financial operation rows. Technical failures before commit leave no terminal success; retries recover through database identity checks. Revalidate transient failures without silently converting them into permanent business rejections.
+Proposed rejection policy: well-formed, authorized requests rejected for business reasons persist a terminal rejection without balance changes, journals or postings. Retrying the same ID returns that rejection even after funds change. Syntax/authentication/authorization failures do not create financial operation rows. Technical failures before commit leave no terminal success; retries recover through database identity checks. Revalidate transient failures without silently converting them into permanent business rejections.
 
 Redis stores only immutable terminal-response copies keyed by environment and transaction ID, with a fingerprint and schema version. On miss, expiry, corruption, mismatch or outage consult the database; never interpret cache absence as permission to debit. Only populate from a committed result. Any cache-hit path still checks current access. Terminal-result corrections require a version/invalidation policy before permitting such corrections. Database records or durable uniqueness tombstones outlive Redis TTL; deleting identity changes the retry guarantee and requires an ADR. No performance improvement is claimed before measurement.
 
@@ -30,9 +30,9 @@ Alternatives: Redis-only records leave a database/Redis commit gap; Redis-based 
 
 ## ADR-003: Database constraints before schema
 
-Proposal: review [Database-review.md](Database-review.md) before V1. Map each invariant to its transaction rule, database safeguard, attack/race test and cost experiment. Keep basic positive-amount, nonnegative-balance, mandatory-reference and identity constraints even if they have a measured cost; investigate the bottleneck before weakening financial invariants.
+Proposal: review [Database-review.md](Database-review.md) before V1. Map each invariant to its transaction rule, database safeguard, attack/race test and cost experiment. Keep basic positive-amount, category-aware balance-bound, mandatory-reference and identity constraints even if they have a measured cost; investigate the bottleneck before weakening financial invariants.
 
-Ordinary row CHECK constraints cannot enforce the entire two-account transfer or a sum over postings. Enforce cross-row balance through the transaction/posting path, permissions and reconciliation. Double-entry history is a proposed extension to the core schema, not a reason to delay a correct four-operation baseline. If introduced, define funding/clearing accounts for standalone credit/debit and prohibit unaudited alternate balance writes. No percentage overhead is known yet.
+Ordinary row CHECK constraints cannot enforce the entire two-account transfer or a sum over postings. Enforce cross-row balance through the transaction/posting path, permissions and reconciliation. Superseded scope clause, 2026-10-22: accepted [ADR-007](../adr/ADR-007-double-entry-ledger.en.md) requires double-entry history from V1. Use the four-table model, funding/clearing counterparts, opening journals and independent reconciliation in [Ledger.md](Ledger.md). Prohibit unaudited alternate balance writes. No percentage overhead is known yet.
 
 ## ADR-004: Transaction-bound confirmation
 
@@ -42,7 +42,7 @@ Proposed endpoints: `POST /transfer-intents`, `POST /transfer-intents/{id}/chall
 
 Store an HMAC of a cryptographically generated short-lived random code with a secret held outside the database. An ordinary unsalted hash is insufficient protection for a short numeric code against offline guessing. Use a constant-time comparison, bounded attempts and resend limits; final policy values and delivery channel require a security review. Never log or return a live code in production. Start with a fake delivery adapter confined to tests/local development; this does not prove real second-factor delivery or phishing resistance.
 
-Lock the intent before its accounts in all confirmation paths; acquire accounts in sorted order. Verify actor, fingerprint, current intent state, expiry and code. Successful code consumption, intent completion, transfer execution, unique intent linkage, operation outcome and later outbox event commit together. Concurrent confirmations under different transaction IDs still execute the intent once. Keep network delivery outside money locks. Invalid-code attempt increments must commit even when the API reports rejection; avoid throwing inside a transaction in a way that rolls them back. Serialize resend, attempt counting and confirmation on the intent. A business rejection after a valid code is proposed as terminal and consumes the intent; the user must prepare a new intent for a new attempt.
+Lock the intent before its accounts in all confirmation paths; acquire accounts in sorted order. Verify actor, fingerprint, current intent state, expiry and code. Successful code consumption, intent completion, transfer journal/postings and projections, unique intent linkage, operation outcome and later outbox event commit together. Concurrent confirmations under different transaction IDs still execute the intent once. Keep network delivery outside money locks. Invalid-code attempt increments must commit even when the API reports rejection; avoid throwing inside a transaction in a way that rolls them back. Serialize resend, attempt counting and confirmation on the intent. A business rejection after a valid code is proposed as terminal and consumes the intent; the user must prepare a new intent for a new attempt.
 
 For a completed intent, authenticate/authorize and match the original operation identity/fingerprint before replaying its result; do not require a fresh valid OTP to retrieve an already-completed result. Do not allow this recovery path to execute a new operation. A status read allows recovery when the original transaction ID is unavailable.
 
@@ -50,7 +50,7 @@ Costs: extra round trips, state, delivery reliability, abuse controls and more d
 
 ## ADR-005: Events first, CDC later
 
-Proposal: append versioned, stable-ID events to an outbox in the same transaction as successful operations. A polling publisher sends to Kafka and marks progress only after broker acknowledgement. A crash between acknowledgement and marking can duplicate an event. A history consumer atomically inserts its processed-event identity and history effect in its own database transaction, then permits offset commit. Kafka transactions alone do not atomically commit an external database.
+Proposal: append versioned, stable-ID events to an outbox in the same transaction as successful operations, journals, postings and account projections. A polling publisher sends to Kafka and marks progress only after broker acknowledgement. A crash between acknowledgement and marking can duplicate an event. A history consumer atomically inserts its processed-event identity and history effect in its own database transaction, then permits offset commit. Kafka transactions alone do not atomically commit an external database.
 
 Events represent committed facts, not commands to move the balances again. Start with operation-centric history keyed by operation ID; account-wide order across multiple operations is not promised by this key. A later balance projection needs explicit per-account versions and ordering/reconciliation rules. Define retries, backoff, dead-letter inspection and recovery without skipping financial evidence silently.
 

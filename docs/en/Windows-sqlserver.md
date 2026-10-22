@@ -24,3 +24,7 @@ If Java runs on another machine, including the current Mac, use the Windows host
 Flyway, Hibernate and the SQL Server driver are included by default without Maven or Spring SQL Server profiles, but no financial migration exists and no server connectivity has been tested. The later Debezium gate must verify native CDC, SQL Server Agent/capture jobs, permissions, change-table retention and the exact edition/version supported by the connector. Prefer Developer over LocalDB/Express for the planned CDC experiments; do not assume every free edition exposes the needed jobs/features.
 
 Sources: [Windows setup](https://learn.microsoft.com/en-us/sql/database-engine/install-windows/install-sql-server-from-the-installation-wizard-setup), [SQL Server editions](https://learn.microsoft.com/en-us/sql/sql-server/editions-and-components-of-sql-server-2025), [JDBC encryption](https://learn.microsoft.com/en-us/sql/connect/jdbc/connecting-with-ssl-encryption), [Debezium SQL Server](https://debezium.io/documentation/reference/stable/connectors/sqlserver.html).
+
+## Accepted option E scope, 2026-10-22
+
+The optional native Windows route uses the same [four-table ledger](Ledger.md), reviewed migrations and integration tests as Docker. Initialize nonzero balances through opening journals after schema review; direct balance seeding bypasses accounting. Windows setup is not required for the selected Docker route.

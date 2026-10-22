@@ -24,3 +24,7 @@ certificate معتبر برای client استفاده شود. برای instance 
 Flyway، Hibernate و driver مربوط به SQL Server بدون profile در dependencyهای پیش‌فرض‌اند، ولی migration مالی و بررسی اتصال نداریم. معیار Debezium آینده باید CDC بومی، SQL Server Agent/capture job، مجوز، retention و edition/version سازگار را بررسی کند. برای آزمایش CDC نسخهٔ Developer به LocalDB/Express ترجیح دارد؛ وجود همهٔ featureها در هر نسخهٔ رایگان فرض نشود.
 
 منابع: [نصب Windows](https://learn.microsoft.com/en-us/sql/database-engine/install-windows/install-sql-server-from-the-installation-wizard-setup)، [editionها](https://learn.microsoft.com/en-us/sql/sql-server/editions-and-components-of-sql-server-2025)، [JDBC encryption](https://learn.microsoft.com/en-us/sql/connect/jdbc/connecting-with-ssl-encryption)، [Debezium SQL Server](https://debezium.io/documentation/reference/stable/connectors/sqlserver.html).
+
+## دامنهٔ پذیرفته‌شدهٔ گزینهٔ E در ۲۰۲۶-۱۰-۲۲
+
+مسیر اختیاری Windows همان [دفترکل چهارجدولی](Ledger.md)، migration بررسی‌شده و تست Docker را دارد. موجودی غیرصفر پس از مرور schema با سند افتتاحیه ساخته شود؛ seed مستقیم موجودی حسابداری را دور می‌زند. نصب Windows برای مسیر منتخب Docker لازم نیست.

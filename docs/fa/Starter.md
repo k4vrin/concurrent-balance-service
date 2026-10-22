@@ -14,7 +14,7 @@ Boot 4 starterهای ماژولار مانند `spring-boot-starter-webmvc`، `s
 
 Web MVC سرور HTTP، Validation زیرساخت اعتبارسنجی و Actuator health اسکلت را می‌دهند. هیچ‌کدام منطق مالی نیستند. تست، سرور واقعی روی پورت تصادفی را با HTTP client خود JDK بررسی می‌کند.
 
-profile Maven به نام `sqlserver`، JPA، Flyway، `org.flywaydb:flyway-sqlserver` و driver زمان اجرای `com.microsoft.sqlserver:mssql-jdbc` را اضافه می‌کند. به این ترتیب context پیش‌فرض نیازمند دیتابیس نیست. تنظیم SQL Server اعتبارنامهٔ محیطی و schema validation دارد؛ migration اول منتظر مرور صحت است و fallback به H2 نداریم.
+JPA، Flyway، `org.flywaydb:flyway-sqlserver` و driver زمان اجرای `com.microsoft.sqlserver:mssql-jdbc` dependency عادی Maven هستند. تنظیم SQL Server در `application.yaml` است؛ اجرای عادی بدون profile به دیتابیس نیاز دارد. تست HTTP از profile مخصوص تست `smoke` برای کنارگذاشتن auto-configuration مربوط به JDBC، Hibernate، JPA repositories و Flyway استفاده می‌کند و persistence را بررسی نمی‌کند. تنظیم SQL Server اعتبارنامهٔ محیطی و schema validation دارد؛ migration اول منتظر مرور صحت است و fallback به H2 نداریم.
 
 `redis` دسترسی آینده به پاسخ نهایی و `kafka` ابزار producer/consumer مرحلهٔ outbox و تاریخچه را فراهم می‌کنند. تنظیمات نمونه به معنی پیاده‌سازی cache، event schema یا listener نیستند. idempotence تولیدکنندهٔ Kafka، بازنشر application outbox را حذف نمی‌کند و consumer همچنان dedup می‌خواهد.
 
@@ -22,8 +22,8 @@ profile Maven به نام `sqlserver`، JPA، Flyway، `org.flywaydb:flyway-sqls
 
 ## ساختار و فرمان
 
-مرز نخست feature در `operation/application/BalanceService` است. interface قرارداد بدون bean اجرایی است. در پیاده‌سازی آینده persistence حساب، تراکنش، confirmation، idempotency و event adapter مرز روشن داشته باشند؛ لایه‌های خالی متعدد فعلاً ایجاد نشوند.
+مرز نخست feature در `operation/application/BalanceService` است. interface قرارداد بدون bean اجرایی است. این اسکلت داخلی است و معیار پذیرش V1 نیست. نسخهٔ اول HTTP API چهار عملیات را دارد؛ [API-v1.md](API-v1.md) را ببینید. امضاهای داخلی با اضافه‌شدن نتیجه‌های صریح قابل تغییرند. در پیاده‌سازی آینده persistence حساب، تراکنش، confirmation، idempotency و event adapter مرز روشن داشته باشند؛ لایه‌های خالی متعدد فعلاً ایجاد نشوند.
 
-`./mvnw verify` اسکلت پیش‌فرض را بررسی می‌کند. فرمان `./mvnw -Psqlserver,redis,kafka,security -DskipTests package` سازگاری dependency و compile کلاس‌پث کامل را بررسی می‌کند؛ اتصال زیرساخت یا تست persistence/خرابی نیست. معیارهای واقعی هر قابلیت هم‌زمان با آن اضافه شوند.
+`./mvnw verify` اسکلت پیش‌فرض را بررسی می‌کند. فرمان `./mvnw -Predis,kafka,security -DskipTests package` سازگاری dependency و compile کلاس‌پث کامل را بررسی می‌کند؛ اتصال زیرساخت یا تست persistence/خرابی نیست. معیارهای واقعی هر قابلیت هم‌زمان با آن اضافه شوند.
 
 منابع: [Initializr](https://start.spring.io/)، [Spring Boot](https://docs.spring.io/spring-boot/)، [profiles](https://docs.spring.io/spring-boot/reference/features/profiles.html)، [Flyway SQL Server](https://documentation.red-gate.com/fd/sql-server-database-277579330.html). مرجع نسخهٔ دقیق POM پروژه است.

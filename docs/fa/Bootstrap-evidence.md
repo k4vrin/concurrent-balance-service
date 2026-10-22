@@ -1,3 +1,5 @@
+شواهد تاریخی زیر مربوط به اسکلت مبتنی بر profile در ۲۰۲۶-۱۰-۲۰ است. در ۲۰۲۶-۱۰-۲۲ profileهای Maven و Spring مربوط به SQL Server حذف شدند؛ فرمان‌های فعلی در README است. اجرای عادی اکنون دیتابیس می‌خواهد و تست smoke، persistence را صریح کنار می‌گذارد.
+
 # شواهد اعتبارسنجی اسکلت
 
 تاریخ: ۲۰ اکتبر ۲۰۲۶، Asia/Tehran. [English](../en/Bootstrap-evidence.md)
@@ -12,3 +14,23 @@
 مختصات اولیهٔ ناموجود parent و انتظار بیش‌ازحد دقیق JSON قبل از موفقیت اصلاح شدند. این تست‌ها صحت مالی، migration، اتصال دیتابیس، رفتار Redis/Kafka، سیاست JWT، OTP، CDC، FX یا throughput را ثابت نمی‌کنند. عدد کارایی نداریم.
 
 معیار بعد: تکمیل تصمیم‌های P0، schema SQL Server و تست واقعی P1. خروجی build و لاگ generated و ignored هستند؛ فرمان‌ها قابل‌بازتولیدند.
+
+## بررسی حذف profile در ۲۰۲۶-۱۰-۲۲
+
+- JDK: JetBrains Runtime 21.0.11 روی macOS ARM64.
+- فرمان `./mvnw -B -ntp clean verify` موفق شد؛ یک تست HTTP smoke، صفر failure/error/skip. تست از profile مخصوص تست smoke استفاده می‌کند و اتصال SQL Server یا رفتار مالی را ثابت نمی‌کند.
+- build افزایشی اولیه موفق بود ولی YAML حذف‌شده در target مانده بود. clean build فایل قدیمی را حذف کرد. بررسی JAR حضور dependencyهای پیش‌فرض JPA/Flyway/JDBC مایکروسافت و نبود application-sqlserver.yaml و application-smoke.yaml مخصوص تست را تأیید کرد.
+- اجرای عادی JAR با حذف overrideهای DB/Spring به‌علت DB_URL تنظیم‌نشده طبق انتظار شکست خورد. اتصال موفق یا آماده‌سازی دیتابیس انجام نشده است.
+- اجرای اولیهٔ Maven در sandbox به cache دسترسی نداشت؛ بررسی بالا پس از مجازشدن دسترسی cache/شبکه انجام شد.
+- تصمیم تنظیمات: [ADR-006](../adr/ADR-006-default-sqlserver.fa.md).
+
+## اجرای bootstrap توسط یادگیرنده در ۲۰۲۶-۱۰-۲۲
+
+یادگیرنده خروجی ترمینال فرمان‌های زیر را ارائه کرد؛ پایان اجرا ساعت ۱۶:۲۲:۳۳ به وقت تهران بود:
+
+```sh
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+./mvnw -B -ntp clean verify
+```
+
+Java 21.0.11 بررسی enforcer را گذراند. BUILD SUCCESS در ۶٫۸۸۹ ثانیه: یک تست HTTP smoke، صفر failure/error/skip؛ profile مربوط به smoke فعال و JAR اجرایی ساخته شد. درخواست metadata بعضی repositoryهای Flyway هشدار 401 و Mockito هشدار dynamic agent داشتند؛ مانع تکمیل نشدند. این فقط شاهد اجرای bootstrap ارائه‌شده توسط یادگیرنده است. اتصال SQL Server، migration و رفتار مالی بررسی نشده‌اند. توضیح CBS00، استدلال حالت تغییریافته و شواهد باقی‌ماندهٔ مرور Git/CI جدا ارزیابی شوند.

@@ -4,7 +4,11 @@
 
 Status: all entries Proposed; no acceptance or implementation claimed. Date: 2026-10-20. [فارسی](../fa/Decisions.md)
 
+Configuration decisions are separate: [ADR-006](../adr/ADR-006-default-sqlserver.en.md) records the accepted removal of the SQL Server Maven/Spring profiles on 2026-10-22. The financial entries below remain Proposed.
+
 ## ADR-001: Durable correctness boundary
+
+Scope amendment, 2026-10-22: V1 is an HTTP API for all four operations, built as vertical slices against SQL Server. [API-v1.md](API-v1.md) supersedes the service-only delivery sequence. Internal Java signatures may evolve. HTTP transport does not change the local database transaction boundary. Initial access is local/trusted; P3 remains the authentication and authorization gate before shared/external use. This scope choice does not mark financial ADRs accepted or code implemented.
 
 Context: money movement, retries and later external systems must agree after failures. Proposal: a modular Spring Boot service with SQL Server as the financial authority, Java 21, Maven wrapper, Flyway and real SQL Server integration tests. SQL Server is the selected bootstrap persistence target following the discussion. Pin the server edition/version and verify it against the chosen JDBC/Flyway versions before accepting schema behavior.
 

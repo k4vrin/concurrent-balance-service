@@ -20,4 +20,4 @@ jobs:
       - name: Verify bootstrap
         run: ./mvnw -B -ntp verify
       - name: Compile staged integration dependencies
-        run: ./mvnw -B -ntp -Psqlserver,redis,kafka,security -DskipTests package
+        run: ./mvnw -B -ntp -Predis,kafka,security -DskipTests package

@@ -10,7 +10,7 @@ Target a protected, always-buildable `main` with short feature branches and pull
 
 Branch names use lowercase descriptive words and `feature/`, `fix/`, `refactor/`, `docs/`, `test/`, `perf/`, `build/`, `ci/` or `chore/`. Never include assistant/tool names or identities. Start each independent branch from current `main`; dependent PRs declare their base and dependency. Avoid combining Redis, OTP and Kafka into one PR.
 
-Proposed milestone tags: `v0.1.0` after P1/P2 challenge baseline, `v0.2.0` HTTP/auth, `v0.3.0` confirmation, `v0.4.0` Redis, `v0.5.0` Kafka and `v0.6.0` only after a successful CDC phase. These are planning labels, not releases. A failed CDC feasibility review does not block retaining the working polling release.
+Proposed milestone tags: `v0.1.0` after the P1/P2 four-operation HTTP API baseline, `v0.2.0` authenticated access, `v0.3.0` confirmation, `v0.4.0` Redis, `v0.5.0` Kafka and `v0.6.0` only after a successful CDC phase. These are planning labels, not releases. A failed CDC feasibility review does not block retaining the working polling release.
 
 Use squash merge by default with the final commit retaining all three required sections. Do not rewrite shared `main`. Revert faulty application changes through a new PR. For schema changes prefer forward corrections and compatible expand/contract migrations; a Git revert does not undo committed financial data or safely reverse every schema migration.
 
@@ -36,7 +36,7 @@ Use the appropriate capitalized type: `Feat`, `Fix`, `Refactor`, `Docs`, `Test`,
 
 Every PR states the concrete problem/result, scope, ADR and phase, schema/API changes, validation evidence, limits and rollback implications. Add meaningful tests for financial behavior and failures. Do not invent reviewer approval for a solo project; record self-review honestly.
 
-Required CI evolves by phase: Java 21 wrapper build/tests at P0; SQL Server migration and integration tests at P1; security/confirmation tests at P3/P4; Redis fault tests at P5; Kafka and consumer failure tests at P6. Pin service images and document prerequisites. Default full verification should eventually be one documented command that provisions disposable dependencies or uses a clearly documented prerequisite command. Separate a fast unit command from full integration verification; a unit-only green build does not certify persistence.
+Required CI evolves by phase: Java 21 wrapper build/tests at P0; HTTP contract, validation/error and SQL Server migration/integration tests at P1; security/confirmation tests at P3/P4; Redis fault tests at P5; Kafka and consumer failure tests at P6. Pin service images and document prerequisites. Default full verification should eventually be one documented command that provisions disposable dependencies or uses a clearly documented prerequisite command. Separate a fast unit command from full integration verification; a unit-only green build does not certify persistence.
 
 Before merge: required CI green, invariant tests pass, no secrets/OTP values in artifacts, and both language documents updated. Performance PRs include matched baseline and after results, actual plans where relevant, and a correctness regression run. Documentation-only PRs need link/content checks, not unnecessary infrastructure startup.
 

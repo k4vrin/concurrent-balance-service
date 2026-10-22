@@ -14,7 +14,7 @@ Boot 4 uses modular starter names, including `spring-boot-starter-webmvc`, `spri
 
 Default Web MVC supplies the embedded HTTP server; Validation prepares request validation; Actuator supplies the bootstrap health endpoint. None implements a financial use case. The smoke test starts a real embedded server on a random port and checks health with the JDK HTTP client.
 
-The `sqlserver` Maven profile adds JPA, Flyway, `org.flywaydb:flyway-sqlserver`, and runtime `com.microsoft.sqlserver:mssql-jdbc`. It keeps the database library stack out of the default no-infrastructure context. SQL Server runtime configuration uses environment credentials and schema validation. Migration V1 deliberately waits for correctness review. No H2 fallback is included.
+JPA, Flyway, `org.flywaydb:flyway-sqlserver`, and runtime `com.microsoft.sqlserver:mssql-jdbc` are normal Maven dependencies. SQL Server settings live in `application.yaml`; normal startup requires a database, without a SQL Server Maven or Spring profile. The HTTP smoke test uses a test-only `smoke` profile that excludes JDBC, Hibernate, JPA repositories and Flyway auto-configuration. This portable test does not validate persistence. SQL Server runtime configuration uses environment credentials and schema validation. Migration V1 deliberately waits for correctness review. No H2 fallback is included.
 
 The `redis` profile supplies Redis access for later completed-outcome replay. The `kafka` profile supplies producers/consumers for the later outbox/history phase. Configuration examples do not constitute cache, event schema or listener implementations. Kafka producer idempotence does not deduplicate application outbox republishes; consumer dedup remains necessary.
 
@@ -22,8 +22,8 @@ The `security` profile supplies JWT validation libraries/configuration, not a fi
 
 ## Structure and commands
 
-Code is organized by feature starting with `operation/application/BalanceService`. The interface is a contract without a bean implementation. Keep account persistence, transaction coordination, confirmation, idempotency and event adapters as explicit feature boundaries when implemented; avoid creating empty repository/service/controller layers now.
+Code is organized by feature starting with `operation/application/BalanceService`. The interface is a contract without a bean implementation. It is internal scaffolding, not the V1 acceptance target. V1 includes the four-operation HTTP API; see [API-v1.md](API-v1.md). Internal signatures may evolve as explicit outcomes are introduced. Keep account persistence, transaction coordination, confirmation, idempotency and event adapters as explicit feature boundaries when implemented; avoid creating empty repository/service/controller layers now.
 
-`./mvnw verify` validates the default bootstrap. `./mvnw -Psqlserver,redis,kafka,security -DskipTests package` validates compilation and dependency compatibility of the full planned classpath; it does not connect to infrastructure or run persistence/fault tests. Add those test gates with the corresponding feature.
+`./mvnw verify` validates the default bootstrap. `./mvnw -Predis,kafka,security -DskipTests package` validates compilation and dependency compatibility of the full planned classpath; it does not connect to infrastructure or run persistence/fault tests. Add those test gates with the corresponding feature.
 
 Sources: [Initializr](https://start.spring.io/), [Spring Boot](https://docs.spring.io/spring-boot/), [profiles](https://docs.spring.io/spring-boot/reference/features/profiles.html), [Flyway SQL Server support](https://documentation.red-gate.com/fd/sql-server-database-277579330.html). Dependency versions are resolved from the checked-in POM, not from a promise that a moving documentation URL matches this exact release.

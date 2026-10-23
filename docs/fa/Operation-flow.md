@@ -1,3 +1,5 @@
+> به‌روزرسانی persistence: [شواهد CBS10](Persistence.md) اکنون نگاشت JPA، fixture افتتاحیهٔ committed و route موجودی SQL Server را تأیید می‌کند. mutation هنوز unavailable است. گفته‌های قبلی دربارهٔ 503 برای همهٔ routeها و شواهد فقط schema در ادامه تاریخی‌اند.
+
 # راهنمای عملیات از JSON تا پاسخ HTTP
 
 [English](../en/Operation-flow.md) · [قرارداد API](API-v1.md) · [نتیجهٔ کسب‌وکار](Operation-outcomes.md) · [شواهد adapter](HTTP-adapter-evidence.md)

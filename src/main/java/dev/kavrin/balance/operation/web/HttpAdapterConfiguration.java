@@ -5,6 +5,8 @@ import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomize
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.DeserializationFeature;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
+import dev.kavrin.balance.account.application.GetBalanceHandler;
 import org.springframework.context.annotation.Configuration;
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.operation.application.BalanceOperations;
@@ -27,13 +29,21 @@ public class HttpAdapterConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(BalanceOperations.class)
-    BalanceOperations unavailableOperations() {
-        // Keep routes reviewable before CBS10–15 supplies durable handlers; never invent financial success.
+    BalanceOperations stagedOperations(ObjectProvider<GetBalanceHandler> balances) {
+        // Mutations stay unavailable until their durable transaction handlers are implemented.
         return new BalanceOperations() {
             public MutationResult credit(CreditCommand command) { throw unavailable(); }
             public MutationResult debit(DebitCommand command) { throw unavailable(); }
             public MutationResult transfer(TransferCommand command) { throw unavailable(); }
-            public Money balance(AccountId accountId) { throw unavailable(); }
+            public Money balance(AccountId accountId) {
+                var handler = balances.getIfAvailable();
+                if (handler == null) { throw unavailable(); }
+                try {
+                    return handler.handle(accountId);
+                } catch (org.springframework.transaction.TransactionException unavailable) {
+                    throw unavailable();
+                }
+            }
         };
     }
 

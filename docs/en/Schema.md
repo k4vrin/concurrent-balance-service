@@ -1,3 +1,5 @@
+> Current persistence update: [CBS10 evidence](Persistence.md) now verifies JPA mappings, committed opening fixtures and the SQL Server balance route. Mutations remain unavailable. Earlier all-route-503 and schema-only statements below are historical.
+
 # CBS09 SQL Server schema and migration runbook
 
 [فارسی](../fa/Schema.md) · [Contract](CBS09-contract.md) · [Local SQL Server](Docker.md) · [Integration harness](SQL-server-tests.md)

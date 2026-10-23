@@ -1,3 +1,5 @@
+> Current persistence update: [CBS10 evidence](Persistence.md) now verifies JPA mappings, committed opening fixtures and the SQL Server balance route. Mutations remain unavailable. Earlier all-route-503 and schema-only statements below are historical.
+
 # V1 HTTP API contract
 
 [فارسی](../fa/API-v1.md) · [Roadmap](Roadmap.md) · [Business outcomes and commit boundary](Operation-outcomes.md)

@@ -1,8 +1,10 @@
+> وضعیت فعلی مرور در ۲۰۲۶-۱۰-۲۳: مرور مهندسی CBS02–04 برای ورود به CBS09 کامل است. [قرارداد پیاده‌سازی](CBS09-contract.md) ذخیره‌سازی، SQL قفل، قیدها، مقدار اولیهٔ retry و اختیار را انتخاب می‌کند. بندهای انتخاب باز در ادامه تاریخی‌اند، مگر در قرارداد حفظ شده باشند. تأیید migration/entity/عملیات مالی در CBS09–20 انجام می‌شود؛ DDL کسب‌وکار اعمال نشده است.
+
 # ترتیب تراکنش و قفل CBS04
 
 [English](../en/Transaction-protocol.md) · [پروتکل هویت](Idempotency-protocol.md) · [دفترکل](Ledger.md) · [نتیجهٔ کسب‌وکار و مرز commit](Operation-outcomes.md)
 
-پیش‌نویس مرور مشترک در ۲۰۲۶-۱۰-۲۳. TransactionTemplate و coordinator با کنترل نبود تراکنش بیرونی امروز پذیرفته شد. ترتیب، isolation، نگاشت قفل و تنظیمات زیر تا مرور و آزمون پیشنهادند. کد مالی، DDL یا شاهد اجرا وجود ندارد.
+پیش‌نویس مرور مشترک در ۲۰۲۶-۱۰-۲۳. TransactionTemplate و coordinator با کنترل نبود تراکنش بیرونی امروز پذیرفته شد. ترتیب، isolation، نگاشت قفل و تنظیمات زیر تا مرور و آزمون پیشنهادند. اجرای مالی یا DDL کسب‌وکار نداریم. [آزمایش‌های native JDBC](Persistence-review.md) اکنون شواهد محدود قفل و مقایسه را فراهم می‌کنند.
 
 ## یک تلاش
 
@@ -30,10 +32,14 @@ credit مشتری B با حساب تأمین F ابتدا B و سپس F را ق�
 
 ## معیار پیش از persistence
 
-نمایش UUID و comparator برنامه پذیرفته و unit-test شده‌اند؛ نسخه و edition سرور، SQL قفل واقعی و تنظیمات اتصال/isolation، چرخهٔ رزرو و سریال‌سازی، ثبات سیاست و حساب‌های درگیر، retry محدود و طبقه‌بندی خطا و مجوز نقش runtime مرور شوند. سقف عددی کسب‌وکار باز است. پس از مرور مفهومی، پیاده‌سازی دامنه در CBS05 شروع می‌شود؛ migration و عملیات ماندگار علاوه بر آن، انتخاب SQL و تست واقعی می‌خواهند.
+نمایش UUID و comparator برنامه پذیرفته و unit-test شده‌اند؛ نسخه و edition سرور، SQL قفل واقعی و تنظیمات اتصال/isolation، چرخهٔ رزرو و سریال‌سازی، ثبات سیاست و حساب‌های درگیر، retry محدود و طبقه‌بندی خطا و مجوز نقش runtime مرور شوند. سقف عددی کسب‌وکار اکنون انتخاب شده است؛ [Amount-limits.md](Amount-limits.md) را ببینید. اعمال آن هنوز پیاده نشده است. پس از مرور مفهومی، پیاده‌سازی دامنه در CBS05 شروع می‌شود؛ migration و عملیات ماندگار علاوه بر آن، انتخاب SQL و تست واقعی می‌خواهند.
 
 تست‌ها شامل دو جهت، duplicate مطابق/متعارض، پیشرفت حساب مستقل، رقابت حساب سیستمی، rollback هر مرز نوشتن، retry قربانی، commit نامطمئن و reconciliation باشند. سند نوشتاری این رفتارها را تأیید نمی‌کند.
 
 منابع: [propagation در Spring](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html)، [TransactionTemplate](https://docs.spring.io/spring-framework/reference/data-access/transaction/programmatic.html)، [deadlock در SQL Server](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide). پیش از پذیرش، مکانیزم‌ها روی نسخهٔ واقعی بررسی شوند.
 
 [راهنمای بیت UUID و ترتیب قفل](UUID-lock-order.md) مبنای شانزده، two’s complement، دو نیمهٔ unsigned، علامت نتیجهٔ comparator و هر تست را با مثال قابل‌اجرا توضیح می‌دهد.
+
+## به‌روزرسانی مرور SQL، ۲۰۲۶-۱۰-۲۳
+
+[آزمایش واقعی و معیارهای باقی‌مانده](Persistence-review.md) طول عمر قفل پس از بستن result، آزادشدن با commit/rollback، پیشرفت کلید موجود مستقل و بازماندن تراکنش پس از خطای 1222 با XACT_ABORT OFF را ثبت می‌کند. تست native با کلید صحیح، قفل حساب UUID/JPA یا کل پروتکل مالی را تأیید نمی‌کند. [سقف پذیرفته‌شده](Amount-limits.md) رد ماندگار بالاتر از سقف را لازم می‌داند.

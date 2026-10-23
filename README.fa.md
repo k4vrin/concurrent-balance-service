@@ -1,5 +1,7 @@
 # سرویس موجودی هم‌زمان
 
+> گام فعلی: مرور مهندسی CBS02–04 برای ورود به CBS09 کامل است. [قرارداد migration](docs/fa/CBS09-contract.md) · [ADR-010](docs/adr/ADR-010-persistence-contract.fa.md). آخرین اجرا ۲۴۰ تست مستقل از زیرساخت و ۴۴ تست واقعی SQL Server را بدون failure، error یا skip گذراند. گام بعد migration چهار جدول و تست واقعی migration/قید/مجوز است. اجرای مالی هنوز پیاده نشده است.
+
 [مخزن عمومی](https://github.com/k4vrin/concurrent-balance-service) · [English](README.md)
 
 این پروژه از چالش موجودی هم‌زمان مفید شروع شده و با Java 21، Spring Boot 4.1.1 و Maven پیش می‌رود. دیتابیس هدف SQL Server است.
@@ -152,3 +154,9 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 ## تست integration مربوط به SQL Server در CBS08
 
 `./mvnw verify` مستقل از زیرساخت می‌ماند. `./mvnw -Psqlserver-it verify` تست JDBC واقعی را با متغیرهای صریح SQLSERVER_TEST_URL/USERNAME/PASSWORD روی cbs_test اضافه می‌کند و DB_* را به ارث نمی‌گیرد. شواهد فعلی ۲۴۰ تست Portable و پنج SQL Server، بدون failure، error یا skip است. [فرمان Bash/PowerShell و بررسی خطا](docs/fa/SQL-server-tests.md). این fixtureهای موقت migration مالی اجرا و تراکنش ledger اثبات نمی‌کنند. پیش از CBS09 مرور CBS02–04 را ببندید.
+
+## مرور واقعی CBS02–04
+
+کاربر سقف مشترک 10000000000000 ریالی عملیات و موجودی مشتری و رد ماندگار سقف را انتخاب کرد. [سیاست و مثال‌ها](docs/fa/Amount-limits.md) را ببینید. آخرین اجرا ۲۴۰ تست مستقل از زیرساخت و ۹ تست SQL Server را بدون failure، error یا skip گذراند. [یافته‌های مقایسه و قفل SQL](docs/fa/Persistence-review.md) چهار مورد تازه و مرور باقی‌مانده پیش از migration کسب‌وکار را توضیح می‌دهند. اعمال سقف در زمان اجرا و persistence مالی هنوز پیاده نشده‌اند.
+
+گام بعدی CBS02–04 اکنون [گزینهٔ ذخیره‌سازی دقیق شناسهٔ تراکنش](docs/fa/Transaction-id-storage.md) را می‌سنجد؛ Unicode BIN2، قید دقیق کاراکتر و طول و یکتایی با نام مشخص، همراه درج رقیب. آخرین اجرای کامل ۲۴۰ تست مستقل از زیرساخت و ۴۰ تست واقعی SQL Server را بدون failure، error یا skip گذراند. این شواهد مرور با جدول موقت است؛ schema و اجرای مالی هنوز پیاده نشده‌اند.

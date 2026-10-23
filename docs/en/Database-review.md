@@ -1,3 +1,5 @@
+> Current review disposition, 2026-10-23: CBS02–04 engineering review is closed for entry to CBS09. [The implementation contract](CBS09-contract.md) selects storage, lock SQL, constraints, retry defaults and authority. Earlier open-choice entries below are historical unless retained in that contract. Migration/entity/financial verification belongs to CBS09–20; no business DDL has been applied.
+
 > Bootstrap update, 2026-10-20: SQL Server replaces the earlier proposed Oracle target. Phase P0 is started, not complete. Dependencies and a health smoke test do not prove financial correctness.
 
 # Database correctness and cost review
@@ -56,3 +58,11 @@ Sources: [SQL Server constraints](https://learn.microsoft.com/en-us/sql/relation
 - Review posting access by account and stable journal/line identity, unique operation-to-journal lookup, FK indexes, reconciliation joins and append-only permissions. Measure storage, log bytes, lock duration and shared funding-row contention before choosing additional indexes.
 
 Request versus posting references: requested account IDs in operations must remain recordable for terminal missing-account rejection, so they are not mandatory account foreign keys. Postings reference real accounts through mandatory foreign keys; no cascading deletion of accounting history. See Requirements.md and the CBS03 protocol.
+
+## CBS02–04 review update, 2026-10-23
+
+The shared cap and retained over-cap rejection are now [accepted business policy](Amount-limits.md). Four additional real JDBC cases bring the latest profile run to 240 portable plus 9 SQL Server tests, zero failures/errors/skips. See [observations, limits and remaining migration gates](Persistence-review.md). These experiments do not introduce a business schema or complete the review. Earlier CBS08 counts remain historical evidence.
+
+## Transaction-ID review checkpoint, 2026-10-23
+
+The tested engineering candidate uses nvarchar(256) with explicit BIN2 collation, NOT NULL, 1–128-character length/allowlist checks and named global uniqueness. Unicode JDBC binding preserves invalid input for rejection. Thirty-one new real cases include exhaustive single-BMP-code-unit predicate checking and competing inserts. Full Java 21 profile verification passed 240 portable plus 40 SQL Server tests, zero failures/errors/skips, in 12.756 seconds; the new class took 2.091 seconds. See [design, SQL, examples and limitations](Transaction-id-storage.md). Earlier counts are historical. No business migration, runtime repository or durable replay is added. Next review is the UUID account-lock adapter and complete four-table transaction/permissions contract; formal learner acceptance remains open.

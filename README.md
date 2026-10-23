@@ -1,5 +1,7 @@
 # Concurrent Balance Service
 
+> Current milestone: CBS02–04 engineering review is complete for entry to CBS09. [Migration contract](docs/en/CBS09-contract.md) · [ADR-010](docs/adr/ADR-010-persistence-contract.en.md). Latest verification: 240 portable + 44 real SQL Server tests, zero failures/errors/skips. Next work is the four-table migration and real migration/constraint/permission tests. Financial execution remains pending.
+
 [Public repository](https://github.com/k4vrin/concurrent-balance-service)
 [فارسی](README.fa.md)
 
@@ -116,3 +118,9 @@ The pinned Docker SQL Server 2022 CU22 Developer instance now runs on loopback p
 ## CBS08 SQL Server integration tests
 
 `./mvnw verify` remains infrastructure-independent. `./mvnw -Psqlserver-it verify` additionally runs real JDBC tests against cbs_test using explicit SQLSERVER_TEST_URL/USERNAME/PASSWORD environment variables; it never inherits DB_* settings. Current evidence is 240 portable plus 5 SQL Server tests, zero failures/errors/skips. See the [Bash/PowerShell runbook and failure checks](docs/en/SQL-server-tests.md). These temporary-fixture tests do not run financial migrations or prove ledger transactions. Close CBS02–04 review before CBS09.
+
+## CBS02–04 concrete review
+
+The user selected a shared 10000000000000-rial operation/customer-balance cap and retained cap rejection. See [policy and worked examples](docs/en/Amount-limits.md). Latest verification passed 240 portable plus 9 SQL Server tests with no failures/errors/skips. [SQL comparison/locking findings](docs/en/Persistence-review.md) explain the four new cases and remaining review before business migrations. Runtime cap enforcement and financial persistence remain pending.
+
+The next CBS02–04 increment now tests the [exact transaction-ID storage candidate](docs/en/Transaction-id-storage.md): Unicode BIN2, strict character/length checks and named uniqueness, including competing inserts. Latest full verification: 240 portable plus 40 real SQL Server tests, zero failures/errors/skips. This is temporary-table review evidence; financial schema and execution remain pending.

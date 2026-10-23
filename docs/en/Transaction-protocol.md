@@ -1,8 +1,10 @@
+> Current review disposition, 2026-10-23: CBS02–04 engineering review is closed for entry to CBS09. [The implementation contract](CBS09-contract.md) selects storage, lock SQL, constraints, retry defaults and authority. Earlier open-choice entries below are historical unless retained in that contract. Migration/entity/financial verification belongs to CBS09–20; no business DDL has been applied.
+
 # CBS04 transaction and locking sequence
 
 [فارسی](../fa/Transaction-protocol.md) · [Identity protocol](Idempotency-protocol.md) · [Ledger](Ledger.md) · [Business outcomes and commit boundary](Operation-outcomes.md)
 
-Draft for joint review, 2026-10-23. TransactionTemplate with an enforced nontransactional coordinator was accepted today. The sequence, isolation/lock mapping and settings below remain proposals until reviewed and verified. No financial code, DDL or runtime evidence exists.
+Draft for joint review, 2026-10-23. TransactionTemplate with an enforced nontransactional coordinator was accepted today. The sequence, isolation/lock mapping and settings below remain proposals until reviewed and verified. No financial execution or business DDL exists. [Native JDBC review experiments](Persistence-review.md) now supply limited lock/comparison evidence.
 
 ## One attempt
 
@@ -30,10 +32,14 @@ Explicit configuration is required for maximum attempts, backoff/jitter, lock wa
 
 ## Gate before persistence
 
-The UUID representation and application comparator are accepted and unit-tested; review SQL Server edition/version, actual locking SQL and connection/isolation settings; reservation lifecycle and response serialization; policy/participant stability; bounded retry/error classification; and runtime database permissions. Numeric business caps remain open. Domain implementation in CBS05 can begin after conceptual review; migrations and durable operation implementation additionally need the pinned SQL choices and real tests.
+The UUID representation and application comparator are accepted and unit-tested; review SQL Server edition/version, actual locking SQL and connection/isolation settings; reservation lifecycle and response serialization; policy/participant stability; bounded retry/error classification; and runtime database permissions. Numeric business caps are now selected; see [Amount-limits.md](Amount-limits.md). Enforcement remains pending. Domain implementation in CBS05 can begin after conceptual review; migrations and durable operation implementation additionally need the pinned SQL choices and real tests.
 
 Tests must cover both directions, identical/conflicting duplicates, independent-account progress, system-account contention, every write-boundary rollback, victim retry, uncertain commit and reconciliation. The written sequence does not certify these behaviors.
 
 References: [Spring propagation](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html), [TransactionTemplate](https://docs.spring.io/spring-framework/reference/data-access/transaction/programmatic.html), [SQL Server deadlocks](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide). Framework/database mechanics require version-specific verification before acceptance.
 
 [UUID bits and lock-order guide](UUID-lock-order.md) explains hexadecimal, two’s complement, both unsigned halves, comparator result signs and each test with a runnable example.
+
+## SQL review update, 2026-10-23
+
+[Concrete experiments and remaining gates](Persistence-review.md) record lock lifetime after result close, release on commit/rollback, independent existing-key progress and error 1222 leaving an active transaction with XACT_ABORT OFF. These native integer-key tests do not certify UUID/JPA account locking or the whole financial protocol. [Accepted limits](Amount-limits.md) require retained over-cap rejection.

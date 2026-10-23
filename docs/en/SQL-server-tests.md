@@ -103,3 +103,15 @@ Java 21.0.11 plain `./mvnw verify` passed 240 portable tests with zero failures/
 Four separate Maven checks failed with their intended reasons: unavailable loopback port 1, missing SQLSERVER_TEST_URL, explicit SPRING_PROFILES_ACTIVE=smoke and a URL connected to cbs_dev. Negative checks selected the 17 portable guard cases plus integration class setup; they are not additional passing database tests. The final full positive run restored the passing reports after those expected failures. Local credential values were checked absent from the final log and generated reports. This evidence is limited to the existing unsupported ARM64 SQL Server 2022 CU22 experiment.
 
 Post-suite inspection using the dedicated login found zero remaining ##cbs08_ temporary fixtures and zero user tables in cbs_test. No administrator privileges or business schema were added.
+
+## CBS02–04 review update, 2026-10-23
+
+The shared cap and retained over-cap rejection are now [accepted business policy](Amount-limits.md). Four additional real JDBC cases bring the latest profile run to 240 portable plus 9 SQL Server tests, zero failures/errors/skips. See [observations, limits and remaining migration gates](Persistence-review.md). These experiments do not introduce a business schema or complete the review. Earlier CBS08 counts remain historical evidence.
+
+## Transaction-ID review checkpoint, 2026-10-23
+
+The tested engineering candidate uses nvarchar(256) with explicit BIN2 collation, NOT NULL, 1–128-character length/allowlist checks and named global uniqueness. Unicode JDBC binding preserves invalid input for rejection. Thirty-one new real cases include exhaustive single-BMP-code-unit predicate checking and competing inserts. Full Java 21 profile verification passed 240 portable plus 40 SQL Server tests, zero failures/errors/skips, in 12.756 seconds; the new class took 2.091 seconds. See [design, SQL, examples and limitations](Transaction-id-storage.md). Earlier counts are historical. No business migration, runtime repository or durable replay is added. Next review is the UUID account-lock adapter and complete four-table transaction/permissions contract; formal learner acceptance remains open.
+
+## CBS02–04 engineering review closed for CBS09, 2026-10-23
+
+[ADR-010](../adr/ADR-010-persistence-contract.en.md) and [CBS09 implementation contract](CBS09-contract.md) consolidate the remaining decisions. Four new real UUID cases verify mapping/BIGINT round trips, application-versus-SQL order, blocking and unrelated-key progress, missing-key creation protection and opposite-direction workers. Full profile verify passed 240 portable plus 44 SQL Server tests, zero failures/errors/skips, in 16.997 seconds. Reviewed choices include explicit native EntityManager lock SQL, four-table keys/row states/currency FKs, policy/response retention, retry settings and separate migration/runtime/initializer authority. Next implementation is CBS09 migration and its actual constraint/permission/Flyway tests, rather than further incremental design rounds. Financial failure tests stay in CBS10–20. No business DDL/grants or learner acceptance were added.

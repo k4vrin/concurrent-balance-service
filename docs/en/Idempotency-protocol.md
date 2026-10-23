@@ -1,3 +1,5 @@
+> Current review disposition, 2026-10-23: CBS02–04 engineering review is closed for entry to CBS09. [The implementation contract](CBS09-contract.md) selects storage, lock SQL, constraints, retry defaults and authority. Earlier open-choice entries below are historical unless retained in that contract. Migration/entity/financial verification belongs to CBS09–20; no business DDL has been applied.
+
 # CBS03 durable operation identity protocol
 
 [فارسی](../fa/Idempotency-protocol.md) · [ADR-002](Decisions.md#adr-002-idempotency-actors-and-redis) · [Requirements](Requirements.md)

@@ -72,6 +72,8 @@ No migration has been written. Flyway may initialize its history table in the su
 
 ## Documentation
 
+- [Why the canonical identity design works](docs/en/Canonical-design.md) / [فارسی](docs/fa/Canonical-design.md)
+- [Canonical request and funding fingerprints](docs/en/Canonical-request.md) / [فارسی](docs/fa/Canonical-request.md)
 - [Operation flow walkthrough](docs/en/Operation-flow.md) / [فارسی](docs/fa/Operation-flow.md)
 - [Business outcomes and the commit boundary](docs/en/Operation-outcomes.md) / [فارسی](docs/fa/Operation-outcomes.md)
 
@@ -102,3 +104,7 @@ The repository is authoritative for the evolving implementation plan. Earlier va
 ## Accepted V1 ledger design
 
 The user selected option E on 2026-10-22. V1 includes `accounts`, `operations`, `journals` and `postings`, immutable balanced accounting history and synchronous balance projections committed in one SQL Server transaction. Credit/debit use funding counterparts and nonzero initialization uses opening journals. See [Ledger design](docs/en/Ledger.md) and [ADR-007](docs/adr/ADR-007-double-entry-ledger.en.md). The design is accepted; financial persistence, schema and SQL Server evidence remain absent. Detailed constraint/transaction review still precedes business migrations.
+
+## CBS06 portable identity foundation
+
+Version-1 canonical bytes and SHA-256 companion fingerprints now encode typed mutation/opening intent. A separate funded fingerprint includes the retained counterpart and policy version without changing caller request identity. See [the encoding guide](docs/en/Canonical-request.md). HTTP wiring, stored-format decoding, durable identity/replay and financial SQL Server behavior remain pending.

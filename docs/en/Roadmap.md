@@ -72,3 +72,7 @@ No delivery date is committed. SQL Server compatibility/connectivity is the firs
 ## CBS23 implementation checkpoint, 2026-10-23
 
 The HTTP adapter foundation is implemented with strict DTO parsing, typed application commands, minimal success/query DTOs and stable ProblemDetail mapping. Its fallback returns 503; contract tests use test doubles and do not establish financial correctness. See [evidence](HTTP-adapter-evidence.md). Next is CBS06 versioned canonical request comparison, then CBS07–08 SQL Server setup/harness and CBS02–04 closure before CBS09 business migration. CBS10–20 must replace the fallback with durable slices and prove HTTP-to-SQL Server behavior. Formal task acceptance and independent mastery remain open.
+
+## CBS06 implementation checkpoint, 2026-10-23
+
+Portable version-1 canonical intent and retained-funding fingerprints are implemented. Full Java 21 verify passed 223 tests, zero failures/errors/skips, including 22 canonical cases. See [encoding, comparison and funding replay boundaries](Canonical-request.md). Formal task/learner acceptance remains open. Next implementation is CBS07–08 SQL Server Docker environment and integration harness; CBS02–04 review closure still precedes CBS09 migrations. No HTTP execution, durable replay or SQL Server semantics are proved by this result.

@@ -116,6 +116,8 @@ DTO constraints protect the HTTP boundary; command constructors protect other Ja
 
 [SupportedCurrencies](../../src/main/java/dev/kavrin/balance/operation/application/SupportedCurrencies.java) is an immutable supplied policy snapshot. It checks membership, with no hardcoded supported set in the commands. Its configuration/database loader and runtime application are pending. The future coordinator must resolve an existing outcome before applying current currency admission to a new operation. Disabling a currency must not change the recorded result of an identical retry.
 
+CBS06 now adds [CanonicalRequest, CanonicalFingerprint and FundingSelection](Canonical-request.md). They encode typed intent, preserve exact actor binding when present and separately bind retained funding metadata. These pure values are implemented; the controller does not call them yet and replay/storage remain planned.
+
 ## 6. Application boundary: where execution will live
 
 [BalanceOperations](../../src/main/java/dev/kavrin/balance/operation/application/BalanceOperations.java) exposes typed credit, debit, transfer and balance methods. The controller receives it through constructor injection. Mutation methods return MutationResult; balance returns Money.
@@ -274,10 +276,12 @@ With JAVA_HOME pointing to Java 21:
 ./mvnw -Dtest=BalanceControllerTests,ConcurrentBalanceServiceApplicationTests test
 ```
 
-Normal application startup requires configured SQL Server. The smoke test excludes persistence and does not make the normal application database-free. Contract tests are not financial integration tests. The last full build recorded in [adapter evidence](HTTP-adapter-evidence.md) passed 201 tests; this guide adds documentation, not new business behavior.
+Normal application startup requires configured SQL Server. The smoke test excludes persistence and does not make the normal application database-free. Contract tests are not financial integration tests. The earlier HTTP foundation build recorded in [adapter evidence](HTTP-adapter-evidence.md) passed 201 tests. The later CBS06 build in [canonical evidence](Canonical-request.md) passed 223 portable tests; neither result establishes financial persistence.
 
 Guide verification on 2026-10-23: the focused command above passed 52 tests with zero failures, errors or skips in 7.151 seconds. Relative file links were checked. Mermaid source is included; rendering in the reader was not verified. No SQL Server or financial persistence was exercised.
 
-Next is CBS06 canonical request comparison, then SQL Server infrastructure/harness and CBS02–04 closure before business migrations. CBS10–20 must prove durable execution, replay, rollback and accounting through real HTTP-to-SQL Server tests. See [Transaction protocol](Transaction-protocol.md), [Idempotency protocol](Idempotency-protocol.md) and [Roadmap](Roadmap.md).
+The CBS06 portable canonical foundation is now implemented; next is CBS07–08 SQL Server infrastructure/harness and CBS02–04 closure before business migrations. CBS10–20 must prove durable execution, replay, rollback and accounting through real HTTP-to-SQL Server tests. See [Transaction protocol](Transaction-protocol.md), [Idempotency protocol](Idempotency-protocol.md) and [Roadmap](Roadmap.md).
 
 Maintenance: update both language versions when operation DTOs, commands, response families, failure mapping or execution wiring change. Keep the implemented path, test-double examples and planned persistence flow explicitly distinguished.
+
+The [canonical design companion](Canonical-design.md) explains intent versus execution identity, retry safety, funding snapshots and the underlying encoding/hash terminology.

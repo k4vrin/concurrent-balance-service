@@ -116,6 +116,8 @@ constraintهای DTO ورودی HTTP را محافظت می‌کنند؛ ساز�
 
 [SupportedCurrencies](../../src/main/java/dev/kavrin/balance/operation/application/SupportedCurrencies.java) snapshot تغییرناپذیر سیاست ورودی است. عضویت ارز را بدون مجموعهٔ ثابت در command بررسی می‌کند. loader تنظیمات/دیتابیس و اعمال runtime آن هنوز پیاده نشده است. coordinator آینده باید نتیجهٔ قبلی را پیش از سیاست فعلی ارز پیدا کند؛ غیرفعال‌شدن ارز نباید نتیجهٔ retry مطابق را تغییر دهد.
 
+CBS06 اکنون [CanonicalRequest، CanonicalFingerprint و FundingSelection](Canonical-request.md) را اضافه می‌کند. قصد تایپ‌شده، وابستگی دقیق actor در صورت وجود و metadata جداگانهٔ تأمین حفظ‌شده را encode می‌کنند. این مقدارهای خالص پیاده شده‌اند؛ controller هنوز آن‌ها را صدا نمی‌زند و replay/storage در برنامه است.
+
 ## ۶. مرز برنامه و جای اجرای آینده
 
 [BalanceOperations](../../src/main/java/dev/kavrin/balance/operation/application/BalanceOperations.java) متدهای تایپ‌شدهٔ credit، debit، transfer و balance را ارائه می‌کند. controller آن را با constructor injection می‌گیرد. mutationها MutationResult و balance مقدار Money برمی‌گردانند.
@@ -274,10 +276,12 @@ balance ابتدا AccountId را parse می‌کند، سپس `BalanceOperation
 ./mvnw -Dtest=BalanceControllerTests,ConcurrentBalanceServiceApplicationTests test
 ```
 
-startup عادی به SQL Server تنظیم‌شده نیاز دارد. smoke، persistence را حذف می‌کند و برنامهٔ عادی را بی‌نیاز از دیتابیس نمی‌کند. تست قرارداد، integration test مالی نیست. آخرین build کامل در [شواهد adapter](HTTP-adapter-evidence.md) ۲۰۱ تست را گذرانده است؛ این راهنما مستندات اضافه می‌کند و رفتار تجاری جدیدی ندارد.
+startup عادی به SQL Server تنظیم‌شده نیاز دارد. smoke، persistence را حذف می‌کند و برنامهٔ عادی را بی‌نیاز از دیتابیس نمی‌کند. تست قرارداد، integration test مالی نیست. build قبلی HTTP در [شواهد adapter](HTTP-adapter-evidence.md) ۲۰۱ تست را گذرانده است. build بعدی CBS06 در [شواهد canonical](Canonical-request.md) ۲۲۳ تست Portable را گذرانده؛ هیچ‌کدام persistence مالی را اثبات نمی‌کند.
 
 بررسی راهنما در ۲۰۲۶-۱۰-۲۳: فرمان متمرکز بالا ۵۲ تست را بدون failure، error یا skip در ۷٫۱۵۱ ثانیه گذراند. لینک‌های فایل نسبی بررسی شدند. سورس Mermaid در سند آمده، اما render آن در ابزار خواندن بررسی نشده است. SQL Server و persistence مالی اجرا نشدند.
 
-گام بعد CBS06 برای مقایسهٔ canonical است؛ سپس زیرساخت/harness دیتابیس و بستن CBS02–04 پیش از migration تجاری. در CBS10–20 باید اجرا، replay، rollback و حسابداری با HTTP تا SQL Server واقعی اثبات شوند. [پروتکل تراکنش](Transaction-protocol.md)، [پروتکل هویت](Idempotency-protocol.md) و [نقشهٔ راه](Roadmap.md) مسیر را مشخص می‌کنند.
+پایهٔ Portable مقایسهٔ canonical در CBS06 اکنون پیاده شده است؛ گام بعد زیرساخت/harness دیتابیس در CBS07–08 و بستن CBS02–04 پیش از migration تجاری. در CBS10–20 باید اجرا، replay، rollback و حسابداری با HTTP تا SQL Server واقعی اثبات شوند. [پروتکل تراکنش](Transaction-protocol.md)، [پروتکل هویت](Idempotency-protocol.md) و [نقشهٔ راه](Roadmap.md) مسیر را مشخص می‌کنند.
 
 نگه‌داری: با تغییر DTO، command، خانوادهٔ پاسخ، نگاشت خطا یا اتصال اجرا، هر دو نسخهٔ راهنما را به‌روز کنید. مسیر فعلی، مثال test double و persistence برنامه‌ریزی‌شده باید صریحاً از هم قابل‌تشخیص باشند.
+
+[راهنمای دلیل طراحی canonical](Canonical-design.md) تفاوت هویت قصد و اجرا، retry امن، snapshot تأمین و اصطلاح‌های encoding/hash را توضیح می‌دهد.

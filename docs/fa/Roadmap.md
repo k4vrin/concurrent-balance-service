@@ -112,3 +112,7 @@ FX آینده همین دفترکل تک‌ارزی را گسترش می‌ده�
 ## نقطهٔ اجرای CBS23 در ۲۰۲۶-۱۰-۲۳
 
 پایهٔ adapter HTTP با parser سخت‌گیرانهٔ DTO، دستور تایپ‌شده، DTO موفقیت/استعلام و ProblemDetail پایدار پیاده شده است. fallback پاسخ 503 می‌دهد و تست قرارداد با test double شاهد صحت مالی نیست. [شواهد](HTTP-adapter-evidence.md). گام بعد CBS06 برای مقایسهٔ canonical نسخه‌دار است؛ سپس CBS07–08 برای SQL Server و harness و بستن مرور CBS02–04 پیش از migration تجاری CBS09. در CBS10–20 باید fallback با مسیر ماندگار جایگزین شود و رفتار HTTP تا SQL Server اثبات شود. پذیرش رسمی و تسلط مستقل باز است.
+
+## نقطهٔ اجرای CBS06 در ۲۰۲۶-۱۰-۲۳
+
+قصد canonical نسخهٔ ۱ و fingerprint تأمین حفظ‌شده به‌صورت Portable پیاده شدند. verify کامل Java 21 تعداد ۲۲۳ تست را بدون failure، error یا skip گذراند؛ ۲۲ مورد canonical است. [قالب و مرز مقایسه/replay تأمین](Canonical-request.md). پذیرش رسمی کار و یادگیرنده باز است. گام اجرایی بعد CBS07–08 برای محیط Docker SQL Server و harness است؛ بستن مرور CBS02–04 پیش از migrationهای CBS09 لازم می‌ماند. این نتیجه اجرای HTTP، replay ماندگار یا semantics دیتابیس را اثبات نمی‌کند.

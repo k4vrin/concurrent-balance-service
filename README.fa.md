@@ -102,6 +102,8 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 
 ## مستندات
 
+- [دلیل طراحی هویت canonical و مفهوم‌های آن](docs/fa/Canonical-design.md) / [English](docs/en/Canonical-design.md)
+- [درخواست canonical و اثر انگشت تأمین](docs/fa/Canonical-request.md) / [English](docs/en/Canonical-request.md)
 - [راهنمای جریان عملیات](docs/fa/Operation-flow.md) / [English](docs/en/Operation-flow.md)
 - [نتیجهٔ کسب‌وکار و مرز commit](docs/fa/Operation-outcomes.md) / [English](docs/en/Operation-outcomes.md)
 
@@ -138,3 +140,7 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 این طراحی پذیرفته شده، اما کد مالی، schema و شواهد مالی SQL Server هنوز وجود ندارند. مرور constraint‌ها و تراکنش، پیش‌نیاز migration مالی است.
 
 محاسبهٔ خالص projection در `Journal.projectBalances` پیاده شد: جمع دقیق تغییرات و اعتبارسنجی همهٔ snapshotهای نهایی، بدون تغییر ورودی یا نوشتن در دیتابیس. verify با Java 21 تعداد ۹۲ تست را بدون خطا یا skip گذراند. شرح و مرزها در [طراحی دفترکل](docs/fa/Ledger.md) آمده است.
+
+## پایهٔ Portable هویت در CBS06
+
+بایت canonical نسخهٔ ۱ و SHA-256 کمکی اکنون قصد تایپ‌شدهٔ mutation/افتتاحیه را encode می‌کنند. funded fingerprint جدا، counterpart حفظ‌شده و نسخهٔ سیاست را بدون تغییر هویت درخواست مشتری در بر می‌گیرد. [راهنمای encoding](docs/fa/Canonical-request.md). اتصال HTTP، decoder ذخیره‌شده، هویت/replay ماندگار و رفتار مالی SQL Server همچنان پیاده نشده‌اند.

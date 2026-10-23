@@ -15,11 +15,11 @@ CBS05 has started with immutable `Money(long amount, Currency currency)`. For IR
 
 Implemented: official Spring Initializr bootstrap adapted to reproducible Maven coordinates, application entry point, the four-operation Java interface, infrastructure-free HTTP health smoke test, default SQL Server persistence dependencies, optional Redis/Kafka/JWT dependency profiles, externalized configuration, CI definition and bilingual design documents.
 
-Not implemented: financial operation logic, account schema, durable idempotency, access/ownership policies, OTP, Redis caching behavior, outbox, producer/consumer, CDC or FX settlement. The HTTP adapter is wired to an explicit unavailable fallback. No SQL Server instance has been provisioned or validated. A passing bootstrap test does not certify financial correctness.
+Not implemented: financial operation logic, account schema, durable idempotency, access/ownership policies, OTP, Redis caching behavior, outbox, producer/consumer, CDC or FX settlement. The HTTP adapter is wired to an explicit unavailable fallback. An empty local SQL Server environment has passed the CBS07 connectivity/restart checks; financial database behavior remains unverified. A passing bootstrap test does not certify financial correctness.
 
 ## Build and run
 
-Normal application startup requires a reachable SQL Server database and exported `DB_URL`, `DB_USERNAME` and `DB_PASSWORD`. No SQL Server Maven or Spring profile is needed. Portable `verify` uses a test-only `smoke` Spring profile that excludes persistence auto-configuration; it does not test database access.
+Normal application startup requires a reachable SQL Server database, reviewed migration permissions and exported `DB_URL`, `DB_USERNAME` and `DB_PASSWORD`. No SQL Server Maven or Spring profile is needed. Portable `verify` uses a test-only `smoke` Spring profile that excludes persistence auto-configuration; it does not test database access.
 
 Use a JDK 21 installation and set `JAVA_HOME` accordingly. The build rejects other major JDK versions. Maven is downloaded by the included wrapper; no system Maven or Docker is required for bootstrap.
 
@@ -37,7 +37,7 @@ Windows PowerShell:
 Invoke-RestMethod http://127.0.0.1:8080/actuator/health
 ```
 
-The default server binds to loopback and exposes health/info only. The health response includes `"status":"UP"`; additional metadata may be present. SQL Server is required for normal startup. Redis and Kafka remain optional. Run the startup and curl examples above only after configuring the database. First build needs internet access for Maven dependencies. Environment variables in `.env.example` are a reference; Spring Boot does not automatically load `.env`.
+The default server binds to loopback; Actuator exposes health/info, and the four financial adapter routes currently return explicit unavailability. The health response includes `"status":"UP"`; additional metadata may be present. SQL Server is required for normal startup. Redis and Kafka remain optional. Run the startup and curl examples above only after configuring the database. First build needs internet access for Maven dependencies. Environment variables in `.env.example` are a reference; Spring Boot does not automatically load `.env`.
 
 ## Staged dependencies
 
@@ -103,8 +103,12 @@ The repository is authoritative for the evolving implementation plan. Earlier va
 
 ## Accepted V1 ledger design
 
-The user selected option E on 2026-10-22. V1 includes `accounts`, `operations`, `journals` and `postings`, immutable balanced accounting history and synchronous balance projections committed in one SQL Server transaction. Credit/debit use funding counterparts and nonzero initialization uses opening journals. See [Ledger design](docs/en/Ledger.md) and [ADR-007](docs/adr/ADR-007-double-entry-ledger.en.md). The design is accepted; financial persistence, schema and SQL Server evidence remain absent. Detailed constraint/transaction review still precedes business migrations.
+The user selected option E on 2026-10-22. V1 includes `accounts`, `operations`, `journals` and `postings`, immutable balanced accounting history and synchronous balance projections committed in one SQL Server transaction. Credit/debit use funding counterparts and nonzero initialization uses opening journals. See [Ledger design](docs/en/Ledger.md) and [ADR-007](docs/adr/ADR-007-double-entry-ledger.en.md). The design is accepted; financial persistence, schema and SQL Server ledger evidence remain absent. Detailed constraint/transaction review still precedes business migrations.
 
 ## CBS06 portable identity foundation
 
 Version-1 canonical bytes and SHA-256 companion fingerprints now encode typed mutation/opening intent. A separate funded fingerprint includes the retained counterpart and policy version without changing caller request identity. See [the encoding guide](docs/en/Canonical-request.md). HTTP wiring, stored-format decoding, durable identity/replay and financial SQL Server behavior remain pending.
+
+## CBS07 local SQL Server experiment
+
+The pinned Docker SQL Server 2022 CU22 Developer instance now runs on loopback port 14333 under the explicitly authorized ARM64 emulation experiment. Empty cbs_dev/cbs_test databases and a dedicated CONNECT-only login passed actual JDBC SELECT and restart checks. See [setup](docs/en/Docker.md) and [evidence](docs/en/SQL-server-evidence.md). ARM64 remains unsupported by Microsoft; no financial schema, migration permissions or operation execution is implemented. The CBS08 real integration harness is next.

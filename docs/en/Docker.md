@@ -1,46 +1,101 @@
-# Local infrastructure with Docker Compose
+# Local SQL Server with Docker Compose
 
-[فارسی](../fa/Docker.md) · [Index](../../README.md)
+[فارسی](../fa/Docker.md) · [Index](../../README.md) · [Database review](Database-review.md)
 
-Status, 2026-10-22: Docker Compose is the selected local infrastructure route. There is no Compose file or provisioned database in this bootstrap yet. This guide defines the setup work for the learning track, not a successful deployment.
+CBS07 local experiment, 2026-10-23: after explicit user license acceptance and startup authorization, the pinned SQL Server container is healthy, both empty databases accept real JDBC connections and they survived a container restart. See [measured setup evidence](SQL-server-evidence.md). This is unsupported ARM64 emulation, not supported-platform or financial correctness evidence. Formal acceptance remains open.
 
-## Stage the services
+## Selected configuration and support boundary
 
-| Task | Container setup |
-| --- | --- |
-| CBS00 | Check Docker availability; bootstrap verification still needs only Java 21 and the Maven wrapper |
-| CBS07 | Add Compose for SQL Server Developer, persistent data and isolated development/test databases |
-| CBS30–31 | Add Redis when implementing completed-response replay |
-| CBS33–35 | Add Kafka when implementing publisher/consumer behavior |
-| CBS36–37 | Evaluate Kafka Connect/Debezium after the CDC compatibility decision |
+[compose.yaml](../../compose.yaml) pins SQL Server 2022 CU22 on Ubuntu 22.04, Developer edition, by tag and immutable manifest digest:
 
-The initial application runs on the host through Maven or the IDE and connects to published loopback ports. Containerizing the application can follow once its dependency setup works. Do not activate every Maven/Spring profile just because the services use Docker.
+```text
+mcr.microsoft.com/mssql/server:2022-CU22-ubuntu-22.04
+sha256:db9a8fe3098b7e8bbde41106bdc7caee942e97124e5fdb71b872ca208de3092d
+```
 
-## Check the host first
+Microsoft's registry returned that digest on 2026-10-23. It is a selected reproducible baseline, not a claim to be the newest security update. The downloaded/running image, server build and edition are recorded in [setup evidence](SQL-server-evidence.md). The sqlcmd path is `/opt/mssql-tools18/bin/sqlcmd`, used by SQL Server 2022 images from CU14 onward. [Microsoft deployment reference](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker).
+
+Microsoft supports Linux SQL Server containers on Intel/AMD x86-64 Linux hosts. ARM64 translation/emulation, including Rosetta/QEMU, is unsupported. Our explicit linux/amd64 setting permits a local experiment on this ARM64 Mac; it does not establish support or compatibility. Use an x86-64 Docker host if emulation fails or supported-platform evidence is required. Do not substitute H2/Oracle or another engine. [Microsoft architecture boundary](https://learn.microsoft.com/en-us/sql/linux/sql-server-linux-docker-container-deployment).
+
+The service publishes `127.0.0.1:14333` by default, persists `/var/opt/mssql` in a named project volume, has a bounded readiness check and does not auto-restart. SQL Server's configured memory limit is 2,048 MB and the container limit is 4 GB. These are local setup choices, not measured capacity recommendations. Allow enough Docker VM memory and disk for SQL Server and image extraction; do not start if the host cannot spare them.
+
+Only SQL Server is included. Redis, Kafka and Connect/Debezium remain in their later track stages. The application still runs on the host; normal Spring startup requires a configured database, but this setup is not proof of application startup or migrations.
+
+## External secrets and license choice
+
+Copy [.env.example](../../.env.example) to the ignored `.env.sqlserver`. Fill locally:
+
+- `ACCEPT_EULA=Y` only after explicitly accepting Microsoft's applicable SQL Server Developer license for development/testing.
+- Distinct `MSSQL_SA_PASSWORD` and `CBS_APP_PASSWORD`; no actual value belongs in Git, screenshots or evidence.
+- Application password: 16–128 ASCII letters/digits/underscore/hyphen, with upper/lowercase and a digit. This bootstrap restriction prevents SQL metacharacters in sqlcmd variable substitution. It is not the general SQL Server password syntax.
+- `SQLSERVER_PORT` defaults to 14333. Choose another loopback port if occupied.
+
+```sh
+cp .env.example .env.sqlserver
+chmod 600 .env.sqlserver
+# Edit the ignored file locally. Do not paste its values into chat or logs.
+docker compose --env-file .env.sqlserver config --quiet
+```
+
+Use config --quiet for validation; plain config or config --environment can reveal interpolated secrets. Compose environment variables are visible to users with Docker inspection access; this local setup does not provide a production secret store. Spring does not automatically load Compose's env file. [Compose interpolation](https://docs.docker.com/reference/compose-file/interpolation).
+
+## Start, bootstrap and inspect
+
+These commands start a service, pull an image if absent and allocate a persistent volume. Run only after the license/resource choice above:
 
 ```sh
 docker version
 docker compose version
+docker compose --env-file .env.sqlserver up -d --wait --wait-timeout 360 sqlserver
+docker compose --env-file .env.sqlserver exec -T sqlserver bash /cbs-bootstrap/bootstrap.sh
+docker compose --env-file .env.sqlserver ps
+docker compose --env-file .env.sqlserver logs --tail 100 sqlserver
 ```
 
-Both Docker client and daemon must be available. On the current ARM64 Mac, the client was detected on 2026-10-22, but the daemon was unreachable. No container startup or SQL connection was verified.
+[bootstrap.sh](../../scripts/sqlserver/bootstrap.sh) validates the application secret before calling [bootstrap.sql](../../scripts/sqlserver/bootstrap.sql). The SQL script creates empty `cbs_dev` and `cbs_test` databases and a dedicated `cbs_app` login/user with CONNECT. It prints server version/edition/collation, compatibility and snapshot isolation settings, and connection encryption status. The shell verifies app connectivity and prints sysadmin/CREATE TABLE permission checks for both databases. It never seeds money or creates the financial schema.
 
-Microsoft supports SQL Server Linux containers on Intel/AMD x86-64 Linux hosts. ARM64 emulation is not a supported SQL Server configuration. An explicit `linux/amd64` platform setting selects the image architecture; it does not establish compatibility or successful startup. At CBS07, test the local emulated development path if available and record its limitations. Use an x86-64 Docker host if emulation fails or a supported environment is required. Do not replace SQL Server with a different database and claim equivalent evidence.
+Rerunning bootstrap reuses existing databases/login/users and does not drop data or rotate passwords. If the env file no longer matches the retained application login, verification fails. Restore the matching secret or perform an explicit reviewed rotation; do not delete a volume as a connection fix. The two databases isolate names/data but share one local login; stronger per-environment identities remain a later deployment choice.
 
-## CBS07 setup deliverable
+The application login intentionally has no db_owner, elevated server role or DDL role. CBS02–04/CBS09 must review migration and runtime permissions before financial migrations. In particular, this login alone cannot create Flyway history/business tables; do not advertise normal application startup as working from this bootstrap. Keep sa for bootstrap administration, not application runtime.
 
-Create a reviewable Compose configuration with a pinned SQL Server image version, the Developer edition, explicit license acceptance, a local secret supplied outside Git, a named data volume, a loopback-only published port and a readiness check. Record the resolved image digest, server version, edition, database compatibility level and isolation settings. Review image prerequisites and memory requirements before startup.
+The sqlcmd -C flag trusts the local server certificate. JDBC uses encrypt=true plus an explicit development-only trustServerCertificate=true exception on loopback. This encrypts transport without validating server identity against a trusted certificate. External deployments need a valid certificate/hostname/trust policy; do not carry this exception into them. [sqlcmd variables](https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-use-scripting-variables).
 
-Provision separate empty development and test databases and a dedicated application login. Keep `sa` for bootstrap administration; decide migration/runtime permissions before business migrations. Store no credentials in tracked Compose or SQL files. Document startup, readiness, logs, shutdown and a separately labeled destructive volume-reset command. Initialization must tolerate restarting an existing volume. Do not delete a volume to repair an ordinary connection problem.
+## Prove the actual JDBC driver connects
 
-Spring Boot does not automatically load Compose's `.env` into the host application. Export `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` separately or configure the IDE. From the host, use the published localhost port; from an application container, use the Compose service name and container port. Review development certificate trust explicitly.
+[SqlServerProbe.java](../../scripts/sqlserver/SqlServerProbe.java) is a source-mode Java 21 connectivity probe, not the CBS08 integration harness. It uses the project's actual JDBC classpath, requires credentials from the environment, runs SELECT and refuses a sysadmin application connection. It does not log the URL or password, run Spring, alter schema or test transactions.
 
-CBS08 adds the real JDBC integration harness and proves failure when the database is absent. Starting a container or passing a readiness check alone does not prove application connectivity, migrations, transaction correctness or CDC support. CBS00 remains open until the learner's own bootstrap evidence is recorded.
+With Java 21 JAVA_HOME and exported DB_URL, DB_USERNAME=cbs_app and DB_PASSWORD matching the local application secret:
 
-Native Windows installation remains an [optional alternative](Windows-sqlserver.md).
+```sh
+./mvnw dependency:build-classpath -Dmdep.outputFile=/tmp/cbs-jdbc-classpath
+"$JAVA_HOME/bin/java" --class-path "$(cat /tmp/cbs-jdbc-classpath)" scripts/sqlserver/SqlServerProbe.java
+```
 
-Sources: [Microsoft container deployment and architecture support](https://learn.microsoft.com/en-us/sql/linux/sql-server-linux-docker-container-deployment?view=sql-server-ver17), [Docker Compose environment variables](https://docs.docker.com/compose/how-tos/environment-variables/).
+For cbs_dev the URL is `jdbc:sqlserver://127.0.0.1:14333;databaseName=cbs_dev;encrypt=true;trustServerCertificate=true`. Quote it in shells because of semicolons. Repeat with databaseName=cbs_test. Keep credentials in connection properties/environment, never inside the URL. PowerShell can read the classpath with `Get-Content -Raw /tmp/cbs-jdbc-classpath` and invoke Java with `&`; use a local temporary path on Windows.
 
-## Accepted option E scope, 2026-10-22
+A successful SELECT proves connectivity only. CBS08 still needs a Maven Failsafe sqlserver-it profile, positive actual test count, absent-database failure and rollback/committed-fixture evidence. Do not activate the persistence-disabled smoke profile for those tests. CBS09 business migrations remain blocked on the concrete constraint/transaction review.
 
-After CBS02–04 review, CBS09 applies the four-table schema in [Ledger.md](Ledger.md). Keep the database empty before migration. Development/test fixtures create zero projections and record nonzero initialization through opening operations and balanced postings; do not seed balances with unaudited SQL updates. Docker setup does not prove ledger correctness. Compose and business migrations remain unimplemented.
+## Stop, retain data and reset deliberately
+
+```sh
+docker compose --env-file .env.sqlserver stop sqlserver
+docker compose --env-file .env.sqlserver start sqlserver
+# Remove the container/network while preserving its named data volume:
+docker compose --env-file .env.sqlserver down
+```
+
+Destructive reset, only when deliberately discarding both development and test data:
+
+```sh
+docker compose --env-file .env.sqlserver down --volumes
+```
+
+Changing sa environment variables does not constitute a password-rotation procedure for retained data. No automatic cleanup or volume deletion is part of this task.
+
+## Evidence checklist and current verification
+
+Record image digest, host/daemon architecture, exact server build/edition, database compatibility/collation, RCSI/snapshot settings, encryption flag, dedicated-login privileges and JDBC driver version/SELECT results. Never include credentials. Version pinning and config validation are not successful runtime evidence.
+
+Prepared here: Docker client/engine 28.2.2, Docker Desktop 4.42.0, daemon linux/arm64 and Compose 2.36.2; Microsoft registry manifest verified; Compose config validated using nonsecret placeholders without launching a container; shell syntax checked; Java probe compiled with Java 21. The authorized local experiment subsequently verified healthy startup, actual server metadata, JDBC to both databases and survival across one container restart; details and limitations are in [setup evidence](SQL-server-evidence.md). No financial tables or balances were initialized. CBS00 independent learner acceptance is unchanged.
+
+The environment can also run on an explicitly selected x86-64 Docker host. Recheck loopback/TLS assumptions at that host rather than exposing port 1433 broadly. [Native Windows](Windows-sqlserver.md) remains optional.

@@ -116,3 +116,7 @@ FX آینده همین دفترکل تک‌ارزی را گسترش می‌ده�
 ## نقطهٔ اجرای CBS06 در ۲۰۲۶-۱۰-۲۳
 
 قصد canonical نسخهٔ ۱ و fingerprint تأمین حفظ‌شده به‌صورت Portable پیاده شدند. verify کامل Java 21 تعداد ۲۲۳ تست را بدون failure، error یا skip گذراند؛ ۲۲ مورد canonical است. [قالب و مرز مقایسه/replay تأمین](Canonical-request.md). پذیرش رسمی کار و یادگیرنده باز است. گام اجرایی بعد CBS07–08 برای محیط Docker SQL Server و harness است؛ بستن مرور CBS02–04 پیش از migrationهای CBS09 لازم می‌ماند. این نتیجه اجرای HTTP، replay ماندگار یا semantics دیتابیس را اثبات نمی‌کند.
+
+## نقطهٔ اجرای CBS07 در ۲۰۲۶-۱۰-۲۳
+
+Compose pinned، license/راز صریح، volume، loopback، readiness، bootstrap فقط زیرساخت و probe driver واقعی پیاده شدند. آزمایش مجاز ARM64، startup، SELECT با login اختصاصی در دو دیتابیس خالی و restart را گذراند. [شواهد محیط](SQL-server-evidence.md). این پشتیبانی Microsoft روی ARM64، رفتار مالی یا پذیرش مستقل نیست. گام بعد Failsafe sqlserver-it در CBS08 و شاهد واقعی rollback/نبود DB است؛ مرور CBS02–04 همچنان پیش از migration تجاری CBS09 لازم است.

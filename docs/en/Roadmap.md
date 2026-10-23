@@ -76,3 +76,7 @@ The HTTP adapter foundation is implemented with strict DTO parsing, typed applic
 ## CBS06 implementation checkpoint, 2026-10-23
 
 Portable version-1 canonical intent and retained-funding fingerprints are implemented. Full Java 21 verify passed 223 tests, zero failures/errors/skips, including 22 canonical cases. See [encoding, comparison and funding replay boundaries](Canonical-request.md). Formal task/learner acceptance remains open. Next implementation is CBS07–08 SQL Server Docker environment and integration harness; CBS02–04 review closure still precedes CBS09 migrations. No HTTP execution, durable replay or SQL Server semantics are proved by this result.
+
+## CBS07 implementation checkpoint, 2026-10-23
+
+Pinned Compose, explicit license/secrets, persistent volume, loopback publishing, readiness, infrastructure-only bootstrap and actual driver probe are implemented. The authorized ARM64 experiment passed startup, dedicated-login JDBC SELECT in separate empty databases and restart checks. See [environment evidence](SQL-server-evidence.md). It does not establish Microsoft ARM64 support, financial behavior or independent acceptance. Next is CBS08 Failsafe sqlserver-it and real rollback/no-DB test evidence; CBS02–04 review still precedes CBS09 business migrations.

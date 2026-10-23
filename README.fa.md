@@ -22,9 +22,9 @@ CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)`
 | --- | --- |
 | پیاده‌شده | bootstrap رسمی Spring Initializr با مختصات قابل‌دریافت Maven، نقطهٔ شروع برنامه، interface چهار عملیات، تست HTTP سلامت مستقل از زیرساخت، dependency‌های پیش‌فرض SQL Server، profile‌های اختیاری Redis و Kafka و JWT، تنظیمات محیطی، تعریف CI و مستندات دوزبانه |
 | هنوز پیاده نشده | منطق مالی، schema حساب‌ها، idempotency ماندگار، مالکیت و مجوز، OTP، رفتار cache، outbox، producer و consumer، CDC و تسویهٔ FX |
-| هنوز بررسی نشده | آماده‌سازی و اتصال SQL Server، رفتار مالی و کارایی |
+| هنوز بررسی نشده | رفتار مالی SQL Server و کارایی؛ اتصال و restart محیط محلی در CBS07 بررسی شده‌اند |
 
-هنوز endpoint مالی نداریم. موفقیت تست bootstrap فقط سلامت اسکلت را نشان می‌دهد و صحت مالی را ثابت نمی‌کند.
+چهار مسیر adapter مالی فعلاً پاسخ صریح عدم دسترسی می‌دهند. موفقیت تست bootstrap فقط سلامت اسکلت را نشان می‌دهد و صحت مالی را ثابت نمی‌کند.
 
 ## ساخت و اجرا
 
@@ -33,7 +33,7 @@ CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)`
 | مسیر | پیش‌نیاز و رفتار |
 | --- | --- |
 | `verify` | Java 21 و Maven wrapper؛ profile مخصوص تست `smoke`، auto-configuration مربوط به persistence را غیرفعال می‌کند |
-| اجرای عادی | SQL Server در دسترس و متغیرهای `DB_URL`، `DB_USERNAME` و `DB_PASSWORD`؛ profile جدا برای SQL Server لازم نیست |
+| اجرای عادی | SQL Server در دسترس، مجوز migration مرورشده و متغیرهای `DB_URL`، `DB_USERNAME` و `DB_PASSWORD`؛ profile جدا برای SQL Server لازم نیست |
 
 تست `smoke` اتصال دیتابیس را بررسی نمی‌کند.
 
@@ -57,7 +57,7 @@ curl http://127.0.0.1:8080/actuator/health
 Invoke-RestMethod http://127.0.0.1:8080/actuator/health
 ```
 
-سرور فقط روی loopback گوش می‌دهد و مسیرهای health و info را در دسترس می‌گذارد. پاسخ سلامت شامل `"status":"UP"` است و ممکن است metadata دیگری هم داشته باشد.
+سرور روی loopback گوش می‌دهد؛ Actuator مسیرهای health و info را عرضه می‌کند و چهار مسیر adapter مالی فعلاً پاسخ عدم دسترسی می‌دهند. پاسخ سلامت شامل `"status":"UP"` است و ممکن است metadata دیگری هم داشته باشد.
 
 SQL Server برای اجرای عادی لازم است؛ Redis و Kafka اختیاری‌اند. فایل `.env.example` مرجع متغیرهاست و Spring Boot فایل `.env` را خودکار نمی‌خواند.
 
@@ -144,3 +144,7 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 ## پایهٔ Portable هویت در CBS06
 
 بایت canonical نسخهٔ ۱ و SHA-256 کمکی اکنون قصد تایپ‌شدهٔ mutation/افتتاحیه را encode می‌کنند. funded fingerprint جدا، counterpart حفظ‌شده و نسخهٔ سیاست را بدون تغییر هویت درخواست مشتری در بر می‌گیرد. [راهنمای encoding](docs/fa/Canonical-request.md). اتصال HTTP، decoder ذخیره‌شده، هویت/replay ماندگار و رفتار مالی SQL Server همچنان پیاده نشده‌اند.
+
+## آزمایش SQL Server محلی در CBS07
+
+نمونهٔ pinned از SQL Server 2022 CU22 Developer با مجوز صریح روی loopback پورت 14333 در emulation ARM64 اجراست. دیتابیس خالی cbs_dev/cbs_test و login اختصاصی CONNECT-only، SELECT واقعی JDBC و بررسی restart را گذراندند. [setup](docs/fa/Docker.md) و [شواهد](docs/fa/SQL-server-evidence.md). ARM64 همچنان پشتیبانی رسمی ندارد؛ schema مالی، مجوز migration و اجرای عملیات پیاده نشده‌اند. گام بعد harness واقعی CBS08 است.

@@ -2,6 +2,8 @@
 
 [فارسی](../fa/Operation-outcomes.md) · [Transaction protocol](Transaction-protocol.md) · [HTTP contract](API-v1.md)
 
+Follow the [operation walkthrough](Operation-flow.md) for a complete request-to-response example and a source map.
+
 `OperationOutcome` is a framework-free sealed interface with two immutable record variants. It represents a terminal business decision. Constructing it does not execute an operation or prove database commit.
 
 | Variant | Fields | Meaning |
@@ -58,3 +60,7 @@ Validation failure, unsupported-current-policy admission, authorization failure 
 [OperationOutcome.java](../../src/main/java/dev/kavrin/balance/operation/domain/OperationOutcome.java), [OperationType.java](../../src/main/java/dev/kavrin/balance/operation/domain/OperationType.java) and [RejectionReason.java](../../src/main/java/dev/kavrin/balance/operation/domain/RejectionReason.java) are implemented. No evaluator, TransactionTemplate coordinator, exception classifier, repository serialization or HTTP adapter is wired.
 
 Java 21.0.11 Maven verify passed 150 tests with zero failures/errors/skips in 7.696 seconds, including 13 [outcome cases](../../src/test/java/dev/kavrin/balance/operation/domain/OperationOutcomeTests.java). These cover value shape, required metadata, reason distinctions and exhaustive handling. They do not demonstrate commit, rollback, reservation or replay. CBS05 acceptance and independent mastery remain open. Next implementation slice is CBS23 HTTP DTO/error contract foundation, with real financial execution deferred to the SQL Server slices.
+
+## CBS23 boundary update, 2026-10-23
+
+The HTTP adapter and MutationResult outcome/currency envelope now exist. See [API contract](API-v1.md#cbs23-http-foundation-2026-10-23). The outcome examples above remain value construction only. Durable response storage, transaction coordination, SQL failure classification and real replay remain unimplemented. The 150-test result above is historical CBS05 evidence; current adapter evidence is recorded [separately](HTTP-adapter-evidence.md).

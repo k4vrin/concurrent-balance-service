@@ -2,6 +2,8 @@
 
 [English](../en/Operation-outcomes.md) · [پروتکل تراکنش](Transaction-protocol.md) · [قرارداد HTTP](API-v1.md)
 
+برای مثال کامل از درخواست تا پاسخ و توضیح فایل‌ها، [راهنمای جریان عملیات](Operation-flow.md) را بخوانید.
+
 `OperationOutcome` یک sealed interface مستقل از فریم‌ورک با دو record تغییرناپذیر است. تصمیم نهایی کسب‌وکار را نمایش می‌دهد. ساخت آن عملیات را اجرا نمی‌کند و commit دیتابیس را ثابت نمی‌کند.
 
 | نوع | فیلدها | معنا |
@@ -58,3 +60,7 @@ exception فنی باید از callback خارج شود تا تلاش rollback �
 [OperationOutcome.java](../../src/main/java/dev/kavrin/balance/operation/domain/OperationOutcome.java)، [OperationType.java](../../src/main/java/dev/kavrin/balance/operation/domain/OperationType.java) و [RejectionReason.java](../../src/main/java/dev/kavrin/balance/operation/domain/RejectionReason.java) پیاده شده‌اند. evaluator، coordinator با TransactionTemplate، طبقه‌بندی exception، serialize در repository یا adapter HTTP متصل نیست.
 
 Maven verify با Java 21.0.11 در ۷٫۶۹۶ ثانیه، ۱۵۰ تست را بدون failure، error یا skip گذراند؛ سیزده مورد [نتیجه](../../src/test/java/dev/kavrin/balance/operation/domain/OperationOutcomeTests.java) شکل مقدار، metadata لازم، تمایز دلیل‌ها و رسیدگی کامل را می‌سنجند. این تست‌ها شاهد commit، rollback، رزرو یا replay نیستند. پذیرش CBS05 و تسلط مستقل باز است. گام بعدی پایهٔ DTO و قرارداد خطای HTTP در CBS23 است؛ اجرای واقعی مالی در برش‌های SQL Server می‌آید.
+
+## به‌روزرسانی مرز CBS23 در ۲۰۲۶-۱۰-۲۳
+
+adapter HTTP و پوشش نتیجه/ارز `MutationResult` اکنون وجود دارند. [قرارداد API](API-v1.md) جزئیات را دارد. مثال‌های بالا همچنان فقط ساخت مقدارند. ذخیرهٔ پاسخ ماندگار، coordinator تراکنش، طبقه‌بندی خرابی SQL و replay واقعی پیاده نشده‌اند. نتیجهٔ ۱۵۰ تست بالا سابقهٔ CBS05 است؛ [شواهد فعلی adapter](HTTP-adapter-evidence.md) جدا ثبت می‌شوند.

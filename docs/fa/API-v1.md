@@ -2,11 +2,13 @@
 
 [English](../en/API-v1.md) · [نقشهٔ راه](Roadmap.md) · [نتیجهٔ کسب‌وکار و مرز commit](Operation-outcomes.md)
 
-کاربر در ۲۰۲۶-۱۰-۲۲ انتخاب کرد که V1 هر چهار عملیات را با HTTP API، JSON و SQL Server ارائه کند. endpoint‌های زیر تا مرور CBS01/CBS23 پیشنهادی‌اند. هنوز endpoint مالی نداریم.
+برای مثال کامل از درخواست تا پاسخ و توضیح فایل‌ها، [راهنمای جریان عملیات](Operation-flow.md) را بخوانید.
+
+کاربر در ۲۰۲۶-۱۰-۲۲ انتخاب کرد که V1 هر چهار عملیات را با HTTP API، JSON و SQL Server ارائه کند. endpoint‌های زیر تا مرور CBS01/CBS23 پیشنهادی‌اند. adapter در CBS23 این مسیرها را با fallback عدم دسترسی عرضه می‌کند؛ اجرای مالی نداریم. بخش CBS23 در ادامه جزئیات را مشخص می‌کند.
 
 V1 در این سند اولین نسخهٔ کاربردی API است؛ نام migration موسوم به `V1` در Flyway یا tag گیت نیست.
 
-## مسیرهای پیشنهادی
+## مسیرهای V1
 
 | روش | مسیر | درخواست |
 | --- | --- | --- |
@@ -134,3 +136,50 @@ policy.requireSupported(command.amount().currency());
 coordinator آینده باید پیش از ارزیابی دوبارهٔ این سیاست قابل‌تغییر، نتیجهٔ نهایی موجود را پیدا کند. retry منطبق باید حتی پس از غیرفعال‌شدن ارز، نتیجهٔ اصلی را replay کند. برای عملیات تازه، پشتیبانی ارز با یک snapshot سازگار و پیش از رزرو بررسی می‌شود. قالب معتبر ارز با مجازبودن در سیاست فعلی فرق دارد. خرابی بارگذاری دیتابیس خطای فنی است؛ نباید آن را مجموعهٔ خالی یا تصمیم نهایی رد ارز تعبیر کرد. پروتکل بارگذاری و تازه‌سازی سیاست هنوز به طراحی و تست اتصال نیاز دارد.
 
 Maven verify با Java 21.0.11 در ۷٫۵۶۵ ثانیه، ۱۳۷ تست را بدون failure، error یا skip گذراند. نُه مورد سیاست، چند ارز مجاز، رد ارز بیرون از مجموعه، مجموعهٔ بدون IRR، مجموعهٔ خالی و null و snapshot تغییرناپذیر را می‌سنجند. سیزده تست command اکنون حفظ ارز را به‌جای رد ثابت ارز بررسی می‌کنند. HTTP، ترتیب replay و بارگذاری سیاست از دیتابیس هنوز پیاده نشده‌اند؛ این شواهد اعتبارسنجی مستقل از زیرساخت است.
+
+## پایهٔ HTTP در CBS23، ۲۰۲۶-۱۰-۲۳
+
+چهار مسیر بالا اکنون controller نازک، DTO و نگاشت `ProblemDetail` دارند. مرز تایپ‌شدهٔ `BalanceOperations` از interface اولیهٔ `BalanceService` جداست. تا اتصال handlerهای ماندگار در CBS10–15، پیاده‌سازی پیش‌فرض برای هر درخواست با ساختار معتبر، پاسخ 503 با `OPERATION_UNAVAILABLE` می‌دهد. این مسیر نه شناسه رزرو می‌کند و نه پول می‌خواند یا می‌نویسد. پاسخ موفق در تست فقط رفتار adapter را بررسی می‌کند. این بخش عبارت‌های قبلی دربارهٔ نبود adapter را به‌روز می‌کند؛ اجرای مالی همچنان پیاده نشده است.
+
+POST به `Content-Type: application/json` نیاز دارد. موفقیت `application/json` و خطا `application/problem+json` است. همهٔ فیلدهای جدول مسیرها اجباری‌اند. `transactionId` فقط از body می‌آید؛ string با ۱ تا ۱۲۸ حرف یا رقم ASCII و کاراکترهای `.`, `_`, `:`, `-` است. حروف بدون trim یا تغییر بزرگی حفظ می‌شوند. header جایگزین و شناسهٔ خودکار نداریم. UUID باید گروه‌بندی کامل داشته باشد؛ حروف هگز بزرگ یا کوچک معتبر است، گروه کوتاه معتبر نیست. انتقال به همان UUID حتی با نمایش متفاوت رد می‌شود.
+
+`amountRial` باید توکن عدد صحیح JSON، مثبت و در بازهٔ `long` باشد. مقدار اعشاری حتی `1.0`، نماد علمی، رشتهٔ عددی، boolean، null و مقدار خارج از بازه پیش از فراخوانی برنامه با 400 رد می‌شوند. `Long.MAX_VALUE` فقط از نظر نمایش پذیرفته می‌شود؛ سقف تجاری نیست. فیلد ناشناخته، کلید تکراری، JSON اضافه پس از body، فیلد حذف‌شده و JSON خراب هم 400 می‌گیرند. فیلد متنی عدد یا boolean را به string تبدیل نمی‌کند.
+
+ارز باید کد ISO بزرگ و دقیق موردشناخت `java.util.Currency` باشد. اعتبار syntax با مجوز ارز فرق دارد. coordinator آینده باید ابتدا هویت قبلی و replay را بررسی کند و بعد برای عملیات جدید `SupportedCurrencies` را اعمال کند. fallback سیاست ارز تنظیم‌شده را شبیه‌سازی نمی‌کند. استقرار اولیه همچنان فقط IRR است؛ شناخت USD در parser به معنای فعال‌شدن آن یا تعیین واحدش نیست. پیش از فعال‌کردن ارز دیگر باید قرارداد و واحد `amountRial` و `balanceRial` بازبینی شود. loader و مجموعهٔ ثابت ارز اضافه نشده‌اند.
+
+DTO موفقیت فقط `transactionId`، `operationType`، `currency` و `status` دارد و موجودی زنده یا شناسهٔ journal ندارد. نمونهٔ زیر خروجی قرارداد با test double است، نه اجرای مالی واقعی:
+
+```json
+{"transactionId":"Tx-001","operationType":"CREDIT","currency":"IRR","status":"SUCCEEDED"}
+```
+
+DTO موجودی شامل `accountId`، `balanceRial` و `currency` است؛ مثلاً `{"accountId":"00000000-0000-0000-0000-000000000001","balanceRial":150000,"currency":"IRR"}`. در CBS10 باید از projection commit‌شده بیاید. حساب ناموجود به موجودی صفر تبدیل نمی‌شود.
+
+| HTTP | کد پایدار | مرز رفتار |
+| --- | --- | --- |
+| 400 | `INVALID_REQUEST` | syntax، فیلد اجباری، مبلغ، syntax ارز یا انتقال به خود؛ بدون فراخوانی برنامه |
+| 400 | `UNSUPPORTED_CURRENCY` | سیاست پذیرش عملیات جدید در coordinator آینده |
+| 404 | `ACCOUNT_NOT_FOUND` | استعلام حساب ناموجود یا رد commit‌شدهٔ mutation |
+| 409 | `TRANSACTION_ID_CONFLICT` | هویت قبلی با ورودی canonical متفاوت؛ بدون جایگزینی نتیجه |
+| 409 | `INSUFFICIENT_FUNDS`, `BALANCE_OVERFLOW` | رد نهایی commit‌شدهٔ mutation |
+| 503 | `OPERATION_UNAVAILABLE` | handler متصل نیست یا خرابی زیرساخت صریحاً طبقه‌بندی شده؛ وضعیت commit ممکن است نامعلوم باشد |
+| 500 | `INTERNAL_ERROR` | نقص غیرمنتظره؛ نتیجه نامعلوم است و به رد کسب‌وکار تبدیل نمی‌شود |
+| 405 / 406 / 415 | `METHOD_NOT_ALLOWED` / `NOT_ACCEPTABLE` / `UNSUPPORTED_MEDIA_TYPE` | مذاکرهٔ HTTP |
+
+نوع پیش‌فرض Problem برابر `about:blank` است که serializer فعلی آن را از JSON حذف می‌کند. پاسخ شامل `status`، `title` استاندارد، `detail` پاک‌سازی‌شده، `instance` مسیر درخواست و `code` است. رد mutation سه فیلد `transactionId`، `operationType` و `currency` را هم دارد. نمونهٔ رد بدهکارسازی که handler آن را پس از commit تحویل می‌دهد:
+
+```json
+{"title":"Conflict","status":409,"detail":"Available funds are insufficient.","instance":"/api/v1/accounts/00000000-0000-0000-0000-000000000001/debits","code":"INSUFFICIENT_FUNDS","transactionId":"Tx-001","operationType":"DEBIT","currency":"IRR"}
+```
+
+`MutationResult` نتیجهٔ اصلی را کنار ارز نگه می‌دارد. برنامه فقط پس از commit قطعی اجازهٔ تحویلش را دارد. پاسخ serializeشدهٔ اصلی، از جمله `instance` خطا، باید برای replay حفظ شود؛ ارز نباید از سیاست تغییریافتهٔ retry استخراج شود. mapper برای نتیجه و مسیر یکسان خروجی یکسان می‌دهد؛ این شاهد replay ماندگار نیست. رد کسب‌وکار به‌صورت مقدار برمی‌گردد تا exception باعث rollback رکورد رد نشود. `OperationFailure` خطای غیرنهایی conflict، سیاست پذیرش، عدم دسترسی و حساب ناموجود در استعلام را تفکیک می‌کند.
+
+طبقه‌بندی SQL exception، retry کل تراکنش و بازیابی commit نامعلوم در CBS03–04/CBS11–19 باقی می‌ماند. پاسخ 503 یا 500 و گم‌شدن پاسخ ثابت نمی‌کند که commit رخ نداده است؛ بازیابی mutation باید با همان شناسه باشد.
+
+تنظیم سخت‌گیرانهٔ Jackson روی mapper برنامه اعمال می‌شود؛ کلید تکراری، فیلد ناشناخته و JSON اضافی را رد می‌کند. advice سراسری است چون خطای روش یا media ممکن است پیش از انتخاب controller رخ دهد. پیام خام parser، دامنه یا SQL وارد پاسخ نمی‌شود. احراز هویت، مالکیت، سقف تجاری، migration، انتخاب حساب تأمین، نوشتن posting و projection و serialize ماندگار هنوز پیاده نشده‌اند. مرز loopback مورداعتماد و شرط دسترسی CBS24–25 پابرجاست.
+
+شواهد و گام بعد در [گزارش adapter HTTP](HTTP-adapter-evidence.md) ثبت می‌شوند.
+
+## نوع مشخص برای body پاسخ mutation
+
+سه controller تغییردهنده و mapper موسوم به OperationResponses اکنون `ResponseEntity<OperationResponseBody>` برمی‌گردانند. این interface بسته فقط record موفقیت `OperationResponse` و کلاس final موسوم به `OperationProblem` را مجاز می‌داند. OperationProblem از ProblemDetail اسپرینگ ارث می‌برد؛ فیلدهای استاندارد و propertyهای افزوده در سطح اول JSON حفظ می‌شوند. ابتدا problem رد کپی و سپس metadata تراکنش اضافه می‌شود. wrapper یا فیلد تشخیص نوع JSON اضافه نشده است. exceptionهای framework، سیاست پذیرش و خرابی فنی همچنان advice جدا دارند؛ این خانواده فقط بازگشت عادی mutation را مشخص می‌کند. رد کسب‌وکار همچنان مقدار بازگشتی است و مرز نگاشت پس از commit آینده حفظ می‌شود.

@@ -16,7 +16,7 @@ API اولیه روی محیط توسعهٔ محلی اجرا می‌شود. JWT
 
 ## وضعیت فعلی
 
-CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)` شروع شده است. برای IRR، عدد 100 مستقیماً ۱۰۰ ریال است. Money صفر و مقدار علامت‌دار را می‌پذیرد؛ دستورها، postingها و نوع حساب قواعد علامت و سقف تجاری خود را کنترل خواهند کرد. Money جمع و تفریق هم‌ارز با کنترل overflow و مقایسه دارد. AccountCategory سیاست موجودی نامنفی مشتری و موجودی علامت‌دار تأمین مصنوعی را بررسی می‌کند. Account تغییرناپذیر و AccountId مبتنی بر UUID سیاست موجودی را هنگام ساخت و تغییر checked کنترل می‌کنند. AccountLockOrder ترتیب مشترک unsigned نزولی UUID را می‌دهد؛ قفل دیتابیس هنوز پیاده نشده است. Posting و Journal اکنون سطر مثبت، delta وابسته به نوع حساب و سند تک‌ارزی متوازن با جمع دقیق را بررسی می‌کنند. Journal.projectBalances اکنون snapshotهای نهایی را با جمع دقیق تغییر خالص آماده می‌کند. use case مالی و persistence هنوز پیاده نشده‌اند. CreditCommand، DebitCommand و TransferCommand هم شناسه‌های لازم، مبلغ مثبت و حساب‌های متمایز انتقال را بررسی می‌کنند. SupportedCurrencies عضویت ارز در مجموعهٔ ورودی تغییرناپذیر را می‌سنجد؛ اتصال تنظیمات یا دیتابیس هنوز در برنامه است. TransactionId هم هویت دقیق و حساس به بزرگی حروف را بدون trim اعتبارسنجی می‌کند.
+CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)` شروع شده است. برای IRR، عدد 100 مستقیماً ۱۰۰ ریال است. Money صفر و مقدار علامت‌دار را می‌پذیرد؛ دستورها، postingها و نوع حساب قواعد علامت و سقف تجاری خود را کنترل خواهند کرد. Money جمع و تفریق هم‌ارز با کنترل overflow و مقایسه دارد. AccountCategory سیاست موجودی نامنفی مشتری و موجودی علامت‌دار تأمین مصنوعی را بررسی می‌کند. Account تغییرناپذیر و AccountId مبتنی بر UUID سیاست موجودی را هنگام ساخت و تغییر checked کنترل می‌کنند. AccountLockOrder ترتیب مشترک unsigned نزولی UUID را می‌دهد؛ قفل دیتابیس هنوز پیاده نشده است. Posting و Journal اکنون سطر مثبت، delta وابسته به نوع حساب و سند تک‌ارزی متوازن با جمع دقیق را بررسی می‌کنند. Journal.projectBalances اکنون snapshotهای نهایی را با جمع دقیق تغییر خالص آماده می‌کند. use case مالی و persistence هنوز پیاده نشده‌اند. CreditCommand، DebitCommand و TransferCommand هم شناسه‌های لازم، مبلغ مثبت و حساب‌های متمایز انتقال را بررسی می‌کنند. SupportedCurrencies عضویت ارز در مجموعهٔ ورودی تغییرناپذیر را می‌سنجد؛ اتصال تنظیمات یا دیتابیس هنوز در برنامه است. TransactionId هم هویت دقیق و حساس به بزرگی حروف را بدون trim اعتبارسنجی می‌کند. پایهٔ CBS23 اکنون چهار مسیر HTTP را با اعتبارسنجی سخت‌گیرانه و کد پایدار ProblemDetail عرضه می‌کند. مرز پیش‌فرض برنامه تا اتصال handler ماندگار پاسخ 503 می‌دهد؛ موفقیت مالی پیاده نشده است. [شواهد adapter](docs/fa/HTTP-adapter-evidence.md).
 
 | وضعیت | جزئیات |
 | --- | --- |
@@ -102,6 +102,7 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 
 ## مستندات
 
+- [راهنمای جریان عملیات](docs/fa/Operation-flow.md) / [English](docs/en/Operation-flow.md)
 - [نتیجهٔ کسب‌وکار و مرز commit](docs/fa/Operation-outcomes.md) / [English](docs/en/Operation-outcomes.md)
 
 - [راهنمای Journal و محاسبهٔ مانده](docs/fa/Journal-projection.md) / [English](docs/en/Journal-projection.md)

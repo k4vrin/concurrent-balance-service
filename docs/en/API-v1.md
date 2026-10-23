@@ -2,9 +2,11 @@
 
 [فارسی](../fa/API-v1.md) · [Roadmap](Roadmap.md) · [Business outcomes and commit boundary](Operation-outcomes.md)
 
-Scope selected by the user on 2026-10-22: the first functional version delivers all four balance operations through a JSON HTTP API backed by SQL Server. Endpoint shapes below are proposed until reviewed in CBS01/CBS23. No financial endpoint is implemented yet. V1 means the first functional API release; it is separate from Flyway migration `V1` and any Git tag.
+Follow the [operation walkthrough](Operation-flow.md) for a complete request-to-response example and a source map.
 
-## Proposed routes
+Scope selected by the user on 2026-10-22: the first functional version delivers all four balance operations through a JSON HTTP API backed by SQL Server. Endpoint shapes below are proposed until reviewed in CBS01/CBS23. The CBS23 adapter now exposes these routes with an unavailable fallback; no financial execution is implemented. See the CBS23 amendment below. V1 means the first functional API release; it is separate from Flyway migration `V1` and any Git tag.
+
+## V1 routes
 
 | Method | Route | Request |
 | --- | --- | --- |
@@ -73,3 +75,48 @@ policy.requireSupported(command.amount().currency());
 A future coordinator must resolve an existing terminal outcome before reevaluating this mutable admission policy. Matching retries replay their original result even if that currency has since been disabled. For a new operation, evaluate support using one consistent policy snapshot before reservation; valid syntax and supported-by-current-policy are separate checks. Database loading failures are technical failures, not an empty policy or a terminal unsupported-currency decision. The loader/refresh consistency protocol remains future design and requires integration tests.
 
 Java 21.0.11 Maven verify passed 137 tests with zero failures/errors/skips in 7.565 seconds. Nine policy cases cover multiple allowed currencies, rejection outside the set, a set without IRR, empty/null sets and immutable snapshots. The 13 command cases now verify currency preservation instead of a hardcoded unsupported-currency rejection. HTTP, replay ordering and database policy loading remain unimplemented; this is portable calculation/validation evidence.
+
+## CBS23 HTTP foundation, 2026-10-23
+
+The four routes above now have thin controllers, transport DTOs and ProblemDetail mapping. They delegate to `BalanceOperations`, a typed application boundary separate from the original `BalanceService` bootstrap interface. Production composition currently supplies an explicit unavailable implementation. Every structurally valid request reaches that boundary and receives HTTP 503 `OPERATION_UNAVAILABLE`; it neither stores identity nor reads/writes money. Test doubles exercise mapping only. Durable handlers replace this fallback in CBS10–15. This supersedes earlier statements in this document that no HTTP adapter exists; financial execution remains unimplemented.
+
+POST requests use `Content-Type: application/json`; success uses `application/json`, errors use `application/problem+json`. Requests require every field in the route table. Transaction IDs are JSON strings of 1–128 ASCII letters, digits, `.`, `_`, `:` or `-`, preserved exactly and case-sensitively. IDs are supplied only in the body, with no header alias or generated default. Account IDs require the full UUID group shape, case-insensitive hexadecimal; shortened UUID groups are invalid. Transfer endpoints compare parsed UUID values to reject self-transfer.
+
+`amountRial` must be a positive JSON integer token in the signed-long range. Decimal tokens including `1.0`, exponent notation, numeric strings, booleans, nulls and out-of-range numbers fail with 400 before application invocation. `Long.MAX_VALUE` passes representation validation; it is not an approved business cap. Unknown properties, duplicate keys, trailing JSON values, absent/null fields and malformed JSON fail with 400. Transport strings never coerce numeric or boolean tokens. Currency must be an exact uppercase ISO code recognized by `java.util.Currency`. Currency syntax differs from admission policy: the future replay-aware coordinator must resolve existing identity before applying `SupportedCurrencies` to a new operation. The fallback does not pretend to enforce a configured currency policy.
+
+Initial deployment still admits IRR only when durable execution is wired. The names `amountRial` and `balanceRial` describe that deployment. Recognizing other ISO codes in transport does not enable their execution or define their units. Review units and the public contract before enabling another currency. No currency loader or hardcoded supported set is added by CBS23.
+
+The minimal success DTO contains exactly `transactionId`, `operationType`, `currency`, `status`. It deliberately contains no current balance or journal ID. Illustrative contract output supplied by a test double, not a working financial request:
+
+```json
+{"transactionId":"Tx-001","operationType":"CREDIT","currency":"IRR","status":"SUCCEEDED"}
+```
+
+The balance DTO contains `accountId`, `balanceRial`, `currency`, for example `{"accountId":"00000000-0000-0000-0000-000000000001","balanceRial":150000,"currency":"IRR"}`. It must come from a committed projection in CBS10. No missing account is converted to zero.
+
+| HTTP | Stable code | Boundary |
+| --- | --- | --- |
+| 400 | `INVALID_REQUEST` | Parsing, required fields, positive/range rules, currency syntax, self-transfer; no application invocation |
+| 400 | `UNSUPPORTED_CURRENCY` | New-operation admission in the future application coordinator |
+| 404 | `ACCOUNT_NOT_FOUND` | Balance lookup failure or committed mutation rejection |
+| 409 | `TRANSACTION_ID_CONFLICT` | Existing identity with different canonical input; no replacement outcome |
+| 409 | `INSUFFICIENT_FUNDS`, `BALANCE_OVERFLOW` | Committed terminal mutation rejection |
+| 503 | `OPERATION_UNAVAILABLE` | Unwired handler or explicitly classified infrastructure failure; commit may be unknown |
+| 500 | `INTERNAL_ERROR` | Unexpected defect; outcome unknown, no automatic conversion to business rejection |
+| 405 / 406 / 415 | `METHOD_NOT_ALLOWED` / `NOT_ACCEPTABLE` / `UNSUPPORTED_MEDIA_TYPE` | HTTP negotiation |
+
+Problems have the default `about:blank` type, which the current serializer omits from JSON, HTTP `status`, standard `title`, sanitized `detail`, request `instance` and the extension `code`. A mutation rejection also contains `transactionId`, `operationType`, `currency`. Example body for a supplied committed debit rejection:
+
+```json
+{"title":"Conflict","status":409,"detail":"Available funds are insufficient.","instance":"/api/v1/accounts/00000000-0000-0000-0000-000000000001/debits","code":"INSUFFICIENT_FUNDS","transactionId":"Tx-001","operationType":"DEBIT","currency":"IRR"}
+```
+
+A returned `MutationResult` pairs original outcome with currency. The application must expose it only after confirmed commit, preserve the original serialized response including problem instance for replay, and never derive currency from changed retry policy. The current mapper is deterministic for the same supplied result and route; this is not durable replay. Rejection values map normally rather than being thrown to roll back an intended rejection record. `OperationFailure` distinguishes nonterminal conflict/admission/unavailability and missing balance lookup. SQL exception classification, whole-transaction retry and uncertain-commit recovery remain CBS03–04/CBS11–19 work. A 503/500 or lost response must use same-ID recovery and cannot establish that no commit occurred.
+
+The strict Jackson settings apply to the application's JSON mapper, including unknown-field, duplicate-key and trailing-token checks. The exception advice is global because method/media negotiation can fail before controller selection. No raw parser, domain or SQL exception messages reach problem responses. Authentication, ownership, limits, migrations, funding selection, posting/projection writes and durable serialization are not implemented by this adapter. The trusted loopback deployment and CBS24–25 access gate still apply.
+
+See [HTTP adapter evidence](HTTP-adapter-evidence.md) for verification and the next track step.
+
+## Typed mutation response bodies
+
+The three mutation controllers and OperationResponses mapper return `ResponseEntity<OperationResponseBody>`. This sealed interface permits only the success record `OperationResponse` and final `OperationProblem`. OperationProblem extends Spring ProblemDetail, preserving standard problem fields and top-level extension properties. It copies the existing rejection problem before adding transaction metadata. No wrapper object or JSON type discriminator is added. Framework/admission/technical exceptions still use the separate exception advice; the sealed family describes normal mutation returns. Business rejections remain returned values, preserving the future post-commit mapping boundary.

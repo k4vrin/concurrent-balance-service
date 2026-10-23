@@ -79,3 +79,15 @@ Retention policy accepted on 2026-10-23: committed operation IDs, canonical comm
 ## Accepted transaction-boundary mechanism, 2026-10-23
 
 Use a nontransactional coordinator and Spring `TransactionTemplate` for each financial attempt, with REQUIRED propagation and an enforced no-ambient-transaction entry boundary. Return explicit Success/Rejected values; technical exceptions roll back. Perform retry, duplicate recovery and HTTP mapping outside the attempt. Never use a separate REQUIRES_NEW commit for reservation, rejection or successful financial outcome. Template completion confirms commit only when this no-outer-transaction condition holds. Enforce the boundary with an explicit guard or a separately proxied NEVER entry point; self-invocation must not bypass it. This accepts the mechanism, not SQL behavior or the entire protocol. [CBS04 draft](Transaction-protocol.md) supplies the next review artifact.
+
+## ADR-008: Accepted application architecture, 2026-10-23
+
+[ADR-008](../adr/ADR-008-application-architecture.en.md) accepts the modular monolith, feature boundaries and selective ports/adapters. [Architecture](Architecture.md) records the examples and planned tree. Single-database CQRS was subsequently accepted in ADR-009; advanced variants and other suggestions retain their stated status. No financial persistence is implemented by this acceptance.
+
+## ADR-009: Accepted single-database CQRS, 2026-10-23
+
+[ADR-009](../adr/ADR-009-single-database-cqrs.en.md) accepts separate command/write models and query projections on the same SQL Server database, preserving atomic synchronous balances. No command bus, separate read store or event sourcing is required. Implementation and database evidence remain pending.
+
+## Accepted account identity and ordering, 2026-10-23
+
+AccountId wraps UUID, independent of transaction-ID identity. AccountLockOrder.DESCENDING compares the UUID high/low halves unsigned, descending, for all account-writing paths. UUID wrapper and comparator are implemented and unit-tested; no database locking is implemented. Sort/deduplicate the full participant set and perform sequential locking lookups in the financial transaction. Do not substitute Java natural UUID order, SQL GUID order or bulk-query result order as a lock-acquisition guarantee. SQL mapping, index layout, parsing and real contention tests remain pending.

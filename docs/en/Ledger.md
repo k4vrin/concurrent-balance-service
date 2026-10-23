@@ -1,6 +1,6 @@
 # V1 ledger design
 
-[فارسی](../fa/Ledger.md) · [Accepted ADR-007](../adr/ADR-007-double-entry-ledger.en.md) · [Constraint review](Database-review.md)
+[فارسی](../fa/Ledger.md) · [Accepted ADR-007](../adr/ADR-007-double-entry-ledger.en.md) · [Constraint review](Database-review.md) · [Debit and credit across account types](Debit-and-credit.md) · [Journal and projection walkthrough](Journal-projection.md)
 
 The user selected option E on 2026-10-22. V1 includes a flexible double-entry ledger in the same SQL Server database as the balance API. This is an accepted project design extension, not a requirement attributed to the original employer challenge. No financial schema, posting engine or endpoint is implemented yet. SQL Server behavior and performance remain untested.
 
@@ -51,3 +51,37 @@ Committed journals and postings are append-only. Correct money movement with a n
 CBS02–04 review constraints, identity and transactions; CBS05 adds accounting domain rules; CBS09 introduces the reviewed four-table migration; CBS10 adds mappings, opening fixtures and committed balance reads; CBS11–15 add complete HTTP operation slices; CBS16–20 prove replay, rollback, races and independent reconciliation on SQL Server. CBS21–22 measure posting reads, storage, log work and funding contention. Keep one guided substep per session and preserve existing checkpoint CBS00.
 
 Acceptance requires actual SQL Server integration tests with positive test counts, checked arithmetic, mixed operations, simultaneous duplicates across instances, failure after posting/projection writes, restart and lost-response recovery. The portable health smoke test proves none of these. No business migration is authorized before the constraint review. Existing bootstrap code does not require a replacement financial implementation because none exists yet.
+
+## CBS05 posting/journal domain increment, 2026-10-23
+
+Implemented domain types: PostingSide, immutable Posting and immutable Journal. Posting requires an AccountId, side and positive Money amount. balanceDelta(category) maps customer CREDIT to positive and DEBIT to negative; funding DEBIT is positive and CREDIT negative. It does not verify that the supplied category belongs to a resolved account; actual account lookup/currency matching remain in the future projection path. Positive amounts make negation representable even at Long.MAX_VALUE.
+
+Journal defensively copies the posting list, requires at least two non-null lines, enforces one currency and compares exact BigInteger debit/credit totals. Positive amounts plus equal totals require both sides. It supports multi-line journals and balanced totals larger than long, without implying that any resulting account projection fits its range. Mixed-currency journal construction is rejected in this V1 domain increment; future FX needs its separate review.
+
+This implemented example assumes existing typed sourceId/destinationId and Java imports:
+
+```java
+var amount = new Money(100, Currency.getInstance("IRR"));
+var journal = new Journal(List.of(
+        new Posting(sourceId, PostingSide.DEBIT, amount),
+        new Posting(destinationId, PostingSide.CREDIT, amount)
+));
+```
+
+This constructs a valid posting set only. It does not move money, lock accounts, create an operation/header ID or commit a journal. Persisted header identity/operation linkage comes later. Before financial persistence, resolve every account, verify account currencies and compute net deltas with exact wider accumulation per account, then validate all resulting projections before any write. Applying individual lines sequentially can falsely reject a valid net result when an account occurs more than once. Database permissions still enforce append-only persisted history; Java immutability alone does not.
+
+## CBS05 net balance projection, 2026-10-23
+
+`Journal.projectBalances(Map<AccountId, Account>)` now calculates immutable proposed snapshots for the journal's participating accounts. It resolves each posting through the supplied map, rejects missing accounts, mismatched key/identity and account currencies, and uses each resolved account's category for `balanceDelta`. Extra nonparticipating accounts do not appear in the result; participants with zero net change do.
+
+All changes for one account are accumulated exactly with `BigInteger`. Only the final value, current balance plus net change, is converted with `longValueExact` and validated by the Account constructor. A net delta can exceed long even when both old and new signed funding balances fit. No partial result escapes if any participant fails; input snapshots stay unchanged. The returned map is immutable and its iteration order has no locking meaning.
+
+The learner correctly predicted 100 rials from a starting customer balance of 50, debit 100 and credit 150. The balancing third line is funding debit 50. The implementation validates the final 100 instead of rejecting a temporary -50 caused by applying the first line alone. Reordering the same posting set produces the same projections. This domain calculation does not override the API's self-transfer rejection policy.
+
+The caller must eventually supply current snapshots obtained under the accepted financial transaction/locking protocol. This method does not load or lock database rows, authorize a request, persist projections or create a terminal operation outcome. Invalid domain input currently throws IllegalArgumentException, null input throws NullPointerException, and final numeric overflow throws ArithmeticException; HTTP/business-outcome mapping remains future work.
+
+Java 21.0.11 Maven verify passed 92 tests, zero failures/errors/skips in 8.354 seconds: 13 projection cases plus the previous 79. Projection tests cover transfer and category effects, repeated-account netting, reversed line order, temporary overdraft/overflow, net deltas beyond long, final positive/negative overflow, customer nonnegative policy, missing/misidentified accounts, currency, nulls and immutable participant-only results. This is portable domain evidence, not SQL Server atomicity/concurrency evidence. Next CBS05 work is command validation and transaction identity boundaries before HTTP adaptation.
+
+Refactoring, 2026-10-23: projectBalances now reads as snapshot copy, exact net calculation and account projection. Private helpers resolve/validate posting accounts, accumulate changes, construct final snapshots and publish an immutable result. Public behavior, exception messages and invariant comments are preserved. Focused Java 21 ledger tests passed 36 cases with zero failures/errors/skips in 5.588 seconds; the full 92-test suite was not rerun for this refactor.
+
+Pre-publication verification, 2026-10-23: Java 21.0.11 Maven verify passed all 92 tests after the projectBalances refactor, zero failures/errors/skips in 7.267 seconds. This supersedes the earlier focused-only verification limit; SQL Server behavior remains untested.

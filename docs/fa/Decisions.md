@@ -225,3 +225,15 @@ Debezium برای insert‌های outbox بررسی می‌شود. پیش از �
 ## مرز تراکنش پذیرفته‌شده، ۲۰۲۶-۱۰-۲۳
 
 هر تلاش مالی با Spring `TransactionTemplate` و propagation از نوع REQUIRED در coordinator غیرتراکنشی اجرا شود؛ نبود تراکنش بیرونی در ورودی الزاماً کنترل شود. نتیجهٔ Success/Rejected مقدار عادی است؛ exception فنی rollback می‌کند. retry، بازیابی duplicate و نگاشت HTTP بیرون تلاش باشند. رزرو، رد یا نتیجهٔ مالی موفق با REQUIRES_NEW جداگانه commit نشوند. پایان template فقط با نبود تراکنش بیرونی تأیید commit است. guard صریح یا ورودی NEVER در bean پروکسی‌شده این شرط را اجرا کند؛ self-invocation نباید آن را دور بزند. این پذیرش مکانیزم است، نه رفتار SQL یا کل پروتکل. [پیش‌نویس CBS04](Transaction-protocol.md) گام مرور بعدی است.
+
+## ADR-008: معماری برنامهٔ پذیرفته‌شده، ۲۰۲۶-۱۰-۲۳
+
+[ADR-008](../adr/ADR-008-application-architecture.fa.md) مونولیت ماژولار، مرز feature و port/adapter انتخابی را می‌پذیرد. [معماری](Architecture.md) مثال‌ها و درخت هدف را دارد. CQRS تک‌دیتابیسی بعداً در ADR-009 پذیرفته شد؛ شکل‌های پیشرفته و سایر پیشنهادها وضعیت اعلام‌شدهٔ خود را دارند. این پذیرش persistence مالی را پیاده نمی‌کند.
+
+## ADR-009: پذیرش CQRS تک‌دیتابیسی، ۲۰۲۶-۱۰-۲۳
+
+[ADR-009](../adr/ADR-009-single-database-cqrs.fa.md) مدل command/نوشتن و projection خواندن جدا روی همان SQL Server و حفظ موجودی هم‌زمان اتمیک را می‌پذیرد. command bus، read store جدا یا event sourcing لازم نیست. پیاده‌سازی و شاهد دیتابیس هنوز باز هستند.
+
+## هویت و ترتیب حساب پذیرفته‌شده، ۲۰۲۶-۱۰-۲۳
+
+AccountId از UUID استفاده می‌کند و مستقل از transaction ID است. AccountLockOrder.DESCENDING نیمه‌های UUID را unsigned و نزولی برای همهٔ writerهای حساب مقایسه می‌کند. wrapper و comparator پیاده و unit-test شده‌اند؛ قفل دیتابیس پیاده نشده است. مجموعهٔ کامل و یکتای حساب‌ها مرتب و lookup قفل داخل تراکنش مالی پشت سر هم اجرا شود. ترتیب طبیعی UUID جاوا، GUID سرور یا نتیجهٔ query حجمی تضمین اخذ قفل نیست. نگاشت SQL، index، parsing و تست رقابت واقعی هنوز باز هستند.

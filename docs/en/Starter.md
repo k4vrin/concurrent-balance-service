@@ -31,3 +31,5 @@ Sources: [Initializr](https://start.spring.io/), [Spring Boot](https://docs.spri
 ## Accepted option E scope, 2026-10-22
 
 [Ledger.md](Ledger.md) assigns planned responsibilities to account projections, operation identity and ledger construction/persistence. Use feature boundaries for these responsibilities as implementation proceeds; do not create empty packages or a second service now. `BalanceService` remains an unimplemented internal contract. No existing financial implementation requires replacement. Add the accounting domain rules at CBS05 and reviewed persistence at CBS09–10.
+
+[Accepted architecture and package blueprint](Architecture.md) governs subsequent feature development; illustrative future class names are not an implementation inventory.

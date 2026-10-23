@@ -238,3 +238,5 @@ replay محتوای اصلی پاسخ را برمی‌گرداند. اگر پا�
 ## مرز تراکنش پذیرفته‌شده، ۲۰۲۶-۱۰-۲۳
 
 هر تلاش مالی با Spring `TransactionTemplate` و propagation از نوع REQUIRED در coordinator غیرتراکنشی اجرا شود؛ نبود تراکنش بیرونی در ورودی الزاماً کنترل شود. نتیجهٔ Success/Rejected مقدار عادی است؛ exception فنی rollback می‌کند. retry، بازیابی duplicate و نگاشت HTTP بیرون تلاش باشند. رزرو، رد یا نتیجهٔ مالی موفق با REQUIRES_NEW جداگانه commit نشوند. پایان template فقط با نبود تراکنش بیرونی تأیید commit است. guard صریح یا ورودی NEVER در bean پروکسی‌شده این شرط را اجرا کند؛ self-invocation نباید آن را دور بزند. این پذیرش مکانیزم است، نه رفتار SQL یا کل پروتکل. [پیش‌نویس CBS04](Transaction-protocol.md) گام مرور بعدی است.
+
+اصلاح شناسهٔ حساب در ۲۰۲۶-۱۰-۲۳: دستور canonical شناسهٔ حساب parseشده را با UUID.toString ثبت خواهد کرد؛ قواعد هویت transaction ID عوض نمی‌شود. AccountLockOrder.DESCENDING ترتیب قفل برنامه است، نه ترتیب فیلد fingerprint. کد parsing/fingerprint و قفل SQL هنوز پیاده نشده‌اند.

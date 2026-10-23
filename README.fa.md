@@ -16,7 +16,7 @@ API اولیه روی محیط توسعهٔ محلی اجرا می‌شود. JWT
 
 ## وضعیت فعلی
 
-CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)` شروع شده است. برای IRR، عدد 100 مستقیماً ۱۰۰ ریال است. Money صفر و مقدار علامت‌دار را می‌پذیرد؛ دستورها، postingها و نوع حساب قواعد علامت و سقف تجاری خود را کنترل خواهند کرد. Money جمع و تفریق هم‌ارز با کنترل overflow و مقایسه دارد. سیاست حساب و عملیات مالی هنوز پیاده نشده‌اند.
+CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)` شروع شده است. برای IRR، عدد 100 مستقیماً ۱۰۰ ریال است. Money صفر و مقدار علامت‌دار را می‌پذیرد؛ دستورها، postingها و نوع حساب قواعد علامت و سقف تجاری خود را کنترل خواهند کرد. Money جمع و تفریق هم‌ارز با کنترل overflow و مقایسه دارد. AccountCategory سیاست موجودی نامنفی مشتری و موجودی علامت‌دار تأمین مصنوعی را بررسی می‌کند. Account تغییرناپذیر و AccountId مبتنی بر UUID سیاست موجودی را هنگام ساخت و تغییر checked کنترل می‌کنند. AccountLockOrder ترتیب مشترک unsigned نزولی UUID را می‌دهد؛ قفل دیتابیس هنوز پیاده نشده است. Posting و Journal اکنون سطر مثبت، delta وابسته به نوع حساب و سند تک‌ارزی متوازن با جمع دقیق را بررسی می‌کنند. Journal.projectBalances اکنون snapshotهای نهایی را با جمع دقیق تغییر خالص آماده می‌کند. use case مالی و persistence هنوز پیاده نشده‌اند.
 
 | وضعیت | جزئیات |
 | --- | --- |
@@ -102,6 +102,14 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 
 ## مستندات
 
+- [راهنمای Journal و محاسبهٔ مانده](docs/fa/Journal-projection.md) / [English](docs/en/Journal-projection.md)
+
+- [بدهکار و بستانکار در انواع حساب](docs/fa/Debit-and-credit.md) / [English](docs/en/Debit-and-credit.md)
+
+- [بیت‌های UUID و ترتیب قفل حساب](docs/fa/UUID-lock-order.md)
+
+- [معماری پذیرفته‌شده و مثال‌ها](docs/fa/Architecture.md)
+
 - [ماتریس نیازمندی و خطا](docs/fa/Requirements.md)
 - [پروتکل هویت ماندگار](docs/fa/Idempotency-protocol.md)
 - [پروتکل تراکنش و قفل](docs/fa/Transaction-protocol.md)
@@ -125,3 +133,5 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 `credit` و `debit` حساب مقابل تأمین یا تسویه دارند. موجودی غیرصفر اولیه هم با journal افتتاحیه ثبت می‌شود. [طراحی دفترکل](docs/fa/Ledger.md) و [ADR-007](docs/adr/ADR-007-double-entry-ledger.fa.md) جزئیات این انتخاب را توضیح می‌دهند.
 
 این طراحی پذیرفته شده، اما کد مالی، schema و شواهد مالی SQL Server هنوز وجود ندارند. مرور constraint‌ها و تراکنش، پیش‌نیاز migration مالی است.
+
+محاسبهٔ خالص projection در `Journal.projectBalances` پیاده شد: جمع دقیق تغییرات و اعتبارسنجی همهٔ snapshotهای نهایی، بدون تغییر ورودی یا نوشتن در دیتابیس. verify با Java 21 تعداد ۹۲ تست را بدون خطا یا skip گذراند. شرح و مرزها در [طراحی دفترکل](docs/fa/Ledger.md) آمده است.

@@ -11,7 +11,7 @@ The first functional version delivers credit, debit, transfer and balance lookup
 
 ## Current state
 
-CBS05 has started with immutable `Money(long amount, Currency currency)`. For IRR, 100 means 100 rials directly. Money permits zero and signed values; commands, postings and account categories will enforce their respective sign and business-limit rules. Money supports same-currency checked addition/subtraction and comparison. Account policies and financial operations remain pending.
+CBS05 has started with immutable `Money(long amount, Currency currency)`. For IRR, 100 means 100 rials directly. Money permits zero and signed values; commands, postings and account categories will enforce their respective sign and business-limit rules. Money supports same-currency checked addition/subtraction and comparison. AccountCategory now validates customer nonnegative balances and signed synthetic funding/clearing balances. Immutable Account and UUID-backed AccountId enforce the balance policy at construction and checked balance changes. AccountLockOrder supplies the shared descending unsigned UUID comparator; database locking is not implemented. Posting and Journal now validate positive accounting lines, category-dependent deltas and complete single-currency balance with exact totals. Journal.projectBalances now prepares validated net account snapshots with exact accumulation. Financial use cases and persistence remain pending.
 
 Implemented: official Spring Initializr bootstrap adapted to reproducible Maven coordinates, application entry point, the four-operation Java interface, infrastructure-free HTTP health smoke test, default SQL Server persistence dependencies, optional Redis/Kafka/JWT dependency profiles, externalized configuration, CI definition and bilingual design documents.
 
@@ -72,6 +72,14 @@ No migration has been written. Flyway may initialize its history table in the su
 
 ## Documentation
 
+- [Journal record and balance projection walkthrough](docs/en/Journal-projection.md) / [فارسی](docs/fa/Journal-projection.md)
+
+- [Debit and credit across account types](docs/en/Debit-and-credit.md) / [فارسی](docs/fa/Debit-and-credit.md)
+
+- [UUID bits and account lock ordering](docs/en/UUID-lock-order.md) / [فارسی](docs/fa/UUID-lock-order.md)
+
+- [Accepted application architecture and examples](docs/en/Architecture.md) / [فارسی](docs/fa/Architecture.md)
+
 - [Requirements and failure matrix](docs/en/Requirements.md) / [فارسی](docs/fa/Requirements.md)
 - [Durable identity protocol](docs/en/Idempotency-protocol.md) / [فارسی](docs/fa/Idempotency-protocol.md)
 - [Transaction and locking protocol](docs/en/Transaction-protocol.md) / [فارسی](docs/fa/Transaction-protocol.md)
@@ -90,4 +98,4 @@ The repository is authoritative for the evolving implementation plan. Earlier va
 
 ## Accepted V1 ledger design
 
-The user selected option E on 2026-10-22. V1 includes `accounts`, `operations`, `journals` and `postings`, immutable balanced accounting history and synchronous balance projections committed in one SQL Server transaction. Credit/debit use funding counterparts and nonzero initialization uses opening journals. See [Ledger design](docs/en/Ledger.md) and [ADR-007](docs/adr/ADR-007-double-entry-ledger.en.md). The design is accepted; financial code, schema and SQL Server evidence remain absent. Detailed constraint/transaction review still precedes business migrations.
+The user selected option E on 2026-10-22. V1 includes `accounts`, `operations`, `journals` and `postings`, immutable balanced accounting history and synchronous balance projections committed in one SQL Server transaction. Credit/debit use funding counterparts and nonzero initialization uses opening journals. See [Ledger design](docs/en/Ledger.md) and [ADR-007](docs/adr/ADR-007-double-entry-ledger.en.md). The design is accepted; financial persistence, schema and SQL Server evidence remain absent. Detailed constraint/transaction review still precedes business migrations.

@@ -1,6 +1,6 @@
 # V1 HTTP API contract
 
-[فارسی](../fa/API-v1.md) · [Roadmap](Roadmap.md)
+[فارسی](../fa/API-v1.md) · [Roadmap](Roadmap.md) · [Business outcomes and commit boundary](Operation-outcomes.md)
 
 Scope selected by the user on 2026-10-22: the first functional version delivers all four balance operations through a JSON HTTP API backed by SQL Server. Endpoint shapes below are proposed until reviewed in CBS01/CBS23. No financial endpoint is implemented yet. V1 means the first functional API release; it is separate from Flyway migration `V1` and any Git tag.
 
@@ -38,3 +38,38 @@ Selected by the user on 2026-10-22. A well-formed, authorized request rejected f
 Example: `debit-001` requests 50 when the balance is 30 and is rejected. After a separate credit raises the balance to 100, replaying `debit-001` still returns the original insufficient-funds rejection. A new ID permits a fresh funds check. This makes the business decision durable despite having no monetary effect. Syntax/access failures do not reserve financial identity. Technical failure before commit does not store a terminal rejection; uncertain commit must be recovered with the same ID. SQL Server is the durable authority in V1; Redis is a later cache with database fallback. This policy is accepted design, not implemented behavior; detailed storage, locking and HTTP error mapping still need review.
 
 [Requirement and failure matrix](Requirements.md): reviewed cases, planned evidence and unresolved policies.
+
+## CBS05 typed mutation commands, 2026-10-23
+
+Implemented application inputs: `CreditCommand(TransactionId, AccountId, Money)`, `DebitCommand(TransactionId, AccountId, Money)` and `TransferCommand(TransactionId, AccountId sourceAccountId, AccountId destinationAccountId, Money)`. These immutable records live in `operation.application`; they are independent of JSON DTOs and persistence entities. Each requires non-null IDs and amount, positive IRR and, for transfer, distinct account UUID values. A package-private CommandValidation helper owns the common amount rule without changing Money's support for zero/signed values and other currencies.
+
+Example, assuming existing typed sourceId and destinationId:
+
+```java
+var command = new TransferCommand(
+        new TransactionId("transfer-001"), sourceId, destinationId,
+        new Money(100, Currency.getInstance("IRR")));
+```
+
+Constructing a command does not reserve transaction identity or move money. The future adapter/coordinator must construct it before reservation. Missing fields currently throw NullPointerException; nonpositive/unsupported amounts and self-transfers throw IllegalArgumentException. Equality of AccountId values detects self-transfer even with separate wrapper instances. The original BalanceService interface remains unwired scaffolding; no handler/API implementation is registered by this increment. Credit/debit commands contain only the customer account; funding selection remains server-owned in the future execution path.
+
+Account existence, authorization, sufficient funds and resulting projection overflow are not checked by these constructors. A well-formed mutation naming a missing account still needs the accepted terminal rejection path. JSON fractional/out-of-long amounts and malformed UUID text must be rejected by the future transport parser; a long-backed Money cannot itself represent those invalid JSON inputs. Long.MAX_VALUE is accepted at this representation boundary; numeric business caps and their mutable-policy/replay classification remain unresolved and must be reviewed before financial execution. No cap is inferred from the type limit.
+
+Java 21.0.11 Maven verify passed 128 tests with zero failures/errors/skips in 8.736 seconds. Thirteen new command cases cover positive representation boundaries, nonpositive amounts, unsupported currency, missing fields, UUID-value self-transfer, direction/identity preservation and the absence of reservation during construction. No SQL Server or financial HTTP evidence. Next CBS05 increment: explicit business rejection/success outcome types and their boundary with technical failures, before HTTP adaptation. Task acceptance remains open.
+
+## Supported currency policy amendment, 2026-10-23
+
+At the user's request, supported currencies are no longer hardcoded inside CommandValidation or the command constructors. `CommandValidation.requirePositiveAmount` checks only presence and positivity. CreditCommand, DebitCommand and TransferCommand preserve the Money currency for a separate `SupportedCurrencies(Set<Currency>)` policy. This supersedes the earlier command-constructor IRR restriction. The initial V1 deployment policy remains IRR; a set-based validator does not add FX conversion or define units for additional currencies.
+
+SupportedCurrencies defensively copies the supplied set and exposes `requireSupported(Currency)`. Any supplied currencies can be enabled; none is built into production validation code. Null sets/members/currency are rejected, and an explicitly empty set disables all currencies. Changing the source set cannot change an existing policy snapshot. Future configuration or a database adapter can supply a new snapshot without putting policy in command payloads or adding database reads to value constructors. No loader, database table or runtime bean is implemented yet.
+
+Illustrative composition with a supplied policy set, before execution:
+
+```java
+var policy = new SupportedCurrencies(currenciesFromConfiguration);
+policy.requireSupported(command.amount().currency());
+```
+
+A future coordinator must resolve an existing terminal outcome before reevaluating this mutable admission policy. Matching retries replay their original result even if that currency has since been disabled. For a new operation, evaluate support using one consistent policy snapshot before reservation; valid syntax and supported-by-current-policy are separate checks. Database loading failures are technical failures, not an empty policy or a terminal unsupported-currency decision. The loader/refresh consistency protocol remains future design and requires integration tests.
+
+Java 21.0.11 Maven verify passed 137 tests with zero failures/errors/skips in 7.565 seconds. Nine policy cases cover multiple allowed currencies, rejection outside the set, a set without IRR, empty/null sets and immutable snapshots. The 13 command cases now verify currency preservation instead of a hardcoded unsupported-currency rejection. HTTP, replay ordering and database policy loading remain unimplemented; this is portable calculation/validation evidence.

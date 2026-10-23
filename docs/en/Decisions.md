@@ -91,3 +91,20 @@ Use a nontransactional coordinator and Spring `TransactionTemplate` for each fin
 ## Accepted account identity and ordering, 2026-10-23
 
 AccountId wraps UUID, independent of transaction-ID identity. AccountLockOrder.DESCENDING compares the UUID high/low halves unsigned, descending, for all account-writing paths. UUID wrapper and comparator are implemented and unit-tested; no database locking is implemented. Sort/deduplicate the full participant set and perform sequential locking lookups in the financial transaction. Do not substitute Java natural UUID order, SQL GUID order or bulk-query result order as a lock-acquisition guarantee. SQL mapping, index layout, parsing and real contention tests remain pending.
+
+## Supported currency policy amendment, 2026-10-23
+
+At the user's request, supported currencies are no longer hardcoded inside CommandValidation or the command constructors. `CommandValidation.requirePositiveAmount` checks only presence and positivity. CreditCommand, DebitCommand and TransferCommand preserve the Money currency for a separate `SupportedCurrencies(Set<Currency>)` policy. This supersedes the earlier command-constructor IRR restriction. The initial V1 deployment policy remains IRR; a set-based validator does not add FX conversion or define units for additional currencies.
+
+SupportedCurrencies defensively copies the supplied set and exposes `requireSupported(Currency)`. Any supplied currencies can be enabled; none is built into production validation code. Null sets/members/currency are rejected, and an explicitly empty set disables all currencies. Changing the source set cannot change an existing policy snapshot. Future configuration or a database adapter can supply a new snapshot without putting policy in command payloads or adding database reads to value constructors. No loader, database table or runtime bean is implemented yet.
+
+Illustrative composition with a supplied policy set, before execution:
+
+```java
+var policy = new SupportedCurrencies(currenciesFromConfiguration);
+policy.requireSupported(command.amount().currency());
+```
+
+A future coordinator must resolve an existing terminal outcome before reevaluating this mutable admission policy. Matching retries replay their original result even if that currency has since been disabled. For a new operation, evaluate support using one consistent policy snapshot before reservation; valid syntax and supported-by-current-policy are separate checks. Database loading failures are technical failures, not an empty policy or a terminal unsupported-currency decision. The loader/refresh consistency protocol remains future design and requires integration tests.
+
+Java 21.0.11 Maven verify passed 137 tests with zero failures/errors/skips in 7.565 seconds. Nine policy cases cover multiple allowed currencies, rejection outside the set, a set without IRR, empty/null sets and immutable snapshots. The 13 command cases now verify currency preservation instead of a hardcoded unsupported-currency rejection. HTTP, replay ordering and database policy loading remain unimplemented; this is portable calculation/validation evidence.

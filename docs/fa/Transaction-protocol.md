@@ -1,6 +1,6 @@
 # ترتیب تراکنش و قفل CBS04
 
-[English](../en/Transaction-protocol.md) · [پروتکل هویت](Idempotency-protocol.md) · [دفترکل](Ledger.md)
+[English](../en/Transaction-protocol.md) · [پروتکل هویت](Idempotency-protocol.md) · [دفترکل](Ledger.md) · [نتیجهٔ کسب‌وکار و مرز commit](Operation-outcomes.md)
 
 پیش‌نویس مرور مشترک در ۲۰۲۶-۱۰-۲۳. TransactionTemplate و coordinator با کنترل نبود تراکنش بیرونی امروز پذیرفته شد. ترتیب، isolation، نگاشت قفل و تنظیمات زیر تا مرور و آزمون پیشنهادند. کد مالی، DDL یا شاهد اجرا وجود ندارد.
 

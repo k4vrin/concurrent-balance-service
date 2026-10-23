@@ -11,7 +11,7 @@ The first functional version delivers credit, debit, transfer and balance lookup
 
 ## Current state
 
-CBS05 has started with immutable `Money(long amount, Currency currency)`. For IRR, 100 means 100 rials directly. Money permits zero and signed values; commands, postings and account categories will enforce their respective sign and business-limit rules. Money supports same-currency checked addition/subtraction and comparison. AccountCategory now validates customer nonnegative balances and signed synthetic funding/clearing balances. Immutable Account and UUID-backed AccountId enforce the balance policy at construction and checked balance changes. AccountLockOrder supplies the shared descending unsigned UUID comparator; database locking is not implemented. Posting and Journal now validate positive accounting lines, category-dependent deltas and complete single-currency balance with exact totals. Journal.projectBalances now prepares validated net account snapshots with exact accumulation. Financial use cases and persistence remain pending.
+CBS05 has started with immutable `Money(long amount, Currency currency)`. For IRR, 100 means 100 rials directly. Money permits zero and signed values; commands, postings and account categories will enforce their respective sign and business-limit rules. Money supports same-currency checked addition/subtraction and comparison. AccountCategory now validates customer nonnegative balances and signed synthetic funding/clearing balances. Immutable Account and UUID-backed AccountId enforce the balance policy at construction and checked balance changes. AccountLockOrder supplies the shared descending unsigned UUID comparator; database locking is not implemented. Posting and Journal now validate positive accounting lines, category-dependent deltas and complete single-currency balance with exact totals. Journal.projectBalances now prepares validated net account snapshots with exact accumulation. Financial use cases and persistence remain pending. CreditCommand, DebitCommand and TransferCommand now validate required IDs, positive amounts and distinct transfer accounts. SupportedCurrencies validates currency membership against a supplied immutable set; configuration/database loading remains pending. TransactionId now validates exact case-sensitive request identity without trimming.
 
 Implemented: official Spring Initializr bootstrap adapted to reproducible Maven coordinates, application entry point, the four-operation Java interface, infrastructure-free HTTP health smoke test, default SQL Server persistence dependencies, optional Redis/Kafka/JWT dependency profiles, externalized configuration, CI definition and bilingual design documents.
 
@@ -71,6 +71,8 @@ No migration has been written. Flyway may initialize its history table in the su
 [Bootstrap evidence](docs/en/Bootstrap-evidence.md): clean Java 21 verification passed with one HTTP smoke test. All optional dependency profiles also packaged successfully in staging with tests skipped. External services remain unverified.
 
 ## Documentation
+
+- [Business outcomes and the commit boundary](docs/en/Operation-outcomes.md) / [فارسی](docs/fa/Operation-outcomes.md)
 
 - [Journal record and balance projection walkthrough](docs/en/Journal-projection.md) / [فارسی](docs/fa/Journal-projection.md)
 

@@ -1,6 +1,6 @@
 # CBS04 transaction and locking sequence
 
-[فارسی](../fa/Transaction-protocol.md) · [Identity protocol](Idempotency-protocol.md) · [Ledger](Ledger.md)
+[فارسی](../fa/Transaction-protocol.md) · [Identity protocol](Idempotency-protocol.md) · [Ledger](Ledger.md) · [Business outcomes and commit boundary](Operation-outcomes.md)
 
 Draft for joint review, 2026-10-23. TransactionTemplate with an enforced nontransactional coordinator was accepted today. The sequence, isolation/lock mapping and settings below remain proposals until reviewed and verified. No financial code, DDL or runtime evidence exists.
 

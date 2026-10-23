@@ -71,11 +71,17 @@ src/main/java/dev/kavrin/balance/
 │       └── JpaAccountRepositoryAdapter.java
 ├── operation/
 │   ├── domain/
-│   │   ├── TransactionId.java
-│   │   ├── OperationType.java
-│   │   └── OperationOutcome.java
+│   │   ├── TransactionId.java             # implemented
+│   │   ├── OperationType.java             # implemented
+│   │   ├── RejectionReason.java           # implemented
+│   │   └── OperationOutcome.java          # implemented business values
 │   ├── application/
 │   │   ├── BalanceService.java             # existing scaffold
+│   │   ├── CreditCommand.java              # implemented
+│   │   ├── DebitCommand.java               # implemented
+│   │   ├── TransferCommand.java            # implemented
+│   │   ├── CommandValidation.java          # package-private helper
+│   │   ├── SupportedCurrencies.java        # supplied policy snapshot
 │   │   ├── OperationCoordinator.java
 │   │   ├── CreditHandler.java
 │   │   ├── DebitHandler.java
@@ -176,7 +182,7 @@ src/main/resources/
 src/test/java/dev/kavrin/balance/
 ├── ConcurrentBalanceServiceApplicationTests.java  # implemented
 ├── money/MoneyTests.java                          # implemented
-├── account/                              # planned
+├── account/                              # implemented domain/command tests
 ├── operation/                            # planned
 ├── ledger/                               # planned
 ├── reconciliation/                       # planned
@@ -225,3 +231,9 @@ posting تغییرناپذیر و موجودی قابل‌بازسازی به ev
 [ADR-009](../adr/ADR-009-single-database-cqrs.fa.md) پذیرش این شکل محدود CQRS را ثبت می‌کند. store غیرهم‌زمان پیشرفته، event sourcing و framework تازه جزو این پذیرش نیستند.
 
 [راهنمای بیت UUID و ترتیب قفل](UUID-lock-order.md) مبنای شانزده، two’s complement، دو نیمهٔ unsigned، علامت نتیجهٔ comparator و هر تست را با مثال قابل‌اجرا توضیح می‌دهد.
+
+اعتبارسنجی نوع‌دار CreditCommand، DebitCommand و TransferCommand در operation.application پیاده شد؛ handler و persistence همچنان در برنامه‌اند. آخرین verify با Java 21 تعداد ۱۲۸ تست را بدون خطا یا skip گذراند؛ جزئیات در Requirements.md آمده است.
+
+پشتیبانی ارز سیاست application با مجموعهٔ تغییرناپذیر است؛ سازندهٔ command فقط ساختار و مبلغ مثبت را می‌سنجد. adapter تنظیمات یا دیتابیس در آینده SupportedCurrencies را فراهم می‌کند. مرز بارگذاری و ترتیب replay در Decisions.md ثبت شده است. آخرین verify تعداد ۱۳۷ تست را بدون خطا یا skip گذراند.
+
+[نتیجهٔ کسب‌وکار و مرز commit](Operation-outcomes.md)

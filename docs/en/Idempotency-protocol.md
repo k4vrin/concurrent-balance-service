@@ -2,7 +2,7 @@
 
 [فارسی](../fa/Idempotency-protocol.md) · [ADR-002](Decisions.md#adr-002-idempotency-actors-and-redis) · [Requirements](Requirements.md)
 
-Status: draft for joint review, 2026-10-22. Accepted business policies below retain their existing status. Identifier syntax, encoding, lifecycle and recovery mechanics are proposals, not accepted implementation. No schema, code or SQL Server test is introduced by this document. CBS04 must review the exact transaction/locking SQL before financial migrations.
+Status: draft for joint review, 2026-10-22. Accepted business policies below retain their existing status. TransactionId syntax validation is now implemented as described in the CBS05 section below; encoding, lifecycle and recovery details remain draft. No schema or SQL Server behavior is implemented. CBS04 must review the exact transaction/locking SQL before financial migrations.
 
 ## Promise and scope
 
@@ -12,7 +12,7 @@ SQL Server is the authority in V1. A later Redis hit can replay only a validated
 
 ## Identity and canonical command
 
-Proposed transaction-ID syntax: 1–128 ASCII characters from letters, digits, `.`, `_`, `:`, `-`; case-sensitive exact identity. Reject whitespace rather than trimming it; reject null/blank/oversize/unsupported characters before reservation. Use the same comparison in the application and unique database key; SQL Server collation and trailing-space behavior require real tests. Account IDs now wrap UUID and share the descending unsigned application comparator; HTTP UUID parsing and SQL mapping/locking still require implementation. Internal opening IDs use the same uniqueness mechanism; a collision must never authorize replay of a different command.
+Implemented transaction-ID syntax baseline: 1–128 ASCII characters from letters, digits, `.`, `_`, `:`, `-`; case-sensitive exact identity. Reject whitespace rather than trimming it; reject null/blank/oversize/unsupported characters before reservation. Use the same comparison in the application and unique database key; SQL Server collation and trailing-space behavior require real tests. Account IDs now wrap UUID and share the descending unsigned application comparator; HTTP UUID parsing and SQL mapping/locking still require implementation. Internal opening IDs use the same uniqueness mechanism; a collision must never authorize replay of a different command.
 
 Canonical command fields: encoding version, operation type, requested source/destination/target IDs in their distinct roles, positive rial amount, currency, and authenticated actor ID when authentication exists. V1 has the documented trusted local operator boundary, not a fabricated customer identity. Introducing actor binding later needs versioned compatibility rules for older records. Credit/debit funding accounts are selected by server policy; preserve the actual chosen counterpart and policy version in execution metadata. A retry does not select a new counterpart.
 
@@ -81,3 +81,17 @@ SQL Server enforces UNIQUE through a supporting unique index, but that does not 
 Use a nontransactional coordinator and Spring `TransactionTemplate` for each financial attempt, with REQUIRED propagation and an enforced no-ambient-transaction entry boundary. Return explicit Success/Rejected values; technical exceptions roll back. Perform retry, duplicate recovery and HTTP mapping outside the attempt. Never use a separate REQUIRES_NEW commit for reservation, rejection or successful financial outcome. Template completion confirms commit only when this no-outer-transaction condition holds. Enforce the boundary with an explicit guard or a separately proxied NEVER entry point; self-invocation must not bypass it. This accepts the mechanism, not SQL behavior or the entire protocol. [CBS04 draft](Transaction-protocol.md) supplies the next review artifact.
 
 Account-ID amendment, 2026-10-23: canonical commands will encode parsed account UUIDs using UUID.toString; transaction-ID identity rules are unchanged. AccountLockOrder.DESCENDING defines application lock order, not canonical field order. Parsing/fingerprint code and SQL locking remain unimplemented.
+
+## CBS05 transaction ID validation, 2026-10-23
+
+The learner selected rejection of `" transfer-001 "` rather than trimming it into an existing ID. `operation.domain.TransactionId` now implements the documented baseline: 1–128 ASCII letters, digits, `.`, `_`, `:` or `-`, with exact case-sensitive identity and no normalization. UUID strings are accepted as opaque text, not parsed or required. AccountId remains a separate UUID-backed type.
+
+```java
+new TransactionId("transfer-001");   // valid, preserved exactly
+new TransactionId("Transfer-001");   // valid, distinct identity
+new TransactionId(" transfer-001 "); // IllegalArgumentException
+```
+
+Null input raises NullPointerException; invalid syntax raises IllegalArgumentException. This value object does not reserve an ID, compare commands, replay a response or enforce database uniqueness. The HTTP/coordinator path is not wired yet; it must construct validated IDs before reservation. SQL Server comparison/collation must eventually match this exact case-sensitive identity and be verified on SQL Server. Accepting whitespace rejection does not approve the remaining draft fingerprint/storage/recovery protocol.
+
+Java 21.0.11 Maven verify passed 115 tests with zero failures/errors/skips in 7.871 seconds, including 23 TransactionId cases. Cases cover minimum/maximum length, 129-character rejection, allowed punctuation, UUID-shaped text, null/empty, whitespace/control/invisible characters, unsupported Unicode and punctuation, equality and case distinction. No HTTP or SQL Server financial behavior tested. Next CBS05 increment: typed mutation command validation, including positive IRR amounts and distinct transfer accounts; business cap values remain unresolved.

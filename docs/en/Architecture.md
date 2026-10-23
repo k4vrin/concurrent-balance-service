@@ -35,7 +35,7 @@ Replay returns the original terminal response without running the posting path. 
 | --- | --- | --- |
 | money | Amount/currency, matching-currency checked arithmetic and comparison | Money implemented |
 | account | Identity, currency, category and balance rules; account lookup/locking and persistence | Immutable account model and sign policy implemented; persistence planned |
-| operation | Credit/debit/transfer coordination, identity, fingerprints, outcomes, replay and retry | Core; interface scaffold only |
+| operation | Credit/debit/transfer coordination, identity, fingerprints, outcomes, replay and retry | Typed command validation implemented; handlers/persistence planned |
 | ledger | Complete balanced journal construction, posting sides, immutable accounting history and persistence | Posting validation and net projection preparation implemented; persistence planned |
 | reconciliation | Independent history reconstruction, mismatch detection and controlled repair boundary | Core correctness work, planned |
 | confirmation | Immutable intents, OTP lifecycle and confirmation | Later stage |
@@ -71,11 +71,17 @@ src/main/java/dev/kavrin/balance/
 │       └── JpaAccountRepositoryAdapter.java
 ├── operation/
 │   ├── domain/
-│   │   ├── TransactionId.java
-│   │   ├── OperationType.java
-│   │   └── OperationOutcome.java
+│   │   ├── TransactionId.java             # implemented
+│   │   ├── OperationType.java             # implemented
+│   │   ├── RejectionReason.java           # implemented
+│   │   └── OperationOutcome.java          # implemented business values
 │   ├── application/
 │   │   ├── BalanceService.java             # existing scaffold
+│   │   ├── CreditCommand.java              # implemented
+│   │   ├── DebitCommand.java               # implemented
+│   │   ├── TransferCommand.java            # implemented
+│   │   ├── CommandValidation.java          # package-private helper
+│   │   ├── SupportedCurrencies.java        # supplied policy snapshot
 │   │   ├── OperationCoordinator.java
 │   │   ├── CreditHandler.java
 │   │   ├── DebitHandler.java
@@ -176,7 +182,7 @@ src/main/resources/
 src/test/java/dev/kavrin/balance/
 ├── ConcurrentBalanceServiceApplicationTests.java  # implemented
 ├── money/MoneyTests.java                          # implemented
-├── account/                              # planned
+├── account/                              # implemented domain/command tests
 ├── operation/                            # planned
 ├── ledger/                               # planned
 ├── reconciliation/                       # planned
@@ -191,7 +197,7 @@ docs/
 └── adr/
 ```
 
-Flyway business migrations wait for the constraint/transaction review. Java package structure does not require matching SQL schemas; one SQL namespace is sufficient. Unit tests mirror features. Real HTTP-to-SQL Server, direct-SQL and failure tests establish persistence/concurrency evidence; smoke and Money tests do not. Build verification currently passed 92 portable tests, as recorded in Requirements.md.
+Flyway business migrations wait for the constraint/transaction review. Java package structure does not require matching SQL schemas; one SQL namespace is sufficient. Unit tests mirror features. Real HTTP-to-SQL Server, direct-SQL and failure tests establish persistence/concurrency evidence; smoke and Money tests do not. Build verification currently passed 150 portable tests, as recorded in Requirements.md.
 
 ## Pattern choices and remaining recommendations
 
@@ -225,3 +231,7 @@ Consulted 2026-10-23: [Microsoft CQRS](https://learn.microsoft.com/en-us/azure/a
 [ADR-009](../adr/ADR-009-single-database-cqrs.en.md) records acceptance of this bounded CQRS choice. Advanced asynchronous stores, event sourcing and extra frameworks remain outside that acceptance.
 
 [UUID bits and lock-order guide](UUID-lock-order.md) explains hexadecimal, two’s complement, both unsigned halves, comparator result signs and each test with a runnable example.
+
+Currency support is an immutable set-based application policy; command constructors validate shape and positive amounts only. Configuration/database adapters will supply SupportedCurrencies in future wiring. See Decisions.md for replay ordering and the policy-loading boundary.
+
+[Business outcomes and commit boundary](Operation-outcomes.md)

@@ -47,3 +47,24 @@ Review ADR-001 through ADR-003 and the database-review table before writing migr
 ## Accepted option E scope, 2026-10-22
 
 P0 now includes accepted ADR-007 plus pending CBS02–04 constraint/identity/transaction review. P1 requires all four ledger tables, accounting domain rules, opening entries, funding counterparts, immutable journals/postings and atomic synchronous projections alongside the four HTTP operations. The P1 gate includes journal counts on replay, absence on rejection, write-boundary rollback and independent reconstruction of every account from postings. P2 adds reconciliation/history query plans, posting/index/log cost and shared funding-account contention. Future FX extends this existing single-currency ledger; it does not introduce the first ledger.
+
+## Remaining route to the first accepted version, 2026-10-23
+
+The first acceptance target is the selected challenge core at CBS20/G1, including CBS23 HTTP delivery. This is our project acceptance gate, not a guarantee of employer approval or production readiness. The selected ledger/SQL/API scope extends the original service challenge. Domain models, validated commands, supported-currency policy snapshots and outcome values exist; HTTP financial execution, schema and real database correctness remain unimplemented.
+
+| Order | Tasks | Remaining deliverable and acceptance evidence |
+| --- | --- | --- |
+| 1 | CBS23, then CBS06 | Define request/response DTOs, strict JSON/UUID/amount parsing and stable errors; separate HTTP from commands; implement versioned canonical request comparison. Contract tests cannot substitute for durable execution. |
+| 2 | CBS07–08 | Docker SQL Server environment and integration harness. Pin the server/driver setup, prove connectivity and positive integration test counts; absent DB must fail rather than skip. Verify ARM64 experiment or use the x86-64 host fallback. |
+| 3 | CBS02–04 closure, CBS09 | Finish concrete constraint/transaction review before migration, including business cap/classification, collation, locking SQL and runtime permissions. Create accounts, operations, journals and postings with direct-SQL constraint/history protection tests. |
+| 4 | CBS10 | Map all four tables, create journal-backed opening fixtures and expose authoritative balance lookup. Verify committed reads through HTTP and independently reconcile opening history. |
+| 5 | CBS11–12 | Implement credit, server-selected funding, guarded TransactionTemplate boundary, durable success response, replay and conflict. Commit one balanced journal and both projections with the outcome; verify restart and same-ID retry. |
+| 6 | CBS13–15 | Implement debit and atomic transfer, persist terminal business rejections without journals and classify technical failures. Prove exact-funds success, insufficient-funds replay, ordered locks and rollback after partial writes. Wire each HTTP slice. |
+| 7 | CBS16–19 | Prove concurrent distinct commands, duplicate/conflicting races across instances, opposite transfers, independent progress and commit/response recovery. Use real SQL Server and exact operation/journal/posting counts and balance reconstruction. |
+| 8 | CBS20 | Run an independent mixed scenario and fault case, finish the Docker startup/test runbook and bilingual limitations, review code/CI evidence and demonstrate all four real HTTP-to-SQL operations. Resolve failed gates before accepting the version. |
+
+At the finish line, credit, debit, transfer and balance lookup work from a documented clean setup. Successful mutations atomically commit immutable balanced history, projections and their durable response. Validation leaves no financial operation, business rejection retains its response without monetary writes, matching retries return the original response, conflicting payloads do not execute, and technical failure/recovery preserves at most one committed effect. Reconciliation independently confirms balances from history under a consistent view.
+
+The initial deployment remains trusted and loopback-only. Authentication/ownership is required before shared or external access. CBS21–22 performance experiments, CBS24–25 security expansion, OTP, Redis replay caching, Kafka/outbox, CDC and FX follow the core gate. Do not make database-backed currency administration a first-release prerequisite: supply the supported set through configuration initially, and add its database source later if needed.
+
+No delivery date is committed. SQL Server compatibility/connectivity is the first infrastructure uncertainty; use observed progress there before estimating calendar time. Test counts describe portable verification, not completion percentage or learner mastery. Latest pre-publication Java 21.0.11 Maven verify passed 150 tests, zero failures/errors/skips in 7.314 seconds. No SQL Server financial evidence yet.

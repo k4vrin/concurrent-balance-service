@@ -2,7 +2,7 @@
 
 [English](../en/Idempotency-protocol.md) · [ADR-002](Decisions.md) · [نیازمندی‌ها](Requirements.md)
 
-وضعیت در ۲۰۲۶-۱۰-۲۲: پیش‌نویس برای مرور مشترک. سیاست‌های کسب‌وکارِ پذیرفته‌شده همچنان معتبرند؛ قالب شناسه، encoding، رزرو و recovery هنوز پیشنهادند. این سند کد، schema یا تست SQL Server اضافه نمی‌کند. SQL دقیق تراکنش و قفل‌ها در CBS04 و پیش از مایگریشن مالی مرور می‌شود.
+وضعیت در ۲۰۲۶-۱۰-۲۲: پیش‌نویس برای مرور مشترک. سیاست‌های کسب‌وکارِ پذیرفته‌شده همچنان معتبرند؛ اعتبارسنجی قالب TransactionId اکنون طبق بخش CBS05 پایین پیاده شده است؛ encoding، رزرو و recovery همچنان پیش‌نویس‌اند. schema و رفتار SQL Server هنوز پیاده نشده‌اند. SQL دقیق تراکنش و قفل‌ها در CBS04 و پیش از مایگریشن مالی مرور می‌شود.
 
 ## مسئله: پاسخ نرسیده، اما شاید پول جابه‌جا شده باشد
 
@@ -240,3 +240,17 @@ replay محتوای اصلی پاسخ را برمی‌گرداند. اگر پا�
 هر تلاش مالی با Spring `TransactionTemplate` و propagation از نوع REQUIRED در coordinator غیرتراکنشی اجرا شود؛ نبود تراکنش بیرونی در ورودی الزاماً کنترل شود. نتیجهٔ Success/Rejected مقدار عادی است؛ exception فنی rollback می‌کند. retry، بازیابی duplicate و نگاشت HTTP بیرون تلاش باشند. رزرو، رد یا نتیجهٔ مالی موفق با REQUIRES_NEW جداگانه commit نشوند. پایان template فقط با نبود تراکنش بیرونی تأیید commit است. guard صریح یا ورودی NEVER در bean پروکسی‌شده این شرط را اجرا کند؛ self-invocation نباید آن را دور بزند. این پذیرش مکانیزم است، نه رفتار SQL یا کل پروتکل. [پیش‌نویس CBS04](Transaction-protocol.md) گام مرور بعدی است.
 
 اصلاح شناسهٔ حساب در ۲۰۲۶-۱۰-۲۳: دستور canonical شناسهٔ حساب parseشده را با UUID.toString ثبت خواهد کرد؛ قواعد هویت transaction ID عوض نمی‌شود. AccountLockOrder.DESCENDING ترتیب قفل برنامه است، نه ترتیب فیلد fingerprint. کد parsing/fingerprint و قفل SQL هنوز پیاده نشده‌اند.
+
+## اعتبارسنجی شناسهٔ تراکنش در CBS05، ۲۰۲۶-۱۰-۲۳
+
+یادگیرنده رد `" transfer-001 "` را به‌جای trim و تبدیل آن به شناسهٔ موجود انتخاب کرد. `operation.domain.TransactionId` اکنون قالب پایهٔ مستندشده را پیاده می‌کند: ۱ تا ۱۲۸ حرف یا رقم ASCII و نشانه‌های `.`, `_`, `:`, `-`. شناسه دقیق، حساس به بزرگی حروف و بدون نرمال‌سازی است. متن شبیه UUID پذیرفته می‌شود ولی به UUID تبدیل نمی‌شود و اجباری هم نیست. AccountId نوع جداگانهٔ مبتنی بر UUID می‌ماند.
+
+```java
+new TransactionId("transfer-001");   // valid, preserved exactly
+new TransactionId("Transfer-001");   // valid, distinct identity
+new TransactionId(" transfer-001 "); // IllegalArgumentException
+```
+
+ورودی null خطای NullPointerException و قالب نامعتبر IllegalArgumentException می‌دهد. این value object شناسه رزرو نمی‌کند، دستورها را مقایسه نمی‌کند، پاسخ را replay نمی‌کند و یکتایی دیتابیس را تضمین نمی‌کند. مسیر HTTP و coordinator هنوز متصل نشده است؛ در آن مسیر باید پیش از رزرو، شناسهٔ معتبر ساخته شود. مقایسه و collation در SQL Server باید بعداً با هویت دقیق و حساس به بزرگی حروف هماهنگ و روی SQL Server آزموده شوند. پذیرش رد فاصله، تأیید باقی پیش‌نویس fingerprint، ذخیره‌سازی یا recovery نیست.
+
+Maven verify با Java 21.0.11 در ۷٫۸۷۱ ثانیه، ۱۱۵ تست را بدون failure، error یا skip گذراند؛ ۲۳ مورد مربوط به TransactionId است. حداقل و حداکثر طول، رد ۱۲۹ نویسه، نشانه‌های مجاز، متن شبیه UUID، null و خالی، فاصله و نویسه‌های کنترلی و نامرئی، Unicode و نشانه‌های نامجاز، برابری و تفاوت حروف بررسی شدند. رفتار مالی HTTP یا SQL Server آزموده نشده است. گام بعدی CBS05 اعتبارسنجی commandهای مالی، از جمله مبلغ مثبت IRR و متمایزبودن حساب‌های انتقال است؛ مقدار سقف کسب‌وکار هنوز مشخص نیست.

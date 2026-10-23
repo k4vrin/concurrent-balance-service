@@ -65,3 +65,7 @@ For each phase record commit/PR, date, tests actually run, environment, sanitize
 ## Accepted option E scope, 2026-10-22
 
 Changes to financial behavior must preserve the accepted [ledger boundary](Ledger.md). Review four-table constraints and transaction protocol before migration. P1 reviews require one journal per success, none per rejection, no additional postings on replay, immutable history and atomic projection updates. Include independent reconciliation and real SQL Server rollback/race evidence in the core gate. P6 reporting consumers never post money again. Preserve the guided task sequence and separate design acceptance from implementation and learner evidence.
+
+## Comments at financial correctness boundaries
+
+When implementing the guided tasks, add short comments where the code enforces a non-obvious financial or concurrency invariant. Explain why account locks precede the funds check, why all participating account IDs use one stable lock order, why projections and postings commit together, why replay does not post again and why whole-transaction retries retain identity. Explain durable business rejection separately from retryable infrastructure failure. Keep each comment next to the enforcing code; reference a stable ADR or invariant when useful. Tests provide evidence; comments explain intent. Avoid narrating obvious calls, marking every method or claiming that a lock order eliminates all database deadlocks. Keep comments current when the protocol changes. No financial code is implemented by this documentation rule.

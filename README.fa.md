@@ -1,25 +1,47 @@
 # سرویس موجودی هم‌زمان
 
-[مخزن عمومی](https://github.com/k4vrin/concurrent-balance-service)
-[English](README.md)
+[مخزن عمومی](https://github.com/k4vrin/concurrent-balance-service) · [English](README.md)
 
-Java 21، Spring Boot 4.1.1، Maven و هدف persistence با SQL Server.
+این پروژه از چالش موجودی هم‌زمان مفید شروع شده و با Java 21، Spring Boot 4.1.1 و Maven پیش می‌رود. دیتابیس هدف SQL Server است.
 
-این پروژه از چالش موجودی مفید شروع می‌شود. هستهٔ آینده شامل credit، debit، انتقال اتمیک و خواندن موجودی مرجع است. تأیید انتقال، Redis، تاریخچهٔ Kafka و Debezium در مراحل بعد می‌آیند. استفادهٔ FX جهت طراحی آینده است و هنوز پیاده‌سازی نشده است.
+## قرار است چه مسئله‌ای را حل کنیم؟
 
-اولین نسخهٔ کاربردی، credit، debit، transfer و استعلام موجودی را با HTTP API و JSON، SQL Server و زیرساخت Docker Compose ارائه می‌کند. interface جاوا اسکلت داخلی است. [قرارداد API نسخهٔ اول](docs/fa/API-v1.md) را ببینید. JWT و مالکیت پیش از دسترسی اشتراکی یا خارجی اضافه می‌شوند؛ API اولیه فقط برای توسعهٔ محلی است.
+وقتی چند درخواست هم‌زمان موجودی یک حساب را تغییر می‌دهند، نتیجه باید درست بماند. اگر پاسخ انتقال گم شد و کلاینت retry کرد، نباید پول دوباره جابه‌جا شود. هستهٔ پروژه قرار است `credit`، `debit`، انتقال اتمیک و استعلام موجودی مرجع را پوشش دهد.
+
+بعد از تکمیل هسته، تأیید انتقال، cache پاسخ در Redis، رویدادهای تاریخچه در Kafka و Debezium اضافه می‌شوند. اتصال به FX هنوز جهت طراحی آینده است و پیاده نشده است.
+
+خروجی اولین نسخهٔ کاربردی، HTTP API با JSON و SQL Server خواهد بود. Docker Compose مسیر منتخب زیرساخت محلی است. interface جاوای فعلی فقط قرارداد داخلی bootstrap است؛ مرز تحویل در [قرارداد API](docs/fa/API-v1.md) آمده است.
+
+API اولیه روی محیط توسعهٔ محلی اجرا می‌شود. JWT و کنترل مالکیت پیش از دسترسی اشتراکی یا خارجی اضافه می‌شوند.
 
 ## وضعیت فعلی
 
-موجود: اسکلت رسمی Spring Initializr با مختصات قابل‌حل Maven، نقطهٔ شروع برنامه، interface چهار عملیات، تست HTTP health بدون زیرساخت، dependencyهای پیش‌فرض SQL Server و profileهای اختیاری Redis/Kafka/JWT، تنظیمات محیطی، تعریف CI و مستندات دوزبانه.
+CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)` شروع شده است. برای IRR، عدد 100 مستقیماً ۱۰۰ ریال است. Money صفر و مقدار علامت‌دار را می‌پذیرد؛ دستورها، postingها و نوع حساب قواعد علامت و سقف تجاری خود را کنترل خواهند کرد. Money جمع و تفریق هم‌ارز با کنترل overflow و مقایسه دارد. سیاست حساب و عملیات مالی هنوز پیاده نشده‌اند.
 
-ناموجود: منطق مالی، schema حساب، idempotency ماندگار، سیاست مالکیت و دسترسی، OTP، رفتار cache، outbox، producer/consumer، CDC و تسویهٔ FX. endpoint مالی نداریم. SQL Server نصب یا اتصال آن بررسی نشده است. تست bootstrap اثبات صحت مالی نیست.
+| وضعیت | جزئیات |
+| --- | --- |
+| پیاده‌شده | bootstrap رسمی Spring Initializr با مختصات قابل‌دریافت Maven، نقطهٔ شروع برنامه، interface چهار عملیات، تست HTTP سلامت مستقل از زیرساخت، dependency‌های پیش‌فرض SQL Server، profile‌های اختیاری Redis و Kafka و JWT، تنظیمات محیطی، تعریف CI و مستندات دوزبانه |
+| هنوز پیاده نشده | منطق مالی، schema حساب‌ها، idempotency ماندگار، مالکیت و مجوز، OTP، رفتار cache، outbox، producer و consumer، CDC و تسویهٔ FX |
+| هنوز بررسی نشده | آماده‌سازی و اتصال SQL Server، رفتار مالی و کارایی |
 
-## اجرا
+هنوز endpoint مالی نداریم. موفقیت تست bootstrap فقط سلامت اسکلت را نشان می‌دهد و صحت مالی را ثابت نمی‌کند.
 
-اجرای عادی برنامه به SQL Server در دسترس و متغیرهای `DB_URL`، `DB_USERNAME` و `DB_PASSWORD` نیاز دارد؛ profile برای SQL Server وجود ندارد. فرمان `verify` با profile مخصوص تست به نام `smoke`، auto-configuration مربوط به persistence را کنار می‌گذارد و اتصال دیتابیس را تست نمی‌کند.
+## ساخت و اجرا
 
-JDK 21 نصب و `JAVA_HOME` تنظیم شود؛ build نسخهٔ major دیگر را رد می‌کند. wrapper، Maven را می‌گیرد و برای bootstrap به Docker یا Maven سیستمی نیاز نیست. اولین build برای دانلود dependency اینترنت می‌خواهد.
+### تفاوت verify و اجرای برنامه
+
+| مسیر | پیش‌نیاز و رفتار |
+| --- | --- |
+| `verify` | Java 21 و Maven wrapper؛ profile مخصوص تست `smoke`، auto-configuration مربوط به persistence را غیرفعال می‌کند |
+| اجرای عادی | SQL Server در دسترس و متغیرهای `DB_URL`، `DB_USERNAME` و `DB_PASSWORD`؛ profile جدا برای SQL Server لازم نیست |
+
+تست `smoke` اتصال دیتابیس را بررسی نمی‌کند.
+
+### آماده‌سازی Java و اجرای فرمان‌ها
+
+JDK 21 را نصب و `JAVA_HOME` را تنظیم کنید. build با major version دیگری از JDK رد می‌شود. wrapper نسخهٔ Maven را دریافت می‌کند؛ برای بررسی bootstrap به Maven سیستمی یا Docker نیاز نیست. اولین build برای دریافت dependency‌ها به اینترنت نیاز دارد.
+
+پس از تنظیم دیتابیس، می‌توانید برنامه را اجرا و سلامت آن را بررسی کنید:
 
 ```sh
 ./mvnw verify
@@ -27,7 +49,7 @@ JDK 21 نصب و `JAVA_HOME` تنظیم شود؛ build نسخهٔ major دیگر
 curl http://127.0.0.1:8080/actuator/health
 ```
 
-در PowerShell:
+معادل فرمان‌ها در PowerShell:
 
 ```powershell
 .\mvnw.cmd verify
@@ -35,53 +57,71 @@ curl http://127.0.0.1:8080/actuator/health
 Invoke-RestMethod http://127.0.0.1:8080/actuator/health
 ```
 
-برنامه به‌طور پیش‌فرض فقط روی loopback گوش می‌دهد و health/info را ارائه می‌کند. پاسخ health شامل `"status":"UP"` است و ممکن است metadata اضافه داشته باشد. اجرای عادی به SQL Server نیاز دارد؛ Redis و Kafka اختیاری‌اند. مثال‌های startup و curl بالا پس از تنظیم دیتابیس اجرا شوند. `.env.example` مرجع متغیرهاست؛ Spring Boot فایل `.env` را خودکار نمی‌خواند.
+سرور فقط روی loopback گوش می‌دهد و مسیرهای health و info را در دسترس می‌گذارد. پاسخ سلامت شامل `"status":"UP"` است و ممکن است metadata دیگری هم داشته باشد.
+
+SQL Server برای اجرای عادی لازم است؛ Redis و Kafka اختیاری‌اند. فایل `.env.example` مرجع متغیرهاست و Spring Boot فایل `.env` را خودکار نمی‌خواند.
 
 ## dependencyهای مرحله‌ای
 
-Maven با `-P` کتابخانه‌های داخل build را انتخاب می‌کند و profile زمان اجرای Spring تنظیمات را فعال می‌کند. برای Redis، Kafka و security هر دو باید هماهنگ باشند. SQL Server dependency و تنظیم اتصال پیش‌فرض برنامه است. profile زمان اجرا dependency اضافه نمی‌کند و profile dependency تنها، می‌تواند auto-configuration بدون تنظیم لازم را روشن کند.
+Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد بسته شوند. profile زمان اجرای Spring تنظیمات آن‌ها را فعال می‌کند. برای Redis، Kafka و security این دو انتخاب باید هماهنگ باشند. SQL Server کتابخانه‌ها و تنظیم اتصال پیش‌فرض را دارد.
 
-| profile Maven و Spring متناظر | dependency | کاربرد فعلی |
+برای مثال، فعال‌کردن profile در Spring کتابخانهٔ غایب را اضافه نمی‌کند. فعال‌کردن صرف profile در Maven هم ممکن است auto-configuration را بدون تنظیمات لازم روشن کند.
+
+| profile Maven و profile متناظر Spring | کتابخانه‌ها | کاربرد فعلی |
 | --- | --- | --- |
-| پیش‌فرض بدون profile | Web MVC، Validation، Actuator، JPA، Flyway، ماژول SQL Server، JDBC مایکروسافت و test starterها | برنامهٔ SQL Server؛ هنوز بدون schema کسب‌وکار |
-| `redis` | Data Redis و test starter | cache پاسخ نهایی آینده |
-| `kafka` | Kafka و test starter | publisher و consumer آینده |
-| `security` | OAuth2 resource server و test starter | JWT آینده؛ سیاست نهایی مالکیت/دسترسی نداریم |
+| پیش‌فرض، بدون profile | Web MVC، Validation، Actuator، Data JPA، Flyway، ماژول SQL Server مربوط به Flyway، JDBC مایکروسافت و استارترهای تست متناظر | برنامهٔ مبتنی بر SQL Server، هنوز بدون schema کسب‌وکار |
+| `redis` | Spring Data Redis و استارتر تست | cache پاسخ‌های نهایی در آینده |
+| `kafka` | Spring Kafka و استارتر تست | انتشار outbox و مصرف رویدادهای تاریخچه در آینده |
+| `security` | OAuth2 resource server و استارتر تست | اتصال به JWT در آینده؛ سیاست مالکیت و مجوز هنوز کامل نشده است |
 
-بررسی build تمام dependencyها، بدون ادعای تست integration:
+فرمان زیر بسته‌بندی با همهٔ وابستگی‌های اختیاری را بررسی می‌کند و تست‌ها را اجرا نمی‌کند:
 
 ```sh
 ./mvnw -Predis,kafka,security -DskipTests package
 ```
 
-`verify` پیش‌فرض تست HTTP اسکلت را اجرا می‌کند. تست واقعی SQL Server و خرابی broker در مراحل خود اضافه می‌شوند؛ H2 جای شواهد SQL Server نیست.
+این فرمان فقط سازگاری build و dependency‌ها را بررسی می‌کند. `verify` پیش‌فرض تست HTTP bootstrap را اجرا می‌کند. تست واقعی SQL Server و خرابی broker همراه مرحلهٔ مربوط اضافه می‌شود. H2 جای شواهد SQL Server را نمی‌گیرد.
 
-پس از آماده‌سازی دیتابیس توسعهٔ خالی و تنظیم `DB_URL`، `DB_USERNAME` و `DB_PASSWORD`:
+پس از آماده‌سازی یک دیتابیس توسعهٔ خالی و تنظیم متغیرهای اتصال، فرمان اجرای برنامه چنین است:
 
 ```sh
 ./mvnw spring-boot:run
 ```
 
-migration مالی نداریم؛ Flyway ممکن است جدول تاریخچهٔ خودش را بسازد و این به معنی ایجاد حساب نیست. `ddl-auto=validate` حفظ و constraintها پیش از V1 مرور شوند. JAR ساخته‌شده همان متغیرهای محیطی را بدون profile مربوط به SQL Server می‌گیرد. آزمایش bootstrap روی دیتابیس کسب‌وکار موجود انجام نشود.
+### مرز فعلی دیتابیس
 
-## شواهد بررسی
+هنوز migration مالی نداریم. Flyway ممکن است جدول history خودش را بسازد؛ این کار schema حساب‌ها را ایجاد نمی‌کند.
 
-[شواهد bootstrap](docs/fa/Bootstrap-evidence.md): clean verify با Java 21 و یک تست HTTP موفق شد. build dependencyهای اختیاری در staging با skip تست موفق بود. سرویس‌های خارجی بررسی نشده‌اند.
+- `ddl-auto=validate` را حفظ کنید و constraint‌ها را پیش از V1 مرور کنید.
+- JAR اجرایی هم همان متغیرهای اتصال را می‌خواند و profile SQL Server نمی‌خواهد.
+- bootstrap را روی دیتابیس کسب‌وکار موجود آزمایش نکنید.
+
+## شواهد اعتبارسنجی
+
+در [گزارش bootstrap](docs/fa/Bootstrap-evidence.md)، اجرای پاک `verify` با Java 21 و موفقیت یک تست HTTP ثبت شده است. بسته‌بندی وابستگی‌های اختیاری هم در محیط موقت آماده‌سازی موفق بوده، اما تست‌های آن اجرا نشده‌اند. سرویس‌های خارجی بررسی نشده‌اند.
 
 ## مستندات
 
-- [Spring starter و dependencyها](docs/fa/Starter.md)
+- [ماتریس نیازمندی و خطا](docs/fa/Requirements.md)
+- [پروتکل هویت ماندگار](docs/fa/Idempotency-protocol.md)
+- [پروتکل تراکنش و قفل](docs/fa/Transaction-protocol.md)
+
+- [استارتر Spring و انتخاب وابستگی‌ها](docs/fa/Starter.md)
 - [زیرساخت محلی با Docker Compose](docs/fa/Docker.md)
-- [جایگزین اختیاری SQL Server بومی روی Windows](docs/fa/Windows-sqlserver.md)
-- [نقشهٔ راه](docs/fa/Roadmap.md)
-- [دفتر تصمیم‌های معماری و OTP](docs/fa/Decisions.md)
-- [constraint و هزینهٔ دیتابیس](docs/fa/Database-review.md)
-- [پلن واقعی و throughput](docs/fa/Query-performance.md)
-- [گردش‌کار Git و مستندات](docs/fa/Workflow.md)
+- [نصب بومی SQL Server روی Windows، مسیر جایگزین اختیاری](docs/fa/Windows-sqlserver.md)
+- [نقشهٔ راه و معیارهای پذیرش](docs/fa/Roadmap.md)
+- [دفتر تصمیم‌های معماری](docs/fa/Decisions.md)
+- [مرور قیدها و هزینهٔ دیتابیس](docs/fa/Database-review.md)
+- [plan اجرای واقعی و throughput](docs/fa/Query-performance.md)
+- [گردش‌کار Git و مستندات دوزبانه](docs/fa/Workflow.md)
 - [تصمیم پذیرفته‌شدهٔ bootstrap](docs/adr/ADR-000-bootstrap.fa.md)
 
-اسناد این مخزن مرجع برنامهٔ اجرای بعدی هستند و vault سابقهٔ بحث را نگه می‌دارد. معماری دفترکل در ADR-007 پذیرفته شده؛ جزئیات پروتکل مالی همچنان پیشنهادی و نیازمند مرورند. هیچ عدد overhead یا throughput اندازه‌گیری نشده است. قدم بعد پذیرش پروتکل تراکنش و constraintهای P1، migration SQL Server و سپس پیاده‌سازی/آزمایش هر چهار عملیات است.
+اسناد مخزن مرجع برنامهٔ اجرا هستند و vault سابقهٔ بحث را نگه می‌دارد. ADR-007 طراحی دفترکل را پذیرفته، اما پروتکل‌های مالی هنوز به مرور نیاز دارند. overhead قیدها و throughput اندازه‌گیری نشده‌اند. گام بعد، پذیرش پروتکل تراکنش و قیدهای P1، نوشتن migration SQL Server و سپس پیاده‌سازی و تست هر چهار عملیات است.
 
 ## طراحی پذیرفته‌شدهٔ دفترکل V1
 
-کاربر در ۲۰۲۶-۱۰-۲۲ گزینهٔ E را انتخاب کرد. V1 چهار جدول `accounts`، `operations`، `journals` و `postings`، تاریخچهٔ متوازن تغییرناپذیر و projection هم‌زمان موجودی در یک تراکنش SQL Server دارد. credit/debit حساب مقابل تأمین و مقدار اولیهٔ غیرصفر سند افتتاحیه دارند. [طراحی دفترکل](docs/fa/Ledger.md) و [ADR-007](docs/adr/ADR-007-double-entry-ledger.fa.md) مرجع‌اند. طراحی پذیرفته شده؛ کد، schema و شاهد مالی SQL Server هنوز وجود ندارند. مرور جزئیات قید و تراکنش پیش از migration مالی لازم است.
+کاربر در ۲۰۲۶-۱۰-۲۲ گزینهٔ E را انتخاب کرد. V1 چهار جدول `accounts`، `operations`، `journals` و `postings` خواهد داشت. تاریخچه باید متوازن و تغییرناپذیر باشد و projection موجودی در همان تراکنش SQL Server با آن commit شود.
+
+`credit` و `debit` حساب مقابل تأمین یا تسویه دارند. موجودی غیرصفر اولیه هم با journal افتتاحیه ثبت می‌شود. [طراحی دفترکل](docs/fa/Ledger.md) و [ADR-007](docs/adr/ADR-007-double-entry-ledger.fa.md) جزئیات این انتخاب را توضیح می‌دهند.
+
+این طراحی پذیرفته شده، اما کد مالی، schema و شواهد مالی SQL Server هنوز وجود ندارند. مرور constraint‌ها و تراکنش، پیش‌نیاز migration مالی است.

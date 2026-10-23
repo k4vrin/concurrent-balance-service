@@ -1,37 +1,68 @@
-# مرور پلن اجرا و throughput در SQL Server
+# بررسی plan اجرا و throughput در SQL Server
 
-وضعیت: فقط روش بررسی؛ query یا workload مالی روی SQL Server اندازه‌گیری نشده است. [English](../en/Query-performance.md)
+وضعیت: روش بررسی. هنوز هیچ query یا workload مالی روی SQL Server اندازه‌گیری نشده است. [English](../en/Query-performance.md)
 
-## فهرست query
+## مسئله: query سریع لزوماً عملیات سریع نیست
 
-| شناسه / مرحله | query | مسیر دسترسی نامزد | مسئلهٔ هم‌زمانی جدا |
+مثلاً lookup حساب ممکن است plan خوبی داشته باشد، اما عملیات منتظر قفل همان حساب بماند. برای تشخیص گلوگاه باید هزینهٔ اجرای query را از lock wait، connection pool و صف برنامه جدا کنیم. این سند روش جمع‌آوری همین شواهد را توضیح می‌دهد.
+
+## فهرست query‌ها
+
+| شناسه و مرحله | query | مسیر دسترسی نامزد | مسئلهٔ هم‌زمانی برای بررسی جداگانه |
 | --- | --- | --- | --- |
-| Q01 / P1 | lookup و قفل حساب | PK حساب | رقابت hot account و SQL واقعی Hibernate |
-| Q02 / P1 | lookup transaction ID | index یکتای شناسه | دسترسی actor، collation و فاصلهٔ انتهایی |
-| Q03 / P4 | intent و مالک/وضعیت | PK intent | ابتدا intent سپس حساب مرتب؛ ثبت تلاش ناموفق |
-| Q04 / P6 | claim محدود outbox | بررسی status/زمان تلاش/ID | مالکیت worker، انقضای lease و crash |
-| Q05 / P6 | صفحهٔ تاریخچه | بررسی حساب/زمان/ID | keyset و tie-breaker ثابت |
-| Q06 / P6 | درج dedup مصرف‌کننده | هویت یکتای consumer/event | ثبت dedup و اثر در یک تراکنش |
+| Q01 / P1 | یافتن و قفل‌کردن حساب | کلید اصلی حساب | رقابت حساب پرترافیک و SQL واقعی Hibernate |
+| Q02 / P1 | یافتن شناسهٔ تراکنش | index یکتای شناسه | مجوز عامل احرازشده، collation و فاصلهٔ انتهایی |
+| Q03 / P4 | خواندن intent و مالک و وضعیت | کلید اصلی intent | ابتدا قفل intent، سپس حساب‌ها با ترتیب ثابت؛ ثبت تلاش ناموفق |
+| Q04 / P6 | تصاحب موقت تعداد محدودی ردیف outbox | بررسی وضعیت، زمان تلاش و شناسه | مالکیت پردازشگر، انقضای lease و توقف ناگهانی |
+| Q05 / P6 | صفحه‌بندی تاریخچه | بررسی حساب، زمان و شناسه | صفحه‌بندی keyset و معیار ثابت رفع تساوی |
+| Q06 / P6 | درج هویت پیام مصرف‌شده | هویت یکتای consumer و رویداد | ثبت هویت حذف اثر تکرار و اثر پیام در یک تراکنش |
 
-این‌ها فرض هستند. SQL واقعی، نوع bind، implicit conversion، isolation و تنظیماتی مانند READ_COMMITTED_SNAPSHOT بررسی شوند. SQL Server می‌تواند key/page/table را قفل و lock escalation انجام دهد. ترتیب حساب به‌تنهایی اثبات حذف همهٔ deadlockها نیست. قربانی deadlock به retry محدود کل تراکنش با هویت ثابت عملیات نیاز دارد.
+مسیرهای جدول فرضیه‌اند. SQL واقعی، نوع bind، implicit conversion، isolation و تنظیماتی مثل `READ_COMMITTED_SNAPSHOT` را قبل از انتخاب hint یا index بررسی کنید.
 
-## دریافت پلن واقعی
+SQL Server می‌تواند key، page یا table را قفل کند و lock escalation داشته باشد. lock order حساب‌ها حذف تمام deadlock‌ها را ثابت نمی‌کند. deadlock victim به retry محدودِ کل تراکنش با همان هویت نیاز دارد.
 
-۱. commit، schema، نسخه/edition سرور، compatibility level، حجم/skew داده، تازگی statistics، pool و bind مصنوعی ثبت شوند.
+## دریافت plan واقعی
 
-۲. دادهٔ نماینده خارج از بازهٔ زمان‌گیری ساخته و statistics مرتبط جمع‌آوری شود. baseline و after داده و تنظیمات مشابه داشته باشند.
+### ۱. محیط را ثبت کنید
 
-۳. در SSMS گزینهٔ Include Actual Execution Plan فعال و query واقعی با پارامتر و fetch برنامه اجرا شود. پلن تخمینی آمار اجرای واقعی نیست.
+commit، schema، نسخه و edition سرور، compatibility level، تعداد ردیف و data skew، تازگی statistics، اندازهٔ connection pool و bind‌های مصنوعی را ثبت کنید.
 
-۴. در session تشخیصی `SET STATISTICS IO ON` و `SET STATISTICS TIME ON` روشن شوند. فایل `.sqlplan` و Messages ذخیره شود. اجرای parameterized مطابق برنامه باشد؛ literal ممکن است پلن دیگری بگیرد. cache مشترک production برای نمایش پاک نشود.
+### ۲. دادهٔ مقایسه‌پذیر بسازید
 
-۵. estimated/actual rows، seek/scan، key lookup، logical reads، spill، sort، implicit conversion، memory grant و CPU/elapsed time و حساسیت پارامتر بررسی شوند. scan الزاماً بد و cost معادل throughput نیست.
+دادهٔ نماینده را خارج از بازهٔ زمان‌گیری seed کنید و statistics مرتبط را بگیرید. baseline و after باید داده و تنظیمات مشابه داشته باشند.
 
-۶. هزینهٔ اجرا از blocking، deadlock، انتظار pool و صف برنامه جدا شود. در صورت نیاز دسترسی مجاز diagnostic و Extended Events برای شواهد deadlock استفاده شود. lookup سریع هم می‌تواند منتظر حساب پرترافیک باشد.
+### ۳. actual plan بگیرید
 
-۷. یک فرض تغییر و پلن و بار مشابه و صحت دوباره بررسی شوند. instrumentation جزئی نباید بدون محاسبهٔ هزینه داخل baseline بار باقی بماند.
+در SSMS گزینهٔ Include Actual Execution Plan را فعال کنید. query واقعی را با پارامترها و fetch behavior برنامه اجرا کنید. estimated plan آمار اجرای واقعی ندارد.
 
-نمونه فقط پس از وجود schema متناظر؛ نوع/طول/collation پارامتر با ستون یکسان باشد:
+### ۴. IO و زمان را ذخیره کنید
+
+در session تشخیصی `SET STATISTICS IO ON` و `SET STATISTICS TIME ON` را فعال کنید. فایل `.sqlplan` و Messages را ذخیره کنید. اجرای parameterized باید مطابق برنامه باشد؛ literal SQL ممکن است plan متفاوتی بگیرد.
+
+برای نمایش، cache مشترک production را پاک نکنید.
+
+### ۵. plan را بخوانید
+
+این موارد را مقایسه کنید:
+
+- estimated rows و actual rows؛
+- seek، scan، key lookup و logical reads؛
+- spill، sort، implicit conversion و memory grant؛
+- CPU، elapsed time و حساسیت به پارامتر.
+
+scan لزوماً بد نیست. optimizer cost هم معادل throughput نیست.
+
+### ۶. انتظار را از اجرا جدا کنید
+
+execution cost، blocking، deadlock، pool wait و صف برنامه را جدا بررسی کنید. در صورت نیاز از دسترسی diagnostic مجاز و Extended Events برای شواهد deadlock استفاده کنید. lookup سریع هم می‌تواند منتظر hot account بماند.
+
+### ۷. یک تغییر را آزمایش کنید
+
+هر بار یک فرض را تغییر دهید، plan را دوباره بگیرید و بار مشابه و صحت را بررسی کنید. instrumentation جزئی نباید بدون حساب‌کردن سربارش در baseline load باقی بماند.
+
+### نمونهٔ تشخیصی
+
+این SQL فقط بعد از وجود schema متناظر قابل‌اجراست. نوع، طول و collation پارامتر را با ستون واقعی یکسان بگیرید؛ پارامتر رشته‌ای را روی ستون indexشده با نوع دیگر کپی نکنید:
 
 ```sql
 SET STATISTICS IO ON;
@@ -47,16 +78,41 @@ SET STATISTICS TIME OFF;
 SET STATISTICS IO OFF;
 ```
 
-فعلاً جدول operations وجود ندارد. query قفل و outbox به تست concurrency و پلن جدا نیاز دارند. تراکنش diagnostic نگهدارندهٔ قفل صریحاً commit/rollback شود. برای پلن، دسترسی سروری گسترده به برنامه ندهیم. پلن ممکن است دادهٔ حساس داشته باشد؛ شواهد مصنوعی و پاک‌سازی‌شده منتشر شوند.
+فرمان‌ها statistics همان session را روشن و بعد خاموش می‌کنند؛ خروجی IO و زمان برای plan review است. فعلاً جدول `operations` وجود ندارد. query‌های lock و outbox بعد از پیاده‌سازی، plan و concurrency test جدا می‌خواهند.
+
+تراکنش diagnostic که lock نگه می‌دارد باید صریحاً commit یا rollback شود. برای گرفتن plan، دسترسی گستردهٔ سرور به برنامه ندهید. plan ممکن است مقدار حساس داشته باشد؛ فقط شواهد مصنوعی و پاک‌سازی‌شده منتشر کنید.
 
 ## شواهد بار
 
-حساب مستقل، hot account، duplicate، ترکیب خواندن/تغییر و قطعی وابستگی جدا اندازه‌گیری شوند. سخت‌افزار، نسخه، durability، حجم/skew، pool، offered load و ترکیب درخواست ثابت باشند. warmup، تکرار و پراکندگی گزارش شوند. عملیات موفق commitشده در ثانیه، نرخ رد/خطا، p50/p95/p99، logical reads، transaction log، انتظار قفل/pool، CPU و GC ثبت شوند. رد سریع‌تر، throughput مالی بیشتر نیست. فعلاً SLO عددی یا درصد هزینه نداریم.
+### workload‌های جدا
 
-در `docs/performance/<query-id>/<run-id>/` تاریخ/commit، schema/نسخه/compatibility، SQL و bind پاک‌سازی‌شده، داده، پلن/statistics، تغییر، نمونهٔ خام، پراکندگی latency/throughput، کنترل صحت، گلوگاه و تصمیم حفظ/بازگشت ثبت شود. خروجی حجیم با روش بازتولید می‌تواند ignored باشد. Query Store در آینده برای تاریخچهٔ پلن مفید است؛ وجود و پیکربندی آن روی نسخهٔ منتخب بررسی شود.
+حساب مستقل، hot account، duplicate، ترکیب read و mutation و قطعی dependency را جدا بسنجید. سخت‌افزار، نسخه، durability، حجم و skew، pool، offered load و request mix ثابت بمانند. warmup و تکرار و پراکندگی را گزارش کنید.
 
-منابع: [پلن واقعی](https://learn.microsoft.com/en-us/sql/relational-databases/performance/display-an-actual-execution-plan)، [IO](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql)، [TIME](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-time-transact-sql)، [locking](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide). با نسخهٔ پروژه تطبیق داده شوند.
+### معیارهای گزارش
+
+- عملیات موفق commit‌شده در ثانیه و offered load؛
+- rejection و error rate؛
+- p50 و p95 و p99 latency؛
+- logical reads، transaction log و انتظار lock و pool؛
+- CPU و GC.
+
+رد سریع‌تر درخواست، throughput مالی بیشتر نیست. فعلاً SLO عددی یا درصد overhead نداریم.
+
+### محل نگهداری شواهد
+
+هر run در `docs/performance/<query-id>/<run-id>/` ثبت می‌شود:
+
+1. تاریخ و commit، schema، نسخه و compatibility؛
+2. SQL و bind‌های پاک‌سازی‌شده، dataset، plan و statistics؛
+3. baseline و تغییر، raw sample‌ها و پراکندگی latency و throughput؛
+4. نتیجهٔ صحت، گلوگاه باقی‌مانده و تصمیم keep یا revert.
+
+خروجی حجیم می‌تواند با روش بازتولید مستند ignored بماند. Query Store بعداً برای plan history مفید است؛ وجود و تنظیمش را روی نسخهٔ منتخب بررسی کنید.
+
+منابع: [plan واقعی](https://learn.microsoft.com/en-us/sql/relational-databases/performance/display-an-actual-execution-plan)، [IO](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql)، [TIME](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-time-transact-sql)، [locking](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide). با نسخهٔ پروژه تطبیق داده شوند.
 
 ## دامنهٔ پذیرفته‌شدهٔ گزینهٔ E در ۲۰۲۶-۱۰-۲۲
 
-queryهای P1/P2 برای سند با operation ID یکتا، posting حساب با شناسهٔ سطر پایدار، جمع سند به‌ازای ارز و بازسازی projection شامل افتتاحیه اضافه شوند. این queryهای دفترکل مرجع با تاریخچهٔ Kafka در P6 جدا هستند. تطبیق از fixture بدون writer یا snapshot سازگار استفاده کند. فضای posting/index، log و رقابت ردیف تأمین در credit/debit سنجیده شود. تست پیشرفت مستقل مجموعهٔ کامل حساب‌های مجزا لازم دارد. هیچ query یا اندازه‌گیری هنوز اجرا نشده است.
+query‌های P1/P2 باید journal با operation ID یکتا، posting حساب با شناسهٔ پایدار سطر، جمع journal به‌ازای ارز و بازسازی projection شامل افتتاحیه را پوشش دهند. این query‌های دفترکل مرجع از تاریخچهٔ Kafka در P6 جدا هستند.
+
+reconciliation از fixture بدون writer یا snapshot سازگار استفاده می‌کند. فضای posting و index، log و contention حساب تأمین در credit/debit باید سنجیده شوند. تست پیشرفت مستقل مجموعهٔ کامل حساب‌های بدون اشتراک می‌خواهد. هنوز هیچ‌کدام از این query‌ها یا اندازه‌گیری‌ها اجرا نشده‌اند.

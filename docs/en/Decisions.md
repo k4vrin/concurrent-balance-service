@@ -2,7 +2,7 @@
 
 # Architecture decision register
 
-Status: ADR-001–005 protocols remain Proposed. ADR-007 accepts the V1 ledger design on 2026-10-22; implementation and financial evidence remain absent. Original register date: 2026-10-20. [فارسی](../fa/Decisions.md)
+Status: ADR-001–005 detailed protocols remain Proposed, except the terminal business-rejection policy accepted below on 2026-10-22. ADR-007 accepts the V1 ledger design on 2026-10-22; implementation and financial evidence remain absent. Original register date: 2026-10-20. [فارسی](../fa/Decisions.md)
 
 Configuration decisions are separate: [ADR-006](../adr/ADR-006-default-sqlserver.en.md) records the accepted removal of the SQL Server Maven/Spring profiles on 2026-10-22. [ADR-007](../adr/ADR-007-double-entry-ledger.en.md) accepts option E and supersedes the optional ledger clause in ADR-003. The detailed financial protocols below still require review.
 
@@ -18,11 +18,13 @@ Alternatives: in-memory state loses restart durability; optimistic updates can w
 
 ## ADR-002: Idempotency, actors and Redis
 
+[CBS03 protocol draft](Idempotency-protocol.md) specifies the proposed reservation, canonical command, concurrency, replay and recovery flow for joint review. It does not change this ADR to Accepted.
+
 Context: a client controls transaction IDs; a new ID can represent a genuinely new authorized operation. Idempotency cannot infer user intent or stop an authorized client from submitting new commands. Authorization, limits and confirmation address different threats.
 
 Proposal: one globally unique transaction ID across credit/debit/transfer for the single-tenant service. Store canonical request fingerprint, actor binding and terminal outcome with the financial transaction. Distinct IDs for the same future transfer intent cannot execute it twice; add independent uniqueness on the executed intent ID in P4. Duplicate requests return the original business outcome, while payload mismatch conflicts. Authenticate and authorize the current caller before returning any replay; unknown ownership must not disclose another actor's result.
 
-Proposed rejection policy: well-formed, authorized requests rejected for business reasons persist a terminal rejection without balance changes, journals or postings. Retrying the same ID returns that rejection even after funds change. Syntax/authentication/authorization failures do not create financial operation rows. Technical failures before commit leave no terminal success; retries recover through database identity checks. Revalidate transient failures without silently converting them into permanent business rejections.
+Rejection policy accepted by the user on 2026-10-22: well-formed, authorized requests rejected for business reasons persist a terminal rejection without balance changes, journals or postings. Retrying the same ID returns that rejection even after funds change. Syntax/authentication/authorization failures do not create financial operation rows. Technical failures before commit leave no terminal outcome; retries recover through database identity checks. Revalidate transient failures without silently converting them into permanent business rejections.
 
 Redis stores only immutable terminal-response copies keyed by environment and transaction ID, with a fingerprint and schema version. On miss, expiry, corruption, mismatch or outage consult the database; never interpret cache absence as permission to debit. Only populate from a committed result. Any cache-hit path still checks current access. Terminal-result corrections require a version/invalidation policy before permitting such corrections. Database records or durable uniqueness tombstones outlive Redis TTL; deleting identity changes the retry guarantee and requires an ADR. No performance improvement is claimed before measurement.
 
@@ -61,3 +63,19 @@ At P7 evaluate Debezium on outbox inserts. Record exact SQL Server edition/versi
 Use stable IDs. Proposed → Accepted only after alternatives and the phase's required evidence are reviewed. Accepted does not mean implemented. Record implementation commit, measured results, date and limitations separately. Supersede old decisions with a linked replacement rather than rewriting history. Update both languages in the same PR.
 
 For each new ADR record: ID/title; status/date/owner; context and constraints; invariant/threat; alternatives; chosen boundary; transaction/locking/failure behavior; qualitative cost hypothesis; measurement method and baseline; actual results or “not measured”; acceptance tests; rollback/migration; links to PR, schema and both language versions. Unknowns stay explicit.
+
+## Accepted monetary representation, 2026-10-22
+
+The user selected rial IRR amounts and accepted Java `long` for posted amounts and balances. One unit means one rial. Use SQL Server `BIGINT` and explicit API units such as `amountRial` and `balanceRial`; do not interpret them as ISO hundredths. Fractional-rial input is invalid before operation creation. The user accepted a separate business transaction limit; its numeric value and any business balance limit remain unresolved. The type maximum is not the business maximum.
+
+Use checked addition/subtraction, including system-account projections, and reject overflow without partial monetary effects. Validate journal/reconciliation totals using an exact wider accumulator before checking projection bounds. `BigDecimal` is also exact and remains appropriate for rates, fees and fractional intermediate calculations; a reviewed rounding/residual policy must precede posting those calculations.
+
+Interview rationale: integer units directly encode V1's allowed rial values. Currency precision and storage type are separate decisions. `long` does not provide concurrency safety; the reviewed transaction/locking protocol does. Revisit decimal ledger storage if fractional-unit balances or accruals, or amounts beyond BIGINT, become requirements.
+
+Future FX can retain integer posted units with an explicit unit policy per currency, decimal rates and balanced postings independently per currency. Preserve the accepted quote and rounded amounts for replay. Accounts, FX position/clearing, liquidity, settlement and rounding rules require CBS38 design; this note implements none of them. Monetary policy is accepted design, not measured or implemented financial behavior.
+
+Retention policy accepted on 2026-10-23: committed operation IDs, canonical commands and original terminal responses are retained indefinitely in V1, for success and business rejection alike. Validation failure or rollback leaves no committed reservation. Corrections use new linked IDs; Redis TTL does not release SQL identity. Future archival must preserve uniqueness and original-response recovery. See [CBS03 retention](Idempotency-protocol.md).
+
+## Accepted transaction-boundary mechanism, 2026-10-23
+
+Use a nontransactional coordinator and Spring `TransactionTemplate` for each financial attempt, with REQUIRED propagation and an enforced no-ambient-transaction entry boundary. Return explicit Success/Rejected values; technical exceptions roll back. Perform retry, duplicate recovery and HTTP mapping outside the attempt. Never use a separate REQUIRES_NEW commit for reservation, rejection or successful financial outcome. Template completion confirms commit only when this no-outer-transaction condition holds. Enforce the boundary with an explicit guard or a separately proxied NEVER entry point; self-invocation must not bypass it. This accepts the mechanism, not SQL behavior or the entire protocol. [CBS04 draft](Transaction-protocol.md) supplies the next review artifact.

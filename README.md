@@ -11,6 +11,8 @@ The first functional version delivers credit, debit, transfer and balance lookup
 
 ## Current state
 
+CBS05 has started with immutable `Money(long amount, Currency currency)`. For IRR, 100 means 100 rials directly. Money permits zero and signed values; commands, postings and account categories will enforce their respective sign and business-limit rules. Money supports same-currency checked addition/subtraction and comparison. Account policies and financial operations remain pending.
+
 Implemented: official Spring Initializr bootstrap adapted to reproducible Maven coordinates, application entry point, the four-operation Java interface, infrastructure-free HTTP health smoke test, default SQL Server persistence dependencies, optional Redis/Kafka/JWT dependency profiles, externalized configuration, CI definition and bilingual design documents.
 
 Not implemented: financial operation logic, account schema, durable idempotency, access/ownership policies, OTP, Redis caching behavior, outbox, producer/consumer, CDC or FX settlement. There is no financial HTTP endpoint. No SQL Server instance has been provisioned or validated. A passing bootstrap test does not certify financial correctness.
@@ -69,6 +71,10 @@ No migration has been written. Flyway may initialize its history table in the su
 [Bootstrap evidence](docs/en/Bootstrap-evidence.md): clean Java 21 verification passed with one HTTP smoke test. All optional dependency profiles also packaged successfully in staging with tests skipped. External services remain unverified.
 
 ## Documentation
+
+- [Requirements and failure matrix](docs/en/Requirements.md) / [فارسی](docs/fa/Requirements.md)
+- [Durable identity protocol](docs/en/Idempotency-protocol.md) / [فارسی](docs/fa/Idempotency-protocol.md)
+- [Transaction and locking protocol](docs/en/Transaction-protocol.md) / [فارسی](docs/fa/Transaction-protocol.md)
 
 - [Spring starter and dependency decisions](docs/en/Starter.md) / [فارسی](docs/fa/Starter.md)
 - [Local infrastructure with Docker Compose](docs/en/Docker.md) / [فارسی](docs/fa/Docker.md)

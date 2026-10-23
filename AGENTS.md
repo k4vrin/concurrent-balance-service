@@ -13,3 +13,5 @@ Run ./mvnw verify for bootstrap changes and appropriate real integration/failure
 ## Accepted ledger scope, 2026-10-22
 
 Follow accepted ADR-007 and docs/en/Ledger.md with their Persian pairs. V1 requires accounts, operations, journals and postings. Commit balanced immutable posting history, account balance projections and operation success together; rejection has no journal, replay adds none. Opening balances require journals and credit/debit require funding counterparts. Preserve CBS02–04 constraint/transaction review before business migrations and the guided implementation sequence. Do not treat double-entry as optional or introduce a separate ledger service. Design acceptance is not financial implementation or measured evidence.
+
+When financial code is implemented, add concise intent comments next to non-obvious invariant boundaries: account lock ordering and funds checks, atomic posting/projection/outcome persistence, replay, terminal rejection and whole-transaction retry. Explain the reason and relevant ADR; avoid comments that repeat obvious code or imply untested guarantees.

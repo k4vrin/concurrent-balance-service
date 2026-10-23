@@ -8,12 +8,12 @@ Scope selected by the user on 2026-10-22: the first functional version delivers 
 
 | Method | Route | Request |
 | --- | --- | --- |
-| POST | `/api/v1/accounts/{accountId}/credits` | `transactionId`, `amountMinor`, `currency` |
-| POST | `/api/v1/accounts/{accountId}/debits` | `transactionId`, `amountMinor`, `currency` |
-| POST | `/api/v1/transfers` | `transactionId`, `sourceAccountId`, `destinationAccountId`, `amountMinor`, `currency` |
+| POST | `/api/v1/accounts/{accountId}/credits` | `transactionId`, `amountRial`, `currency` |
+| POST | `/api/v1/accounts/{accountId}/debits` | `transactionId`, `amountRial`, `currency` |
+| POST | `/api/v1/transfers` | `transactionId`, `sourceAccountId`, `destinationAccountId`, `amountRial`, `currency` |
 | GET | `/api/v1/accounts/{accountId}/balance` | Account ID in the path |
 
-Amounts use integer minor units within the Java `long` range. Select one supported currency in CBS01; do not accept arbitrary currency codes. Mutations use the existing global transaction-ID namespace, including operation type and payload conflict detection. Syntax failures do not reserve an operation ID. Account initialization remains documented development/test setup, separate from these four routes.
+Accepted on 2026-10-22: V1 accepts IRR only and posts rials. One stored unit equals one rial; use Java `long` and SQL Server `BIGINT`. Proposed request field `amountRial` and balance field `balanceRial` state the unit explicitly; 150000 means 150,000 rials, with no multiplication by 100. Reject fractional-rial inputs before creating an operation record; do not truncate or silently round them. Positive amounts must fit the signed-long range. Business transaction/balance limits remain to be reviewed in CBS01. Use checked arithmetic for projection changes. `BigDecimal` is reserved for future rates and fractional calculations with an explicit rounding policy before posting. This is accepted design, not implemented behavior. Mutations share the global transaction-ID namespace with operation-type and payload conflict detection. Syntax failures do not reserve an operation ID. Account initialization remains documented development/test setup, separate from these four routes.
 
 Successful mutations return HTTP 200 and an explicit operation result containing its transaction ID, operation type, currency and committed outcome data. Replay returns the stored original result even after later operations change balances. Balance lookup returns the committed balance and currency. Specify the exact DTO fields, content types and examples during CBS23 before implementing the paths.
 
@@ -30,3 +30,11 @@ V1 is initially a local development API on the existing loopback binding, with a
 ## Accepted option E scope, 2026-10-22
 
 The four public routes stay unchanged under [option E](Ledger.md). Each successful mutation commits one balanced journal, its postings, all affected projections and its stored outcome together. Rejections have no journal; replay returns the original response without more postings. The server selects the funding/clearing counterpart for credit/debit. Nonzero initialization is an internal opening operation, not an extra public route. Balance reads use committed synchronous projections. Exact DTO fields remain CBS23 work; the ledger does not require a new public endpoint.
+
+## Accepted terminal business-rejection policy
+
+Selected by the user on 2026-10-22. A well-formed, authorized request rejected for insufficient funds stores its transaction ID, canonical fingerprint and original rejection response in `operations`, with no balance change, journal or postings. Identical retries return that rejection even if funds later become sufficient. A new financial attempt uses a new transaction ID. A different payload under the retained ID conflicts and does not replace its original outcome.
+
+Example: `debit-001` requests 50 when the balance is 30 and is rejected. After a separate credit raises the balance to 100, replaying `debit-001` still returns the original insufficient-funds rejection. A new ID permits a fresh funds check. This makes the business decision durable despite having no monetary effect. Syntax/access failures do not reserve financial identity. Technical failure before commit does not store a terminal rejection; uncertain commit must be recovered with the same ID. SQL Server is the durable authority in V1; Redis is a later cache with database fallback. This policy is accepted design, not implemented behavior; detailed storage, locking and HTTP error mapping still need review.
+
+[Requirement and failure matrix](Requirements.md): reviewed cases, planned evidence and unresolved policies.

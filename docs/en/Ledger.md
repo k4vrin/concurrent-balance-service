@@ -11,13 +11,13 @@ The user selected option E on 2026-10-22. V1 includes a flexible double-entry le
 | `accounts` | Account identity, category, currency and persisted current balance projection |
 | `operations` | Global transaction ID, canonical request fingerprint and stored terminal success or business rejection |
 | `journals` | Accounting header linked uniquely to one successful operation |
-| `postings` | Immutable debit/credit lines referencing a journal and an account, with positive integer minor-unit amounts |
+| `postings` | Immutable debit/credit lines referencing a journal and an account, with positive rial amounts in V1 |
 
 A successful mutation has exactly one journal initially. A journal supports multiple lines, with at least one debit and one credit. Each journal balances per currency. Initial credit, debit and transfer paths use two lines. One SQL Server database and one SQL namespace are sufficient. Separate `ledger` and `posting` SQL schemas are optional organization, not an accounting requirement. No extra `ledger_transactions`, `transfer_requests` or separate ledger service is required for V1. Later intents, outbox and consumer tables keep their own responsibilities.
 
 ## Account meaning and examples
 
-V1 uses one explicitly selected currency and checked Java `long` minor units. Account categories and sign rules must be encoded in the CBS02–05 review. The initial model uses customer liability accounts with credit-normal balances and a server-selected funding/clearing counterpart with a debit-normal balance. A customer's displayed balance is credits minus debits; the counterpart balance is debits minus credits. Customer balances cannot be negative. A synthetic funding/clearing account may be signed within the long range; its policy must not imply verified external liquidity. Real settlement, overdrafts and fee accounts need separate decisions.
+V1 uses IRR and checked Java `long` rial amounts, with one unit equal to one rial. SQL Server stores these amounts and balance projections as `BIGINT`; business limits remain under review. Future FX rates and intermediate calculations use `BigDecimal` and an explicit posting-rounding policy; multi-currency ledger design remains CBS38 work. Account categories and sign rules must be encoded in the CBS02–05 review. The initial model uses customer liability accounts with credit-normal balances and a server-selected funding/clearing counterpart with a debit-normal balance. A customer's displayed balance is credits minus debits; the counterpart balance is debits minus credits. Customer balances cannot be negative. A synthetic funding/clearing account may be signed within the long range; its policy must not imply verified external liquidity. Real settlement, overdrafts and fee accounts need separate decisions.
 
 | Operation, amount 100 | Debit posting | Credit posting |
 | --- | --- | --- |

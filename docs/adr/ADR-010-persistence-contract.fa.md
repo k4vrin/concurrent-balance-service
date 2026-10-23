@@ -9,3 +9,5 @@
 تصمیم: [CBS09-contract.md](../fa/CBS09-contract.md) اجرا شود؛ قید هویت Unicode/BIN2 تست‌شده، قفل نقطه‌ای کلید اصلی UUID با UPDLOCK/HOLDLOCK به ترتیب comparator برنامه، FK ارز سازگار در چهار جدول، state صریح ردیف، REQUIRED TransactionTemplate کنترل‌شده، recovery محدود کل تلاش و اختیار جدا برای migration/runtime/initializer. تضمین میان‌ردیفی حسابداری در پروتکل تراکنش کنترل‌شده و reconciliation مستقل می‌ماند و تضمین CHECK ردیف نامیده نمی‌شود.
 
 پیامد: CBS09 اکنون می‌تواند migration را پیاده کند. آزمایش native JDBC همراه ۲۴۰ تست مستقل از زیرساخت و ۴۴ تست واقعی موفق بود؛ نگاشت entity، grant، اجرای واقعی Flyway و سناریوی خرابی مالی در مرحلهٔ مربوط تأیید می‌شوند. ادعای performance یا آمادگی production نداریم. تغییر قرارداد دلیل ثبت‌شده و اصلاح هم‌زمان دو زبان می‌خواهد.
+
+جزئیات پیاده‌سازی: history در Flyway اکنون در cbs_migrations با مالکیت cbs_migrator است؛ جدول کسب‌وکار در dbo می‌ماند. برای نگه‌داری history دیگر DML کلی روی schema کسب‌وکار لازم نیست. [شواهد CBS09](../fa/Schema.md) را ببینید.

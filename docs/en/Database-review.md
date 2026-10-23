@@ -1,3 +1,5 @@
+> CBS09 implementation update, 2026-10-23: V1 is applied and validated in the local development/test databases. [Schema/runbook](Schema.md) records actual constraints, grants and 240 portable + 94 SQL Server tests. Historical pre-migration statements below are superseded by this implementation evidence. Financial execution remains pending.
+
 > Current review disposition, 2026-10-23: CBS02–04 engineering review is closed for entry to CBS09. [The implementation contract](CBS09-contract.md) selects storage, lock SQL, constraints, retry defaults and authority. Earlier open-choice entries below are historical unless retained in that contract. Migration/entity/financial verification belongs to CBS09–20; no business DDL has been applied.
 
 > Bootstrap update, 2026-10-20: SQL Server replaces the earlier proposed Oracle target. Phase P0 is started, not complete. Dependencies and a health smoke test do not prove financial correctness.

@@ -1,3 +1,5 @@
+> CBS09 implementation update, 2026-10-23: V1 is applied and validated in the local development/test databases. [Schema/runbook](Schema.md) records actual constraints, grants and 240 portable + 94 SQL Server tests. Historical pre-migration statements below are superseded by this implementation evidence. Financial execution remains pending.
+
 # CBS08 real SQL Server integration harness
 
 [فارسی](../fa/SQL-server-tests.md) · [Environment setup](Docker.md) · [CBS07 observations](SQL-server-evidence.md) · [Roadmap](Roadmap.md)

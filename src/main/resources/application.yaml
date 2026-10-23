@@ -13,8 +13,9 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  # Schema changes run separately with db-migrate and dedicated credentials.
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration
     clean-disabled: true
 

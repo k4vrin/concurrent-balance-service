@@ -2,7 +2,7 @@
 
 [فارسی](../fa/Ledger.md) · [Accepted ADR-007](../adr/ADR-007-double-entry-ledger.en.md) · [Constraint review](Database-review.md) · [Debit and credit across account types](Debit-and-credit.md) · [Journal and projection walkthrough](Journal-projection.md)
 
-The user selected option E on 2026-10-22. V1 includes a flexible double-entry ledger in the same SQL Server database as the balance API. This is an accepted project design extension, not a requirement attributed to the original employer challenge. No financial schema, posting engine or endpoint is implemented yet. SQL Server behavior and performance remain untested.
+The user selected option E on 2026-10-22. V1 includes a flexible double-entry ledger in the same SQL Server database as the balance API. This is an accepted project design extension, not a requirement attributed to the original employer challenge. The CBS09 schema is now implemented and tested on SQL Server; see [Schema.md](Schema.md). Financial handlers/posting execution and financial concurrency/performance remain pending.
 
 ## Four tables and their responsibilities
 
@@ -85,3 +85,7 @@ Java 21.0.11 Maven verify passed 92 tests, zero failures/errors/skips in 8.354 s
 Refactoring, 2026-10-23: projectBalances now reads as snapshot copy, exact net calculation and account projection. Private helpers resolve/validate posting accounts, accumulate changes, construct final snapshots and publish an immutable result. Public behavior, exception messages and invariant comments are preserved. Focused Java 21 ledger tests passed 36 cases with zero failures/errors/skips in 5.588 seconds; the full 92-test suite was not rerun for this refactor.
 
 Pre-publication verification, 2026-10-23: Java 21.0.11 Maven verify passed all 92 tests after the projectBalances refactor, zero failures/errors/skips in 7.267 seconds. This supersedes the earlier focused-only verification limit; SQL Server behavior remains untested.
+
+## CBS09 verified implementation, 2026-10-23
+
+V1 now creates the four dbo ledger tables with reviewed keys, named checks, currency FKs, response states and indexes. Flyway runs explicitly under db-migrate; normal runtime migration is disabled. Separate cbs_migrator owns only the cbs_migrations history schema and has reviewed dbo DDL authority; cbs_app and cbs_initializer have tested object/column grants. This private history schema refines ADR-010 to avoid broad business DML grants for migration history. Fifty new schema tests bring full verification to 240 portable plus 94 real SQL Server tests, zero failures/errors/skips, 17.879 seconds. Both local databases migrated/validated; missing settings and runtime-as-migrator fail. Runtime-only application health passed. See [Schema.md](Schema.md) for reproduction and exact limits. Next is CBS10 mappings, opening journals and committed balance reads. Formal learner acceptance remains separate.

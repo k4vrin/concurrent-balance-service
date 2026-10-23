@@ -1,3 +1,5 @@
+> CBS09 implementation update, 2026-10-23: V1 is applied and validated in the local development/test databases. [Schema/runbook](Schema.md) records actual constraints, grants and 240 portable + 94 SQL Server tests. Historical pre-migration statements below are superseded by this implementation evidence. Financial execution remains pending.
+
 # Local SQL Server with Docker Compose
 
 [فارسی](../fa/Docker.md) · [Index](../../README.md) · [Database review](Database-review.md)

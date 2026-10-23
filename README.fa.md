@@ -1,162 +1,95 @@
 # سرویس موجودی هم‌زمان
 
-> گام فعلی: مرور مهندسی CBS02–04 برای ورود به CBS09 کامل است. [قرارداد migration](docs/fa/CBS09-contract.md) · [ADR-010](docs/adr/ADR-010-persistence-contract.fa.md). آخرین اجرا ۲۴۰ تست مستقل از زیرساخت و ۴۴ تست واقعی SQL Server را بدون failure، error یا skip گذراند. گام بعد migration چهار جدول و تست واقعی migration/قید/مجوز است. اجرای مالی هنوز پیاده نشده است.
+[![Build](https://github.com/k4vrin/concurrent-balance-service/actions/workflows/build.yml/badge.svg)](https://github.com/k4vrin/concurrent-balance-service/actions/workflows/build.yml)
+[![Java 21](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
+[![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927)](https://www.microsoft.com/sql-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[مخزن عمومی](https://github.com/k4vrin/concurrent-balance-service) · [English](README.md)
+سرویس Java و Spring Boot برای جابه‌جایی درست پول زیر درخواست‌های هم‌زمان؛ API موجودی مرجع، دفترکل دوطرفه و هویت ماندگار درخواست را در یک SQL Server کنار هم قرار می‌دهد.
 
-این پروژه از چالش موجودی هم‌زمان مفید شروع شده و با Java 21، Spring Boot 4.1.1 و Maven پیش می‌رود. دیتابیس هدف SQL Server است.
+[English](README.md) · [مرجع API](docs/fa/API-v1.md) · [معماری](docs/fa/Architecture.md) · [راه‌اندازی](docs/fa/Schema.md)
 
-## قرار است چه مسئله‌ای را حل کنیم؟
+## نسخهٔ اول
 
-وقتی چند درخواست هم‌زمان موجودی یک حساب را تغییر می‌دهند، نتیجه باید درست بماند. اگر پاسخ انتقال گم شد و کلاینت retry کرد، نباید پول دوباره جابه‌جا شود. هستهٔ پروژه قرار است `credit`، `debit`، انتقال اتمیک و استعلام موجودی مرجع را پوشش دهد.
+نسخهٔ اول یک API محلی JSON برای افزایش موجودی، برداشت، انتقال اتمیک و استعلام موجودی است. این صفحه قرارداد نسخهٔ قابل‌تحویل را شرح می‌دهد. رفتار پیاده‌شده و شواهد نسخهٔ فعلی مخزن در [وضعیت پیاده‌سازی](docs/fa/Implementation-status.md) آمده است.
 
-بعد از تکمیل هسته، تأیید انتقال، cache پاسخ در Redis، رویدادهای تاریخچه در Kafka و Debezium اضافه می‌شوند. اتصال به FX هنوز جهت طراحی آینده است و پیاده نشده است.
-
-خروجی اولین نسخهٔ کاربردی، HTTP API با JSON و SQL Server خواهد بود. Docker Compose مسیر منتخب زیرساخت محلی است. interface جاوای فعلی فقط قرارداد داخلی bootstrap است؛ مرز تحویل در [قرارداد API](docs/fa/API-v1.md) آمده است.
-
-API اولیه روی محیط توسعهٔ محلی اجرا می‌شود. JWT و کنترل مالکیت پیش از دسترسی اشتراکی یا خارجی اضافه می‌شوند.
-
-## وضعیت فعلی
-
-CBS05 با نوع تغییرناپذیر `Money(long amount, Currency currency)` شروع شده است. برای IRR، عدد 100 مستقیماً ۱۰۰ ریال است. Money صفر و مقدار علامت‌دار را می‌پذیرد؛ دستورها، postingها و نوع حساب قواعد علامت و سقف تجاری خود را کنترل خواهند کرد. Money جمع و تفریق هم‌ارز با کنترل overflow و مقایسه دارد. AccountCategory سیاست موجودی نامنفی مشتری و موجودی علامت‌دار تأمین مصنوعی را بررسی می‌کند. Account تغییرناپذیر و AccountId مبتنی بر UUID سیاست موجودی را هنگام ساخت و تغییر checked کنترل می‌کنند. AccountLockOrder ترتیب مشترک unsigned نزولی UUID را می‌دهد؛ قفل دیتابیس هنوز پیاده نشده است. Posting و Journal اکنون سطر مثبت، delta وابسته به نوع حساب و سند تک‌ارزی متوازن با جمع دقیق را بررسی می‌کنند. Journal.projectBalances اکنون snapshotهای نهایی را با جمع دقیق تغییر خالص آماده می‌کند. use case مالی و persistence هنوز پیاده نشده‌اند. CreditCommand، DebitCommand و TransferCommand هم شناسه‌های لازم، مبلغ مثبت و حساب‌های متمایز انتقال را بررسی می‌کنند. SupportedCurrencies عضویت ارز در مجموعهٔ ورودی تغییرناپذیر را می‌سنجد؛ اتصال تنظیمات یا دیتابیس هنوز در برنامه است. TransactionId هم هویت دقیق و حساس به بزرگی حروف را بدون trim اعتبارسنجی می‌کند. پایهٔ CBS23 اکنون چهار مسیر HTTP را با اعتبارسنجی سخت‌گیرانه و کد پایدار ProblemDetail عرضه می‌کند. مرز پیش‌فرض برنامه تا اتصال handler ماندگار پاسخ 503 می‌دهد؛ موفقیت مالی پیاده نشده است. [شواهد adapter](docs/fa/HTTP-adapter-evidence.md).
-
-| وضعیت | جزئیات |
-| --- | --- |
-| پیاده‌شده | bootstrap رسمی Spring Initializr با مختصات قابل‌دریافت Maven، نقطهٔ شروع برنامه، interface چهار عملیات، تست HTTP سلامت مستقل از زیرساخت، dependency‌های پیش‌فرض SQL Server، profile‌های اختیاری Redis و Kafka و JWT، تنظیمات محیطی، تعریف CI و مستندات دوزبانه |
-| هنوز پیاده نشده | منطق مالی، schema حساب‌ها، idempotency ماندگار، مالکیت و مجوز، OTP، رفتار cache، outbox، producer و consumer، CDC و تسویهٔ FX |
-| هنوز بررسی نشده | رفتار مالی SQL Server و کارایی؛ اتصال و restart محیط محلی در CBS07 بررسی شده‌اند |
-
-چهار مسیر adapter مالی فعلاً پاسخ صریح عدم دسترسی می‌دهند. موفقیت تست bootstrap فقط سلامت اسکلت را نشان می‌دهد و صحت مالی را ثابت نمی‌کند.
-
-## ساخت و اجرا
-
-### تفاوت verify و اجرای برنامه
-
-| مسیر | پیش‌نیاز و رفتار |
-| --- | --- |
-| `verify` | Java 21 و Maven wrapper؛ profile مخصوص تست `smoke`، auto-configuration مربوط به persistence را غیرفعال می‌کند |
-| اجرای عادی | SQL Server در دسترس، مجوز migration مرورشده و متغیرهای `DB_URL`، `DB_USERNAME` و `DB_PASSWORD`؛ profile جدا برای SQL Server لازم نیست |
-
-تست `smoke` اتصال دیتابیس را بررسی نمی‌کند.
-
-### آماده‌سازی Java و اجرای فرمان‌ها
-
-JDK 21 را نصب و `JAVA_HOME` را تنظیم کنید. build با major version دیگری از JDK رد می‌شود. wrapper نسخهٔ Maven را دریافت می‌کند؛ برای بررسی bootstrap به Maven سیستمی یا Docker نیاز نیست. اولین build برای دریافت dependency‌ها به اینترنت نیاز دارد.
-
-پس از تنظیم دیتابیس، می‌توانید برنامه را اجرا و سلامت آن را بررسی کنید:
-
-```sh
-./mvnw verify
-./mvnw spring-boot:run
-curl http://127.0.0.1:8080/actuator/health
-```
-
-معادل فرمان‌ها در PowerShell:
-
-```powershell
-.\mvnw.cmd verify
-.\mvnw.cmd spring-boot:run
-Invoke-RestMethod http://127.0.0.1:8080/actuator/health
-```
-
-سرور روی loopback گوش می‌دهد؛ Actuator مسیرهای health و info را عرضه می‌کند و چهار مسیر adapter مالی فعلاً پاسخ عدم دسترسی می‌دهند. پاسخ سلامت شامل `"status":"UP"` است و ممکن است metadata دیگری هم داشته باشد.
-
-SQL Server برای اجرای عادی لازم است؛ Redis و Kafka اختیاری‌اند. فایل `.env.example` مرجع متغیرهاست و Spring Boot فایل `.env` را خودکار نمی‌خواند.
-
-## dependencyهای مرحله‌ای
-
-Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد بسته شوند. profile زمان اجرای Spring تنظیمات آن‌ها را فعال می‌کند. برای Redis، Kafka و security این دو انتخاب باید هماهنگ باشند. SQL Server کتابخانه‌ها و تنظیم اتصال پیش‌فرض را دارد.
-
-برای مثال، فعال‌کردن profile در Spring کتابخانهٔ غایب را اضافه نمی‌کند. فعال‌کردن صرف profile در Maven هم ممکن است auto-configuration را بدون تنظیمات لازم روشن کند.
-
-| profile Maven و profile متناظر Spring | کتابخانه‌ها | کاربرد فعلی |
+| عملیات | endpoint | مسئولیت |
 | --- | --- | --- |
-| پیش‌فرض، بدون profile | Web MVC، Validation، Actuator، Data JPA، Flyway، ماژول SQL Server مربوط به Flyway، JDBC مایکروسافت و استارترهای تست متناظر | برنامهٔ مبتنی بر SQL Server، هنوز بدون schema کسب‌وکار |
-| `redis` | Spring Data Redis و استارتر تست | cache پاسخ‌های نهایی در آینده |
-| `kafka` | Spring Kafka و استارتر تست | انتشار outbox و مصرف رویدادهای تاریخچه در آینده |
-| `security` | OAuth2 resource server و استارتر تست | اتصال به JWT در آینده؛ سیاست مالکیت و مجوز هنوز کامل نشده است |
+| Credit | `POST /api/v1/accounts/{accountId}/credits` | افزایش موجودی مشتری با حساب تأمین انتخاب‌شدهٔ سرور. |
+| Debit | `POST /api/v1/accounts/{accountId}/debits` | کاهش موجودی مشتری در صورت کفایت موجودی. |
+| Transfer | `POST /api/v1/transfers` | انتقال مبلغ میان دو حساب متمایز به‌صورت اتمیک. |
+| Balance | `GET /api/v1/accounts/{accountId}/balance` | خواندن موجودی و ارز committed از مرجع اصلی. |
 
-فرمان زیر بسته‌بندی با همهٔ وابستگی‌های اختیاری را بررسی می‌کند و تست‌ها را اجرا نمی‌کند:
+مبلغ، ریال صحیح است؛ هر واحد دقیقاً یک ریال است و با `long` در Java و `BIGINT` در SQL Server نمایش داده می‌شود. سیاست اولیه IRR را می‌پذیرد و سقف هر عملیات و موجودی مشتری **۱۰٬۰۰۰٬۰۰۰٬۰۰۰٬۰۰۰ ریال** است. مبلغ اعشاری، تبدیل ضمنی و گردکردن بی‌صدا رد می‌شوند.
 
-```sh
-./mvnw -Predis,kafka,security -DskipTests package
+## مدل درستی
+
+هر mutation یک `transactionId` از فراخواننده دارد. retry منطبق، نتیجهٔ اصلی ذخیره‌شده را برمی‌گرداند؛ استفادهٔ دوباره با نوع یا payload متفاوت تعارض دارد. پاسخ گم‌شده با همان شناسه بازیابی می‌شود. رد نهایی کسب‌وکار هم نگه داشته می‌شود تا retry پس از تغییر موجودی یا سیاست دوباره آن را ارزیابی نکند.
+
+هر mutation موفق، یک journal متوازن، postingهای تغییرناپذیر بدهکار و بستانکار، projection موجودی و نتیجه را در یک تراکنش commit می‌کند. رد journal ندارد و replay، posting تازه نمی‌سازد. موجودی اولیهٔ غیرصفر با journal افتتاحیهٔ داخلی ایجاد می‌شود.
+
+همهٔ نویسنده‌ها پیش از بررسی موجودی، مجموعهٔ کامل حساب‌های درگیر را به ترتیب مشترک UUID در برنامه قفل می‌کنند. محاسبهٔ checked جلوی overflow را می‌گیرد. deadlock و timeout قفل، recovery محدود کل تراکنش می‌خواهند؛ commit نامطمئن با همان شناسه بازیابی می‌شود. [پروتکل تراکنش](docs/fa/Transaction-protocol.md).
+
+| جدول | مسئولیت |
+| --- | --- |
+| `accounts` | هویت، دستهٔ حساب، ارز و projection هم‌زمان موجودی. |
+| `operations` | هویت سراسری درخواست، intent از نوع canonical، شواهد سیاست و نتیجهٔ ذخیره‌شده. |
+| `journals` | یک header حسابداری برای هر عملیات موفق. |
+| `postings` | خط‌های تغییرناپذیر بدهکار و بستانکار برای بازسازی و reconciliation موجودی. |
+
+## نمونهٔ API
+
+درخواست انتقال در قرارداد نسخهٔ اول، UUID حساب و شناسهٔ دقیق حساس به حروف دارد:
+
+```http
+POST /api/v1/transfers
+Content-Type: application/json
+
+{
+  "transactionId": "transfer-001",
+  "sourceAccountId": "10000000-0000-4000-8000-000000000001",
+  "destinationAccountId": "f0000000-0000-4000-8000-000000000002",
+  "amountRial": 150000,
+  "currency": "IRR"
+}
 ```
 
-این فرمان فقط سازگاری build و dependency‌ها را بررسی می‌کند. `verify` پیش‌فرض تست HTTP bootstrap را اجرا می‌کند. تست واقعی SQL Server و خرابی broker همراه مرحلهٔ مربوط اضافه می‌شود. H2 جای شواهد SQL Server را نمی‌گیرد.
+mutation موفق، عملیات committed را تأیید می‌کند. خطا با `application/problem+json` و کد پایدار برنامه برمی‌گردد. [مرجع API](docs/fa/API-v1.md) parsing و نتیجه‌ها را تعریف می‌کند؛ [راهنمای عملیات](docs/fa/Operation-flow.md) مسیر کامل درخواست را توضیح می‌دهد.
 
-پس از آماده‌سازی یک دیتابیس توسعهٔ خالی و تنظیم متغیرهای اتصال، فرمان اجرای برنامه چنین است:
+## ساخت و راه‌اندازی محلی
 
-```sh
+پیش‌نیاز، JDK 21 و برای محیط integration، Docker است. Maven از wrapper تأمین می‌شود.
+
+```bash
+./mvnw verify
+```
+
+verify مستقل از زیرساخت دیتابیس نمی‌خواهد. طبق [راه‌اندازی SQL Server](docs/fa/Docker.md) و [راهنمای migration](docs/fa/Schema.md)، مجوز Developer مربوط را بپذیرید، هویت‌های جدا را بسازید و schema را اعمال کنید. secret از متغیر محیطی یا تنظیم محلی ignored می‌آید. runtime با DB_URL، DB_USERNAME و DB_PASSWORD محدود اجرا می‌شود و migration انجام نمی‌دهد.
+
+```bash
+./mvnw -Pdb-migrate flyway:migrate flyway:validate
+./mvnw -Psqlserver-it verify
 ./mvnw spring-boot:run
 ```
 
-### مرز فعلی دیتابیس
+فرمان migration و integration تنظیم محیطی جدا و صریح راهنما را می‌خواهند. در Windows از `.\mvnw.cmd` استفاده کنید. آزمایش محلی emulation روی ARM64 در SQL Server پشتیبانی رسمی Microsoft ندارد؛ [شواهد محیط](docs/fa/SQL-server-evidence.md) را ببینید.
 
-هنوز migration مالی نداریم. Flyway ممکن است جدول history خودش را بسازد؛ این کار schema حساب‌ها را ایجاد نمی‌کند.
+## دامنه و توسعه‌های بعدی
 
-- `ddl-auto=validate` را حفظ کنید و constraint‌ها را پیش از V1 مرور کنید.
-- JAR اجرایی هم همان متغیرهای اتصال را می‌خواند و profile SQL Server نمی‌خواهد.
-- bootstrap را روی دیتابیس کسب‌وکار موجود آزمایش نکنید.
+نسخهٔ اول اپراتور محلی مورداعتماد را فرض می‌کند و روی loopback اجرا می‌شود. احراز هویت، مالکیت حساب و کنترل اختیار funding پیش از دسترسی اشتراکی یا خارجی لازم‌اند. ادعای آمادگی production یا throughput نداریم.
 
-## شواهد اعتبارسنجی
+تأیید انتقال با OTP، cache نتیجه در Redis، رویداد Kafka/outbox، CDC با Debezium و تسویهٔ FX بعد از هسته می‌آیند. SQL Server مرجع مالی می‌ماند؛ cache و history غیرهم‌زمان تصمیم نمی‌گیرند پول دوباره جابه‌جا شود یا نه.
 
-در [گزارش bootstrap](docs/fa/Bootstrap-evidence.md)، اجرای پاک `verify` با Java 21 و موفقیت یک تست HTTP ثبت شده است. بسته‌بندی وابستگی‌های اختیاری هم در محیط موقت آماده‌سازی موفق بوده، اما تست‌های آن اجرا نشده‌اند. سرویس‌های خارجی بررسی نشده‌اند.
+## راهنمای طراحی
 
-## مستندات
+- [دلیل جدایی canonical request و fingerprint](docs/fa/Canonical-design.md)
+- [دفترکل دوطرفه و دستهٔ حساب](docs/fa/Ledger.md)
+- [محاسبهٔ journal و projection موجودی](docs/fa/Journal-projection.md)
+- [قید و مجوز دیتابیس](docs/fa/Schema.md)
+- [نقشهٔ راه و شواهد پیاده‌سازی](docs/fa/Roadmap.md)
+- [روند مشارکت و Git](docs/fa/Workflow.md)
 
-- [دلیل طراحی هویت canonical و مفهوم‌های آن](docs/fa/Canonical-design.md) / [English](docs/en/Canonical-design.md)
-- [درخواست canonical و اثر انگشت تأمین](docs/fa/Canonical-request.md) / [English](docs/en/Canonical-request.md)
-- [راهنمای جریان عملیات](docs/fa/Operation-flow.md) / [English](docs/en/Operation-flow.md)
-- [نتیجهٔ کسب‌وکار و مرز commit](docs/fa/Operation-outcomes.md) / [English](docs/en/Operation-outcomes.md)
+## مجوز
 
-- [راهنمای Journal و محاسبهٔ مانده](docs/fa/Journal-projection.md) / [English](docs/en/Journal-projection.md)
-
-- [بدهکار و بستانکار در انواع حساب](docs/fa/Debit-and-credit.md) / [English](docs/en/Debit-and-credit.md)
-
-- [بیت‌های UUID و ترتیب قفل حساب](docs/fa/UUID-lock-order.md)
-
-- [معماری پذیرفته‌شده و مثال‌ها](docs/fa/Architecture.md)
-
-- [ماتریس نیازمندی و خطا](docs/fa/Requirements.md)
-- [پروتکل هویت ماندگار](docs/fa/Idempotency-protocol.md)
-- [پروتکل تراکنش و قفل](docs/fa/Transaction-protocol.md)
-
-- [استارتر Spring و انتخاب وابستگی‌ها](docs/fa/Starter.md)
-- [زیرساخت محلی با Docker Compose](docs/fa/Docker.md)
-- [نصب بومی SQL Server روی Windows، مسیر جایگزین اختیاری](docs/fa/Windows-sqlserver.md)
-- [نقشهٔ راه و معیارهای پذیرش](docs/fa/Roadmap.md)
-- [دفتر تصمیم‌های معماری](docs/fa/Decisions.md)
-- [مرور قیدها و هزینهٔ دیتابیس](docs/fa/Database-review.md)
-- [plan اجرای واقعی و throughput](docs/fa/Query-performance.md)
-- [گردش‌کار Git و مستندات دوزبانه](docs/fa/Workflow.md)
-- [تصمیم پذیرفته‌شدهٔ bootstrap](docs/adr/ADR-000-bootstrap.fa.md)
-
-اسناد مخزن مرجع برنامهٔ اجرا هستند و vault سابقهٔ بحث را نگه می‌دارد. ADR-007 طراحی دفترکل را پذیرفته، اما پروتکل‌های مالی هنوز به مرور نیاز دارند. overhead قیدها و throughput اندازه‌گیری نشده‌اند. گام بعد، پذیرش پروتکل تراکنش و قیدهای P1، نوشتن migration SQL Server و سپس پیاده‌سازی و تست هر چهار عملیات است.
-
-## طراحی پذیرفته‌شدهٔ دفترکل V1
-
-کاربر در ۲۰۲۶-۱۰-۲۲ گزینهٔ E را انتخاب کرد. V1 چهار جدول `accounts`، `operations`، `journals` و `postings` خواهد داشت. تاریخچه باید متوازن و تغییرناپذیر باشد و projection موجودی در همان تراکنش SQL Server با آن commit شود.
-
-`credit` و `debit` حساب مقابل تأمین یا تسویه دارند. موجودی غیرصفر اولیه هم با journal افتتاحیه ثبت می‌شود. [طراحی دفترکل](docs/fa/Ledger.md) و [ADR-007](docs/adr/ADR-007-double-entry-ledger.fa.md) جزئیات این انتخاب را توضیح می‌دهند.
-
-این طراحی پذیرفته شده، اما کد مالی، schema و شواهد مالی SQL Server هنوز وجود ندارند. مرور constraint‌ها و تراکنش، پیش‌نیاز migration مالی است.
-
-محاسبهٔ خالص projection در `Journal.projectBalances` پیاده شد: جمع دقیق تغییرات و اعتبارسنجی همهٔ snapshotهای نهایی، بدون تغییر ورودی یا نوشتن در دیتابیس. verify با Java 21 تعداد ۹۲ تست را بدون خطا یا skip گذراند. شرح و مرزها در [طراحی دفترکل](docs/fa/Ledger.md) آمده است.
-
-## پایهٔ Portable هویت در CBS06
-
-بایت canonical نسخهٔ ۱ و SHA-256 کمکی اکنون قصد تایپ‌شدهٔ mutation/افتتاحیه را encode می‌کنند. funded fingerprint جدا، counterpart حفظ‌شده و نسخهٔ سیاست را بدون تغییر هویت درخواست مشتری در بر می‌گیرد. [راهنمای encoding](docs/fa/Canonical-request.md). اتصال HTTP، decoder ذخیره‌شده، هویت/replay ماندگار و رفتار مالی SQL Server همچنان پیاده نشده‌اند.
-
-## آزمایش SQL Server محلی در CBS07
-
-نمونهٔ pinned از SQL Server 2022 CU22 Developer با مجوز صریح روی loopback پورت 14333 در emulation ARM64 اجراست. دیتابیس خالی cbs_dev/cbs_test و login اختصاصی CONNECT-only، SELECT واقعی JDBC و بررسی restart را گذراندند. [setup](docs/fa/Docker.md) و [شواهد](docs/fa/SQL-server-evidence.md). ARM64 همچنان پشتیبانی رسمی ندارد؛ schema مالی، مجوز migration و اجرای عملیات پیاده نشده‌اند. گام بعد harness واقعی CBS08 است.
-
-## تست integration مربوط به SQL Server در CBS08
-
-`./mvnw verify` مستقل از زیرساخت می‌ماند. `./mvnw -Psqlserver-it verify` تست JDBC واقعی را با متغیرهای صریح SQLSERVER_TEST_URL/USERNAME/PASSWORD روی cbs_test اضافه می‌کند و DB_* را به ارث نمی‌گیرد. شواهد فعلی ۲۴۰ تست Portable و پنج SQL Server، بدون failure، error یا skip است. [فرمان Bash/PowerShell و بررسی خطا](docs/fa/SQL-server-tests.md). این fixtureهای موقت migration مالی اجرا و تراکنش ledger اثبات نمی‌کنند. پیش از CBS09 مرور CBS02–04 را ببندید.
-
-## مرور واقعی CBS02–04
-
-کاربر سقف مشترک 10000000000000 ریالی عملیات و موجودی مشتری و رد ماندگار سقف را انتخاب کرد. [سیاست و مثال‌ها](docs/fa/Amount-limits.md) را ببینید. آخرین اجرا ۲۴۰ تست مستقل از زیرساخت و ۹ تست SQL Server را بدون failure، error یا skip گذراند. [یافته‌های مقایسه و قفل SQL](docs/fa/Persistence-review.md) چهار مورد تازه و مرور باقی‌مانده پیش از migration کسب‌وکار را توضیح می‌دهند. اعمال سقف در زمان اجرا و persistence مالی هنوز پیاده نشده‌اند.
-
-گام بعدی CBS02–04 اکنون [گزینهٔ ذخیره‌سازی دقیق شناسهٔ تراکنش](docs/fa/Transaction-id-storage.md) را می‌سنجد؛ Unicode BIN2، قید دقیق کاراکتر و طول و یکتایی با نام مشخص، همراه درج رقیب. آخرین اجرای کامل ۲۴۰ تست مستقل از زیرساخت و ۴۰ تست واقعی SQL Server را بدون failure، error یا skip گذراند. این شواهد مرور با جدول موقت است؛ schema و اجرای مالی هنوز پیاده نشده‌اند.
+[MIT](LICENSE). SQL Server و وابستگی‌های دیگر مجوز خودشان را حفظ می‌کنند.

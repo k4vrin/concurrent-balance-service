@@ -1,3 +1,5 @@
+> CBS09 implementation update, 2026-10-23: V1 is applied and validated in the local development/test databases. [Schema/runbook](Schema.md) records actual constraints, grants and 240 portable + 94 SQL Server tests. Historical pre-migration statements below are superseded by this implementation evidence. Financial execution remains pending.
+
 # CBS09 implementation contract
 
 [فارسی](../fa/CBS09-contract.md) · [Ledger](Ledger.md) · [Identity storage](Transaction-id-storage.md) · [ADR-010](../adr/ADR-010-persistence-contract.en.md)

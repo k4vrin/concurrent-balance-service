@@ -1,9 +1,7 @@
 # SQL Server migrations
 
-No schema has been created yet. Review the proposed constraints and transaction protocol in `docs/en/Database-review.md` before adding `V1__create_balance_schema.sql`.
+V1__create_balance_schema.sql creates the reviewed accounts, operations, journals and postings in dbo. CBS02–04 review is recorded by ADR-010 and the bilingual CBS09 contract. See docs/en/Schema.md and docs/fa/Schema.md for actual evidence and commands.
 
-Flyway discovers versioned SQL here during normal application startup using the database settings in `application.yaml`. No SQL Server Maven or Spring profile is required. The test-only `smoke` profile disables persistence for the HTTP smoke test and must not be used for database integration tests. Use a dedicated empty development database. Do not use Hibernate `ddl-auto=update` or `baseline-on-migrate` to bypass migration review.
+Run `./mvnw -Pdb-migrate flyway:migrate flyway:validate` with explicit MIGRATION_DB_URL/USERNAME/PASSWORD. Flyway history belongs to cbs_migrations, preprovisioned for the dedicated migration user. cleanDisabled=true, baselineOnMigrate=false and createSchemas=false are intentional. Never edit an applied migration; use the next version.
 
-Accepted ADR-007 requires `accounts`, `operations`, `journals` and `postings` from V1. Review journal/operation uniqueness, mandatory and currency-consistent references, posting signs, account-category balance bounds, cross-row balancing, append-only permissions and the atomic projection protocol in CBS02–04 first. Nonzero fixtures use opening journals, never direct balance updates. No business migration is introduced by this design acceptance. See `docs/en/Ledger.md` and its Persian pair.
-
-CBS02–04 engineering review is now complete for CBS09. Follow the concrete contract at `docs/en/CBS09-contract.md` and its Persian pair `docs/fa/CBS09-contract.md`, recorded by ADR-010. Implement the four-table V1 migration next, with separate migration credentials and real SQL Server constraint/permission/migrate/validate tests. The native review suite passed 240 portable plus 44 SQL Server tests; it did not apply a business migration.
+Normal application startup disables Flyway and uses restricted runtime DB_* credentials with Hibernate ddl-auto=validate. The portable smoke profile still excludes persistence. Actual SQL Server integration tests require separate runtime/migration/initializer test connections and never skip absent infrastructure. No nonzero financial seed data is in V1; opening journals and entity mappings are CBS10 work.

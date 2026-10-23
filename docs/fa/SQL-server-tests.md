@@ -1,3 +1,5 @@
+> به‌روزرسانی پیاده‌سازی CBS09 در ۲۰۲۶-۱۰-۲۳: V1 در دیتابیس محلی توسعه/تست اعمال و validate شده است. [schema و راهنما](Schema.md) قید، grant و شواهد ۲۴۰ تست مستقل از زیرساخت و ۹۴ تست SQL Server را ثبت می‌کند. گفته‌های تاریخی پیش از migration در ادامه با این شواهد جایگزین می‌شوند. اجرای مالی هنوز پیاده نشده است.
+
 # harness تست واقعی SQL Server در CBS08
 
 [English](../en/SQL-server-tests.md) · [setup محیط](Docker.md) · [شواهد CBS07](SQL-server-evidence.md) · [نقشهٔ راه](Roadmap.md)

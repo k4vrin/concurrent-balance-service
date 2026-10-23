@@ -28,6 +28,28 @@ final class SqlServerTestDatabase {
         return configured(System.getenv(), System.getProperties());
     }
 
+    static SqlServerTestDatabase fromEnvironment(String prefix) {
+        var environment = new java.util.HashMap<>(System.getenv());
+        for (var part : new String[] {"URL", "USERNAME", "PASSWORD"}) {
+            environment.put("SQLSERVER_TEST_" + part, required(environment, prefix + "_" + part));
+        }
+        return configured(environment, System.getProperties());
+    }
+
+    javax.sql.DataSource dataSource() {
+        return new org.springframework.jdbc.datasource.AbstractDataSource() {
+            @Override
+            public Connection getConnection() throws SQLException {
+                return openConnection();
+            }
+
+            @Override
+            public Connection getConnection(String username, String password) throws SQLException {
+                throw new SQLException("Use the explicitly configured test identity");
+            }
+        };
+    }
+
     static SqlServerTestDatabase configured(Map<String, String> environment, Properties properties) {
         for (var suffix : new String[] {"active", "include", "default"}) {
             rejectSmoke(properties.getProperty("spring.profiles." + suffix, ""));

@@ -99,3 +99,7 @@ digest، معماری host/daemon، build/edition دقیق سرور، compatibil
 بررسی فعلی: client/engine از نوع Docker 28.2.2، Desktop 4.42.0، daemon از نوع linux/arm64 و Compose 2.36.2؛ manifest مایکروسافت تأیید شد، Compose با placeholder غیرراز و بدون اجرای کانتینر validate شد، syntax shell بررسی و probe با Java 21 compile شد. آزمایش مجاز بعدی startup سالم، metadata سرور، JDBC هر دو دیتابیس و بقا در یک restart کانتینر را بررسی کرد؛ جزئیات و محدودیت در [شواهد setup](SQL-server-evidence.md) است. جدول مالی یا موجودی مقداردهی نشده است. پذیرش مستقل CBS00 تغییر نکرده است.
 
 محیط روی میزبان x86-64 منتخب هم قابل‌استفاده است؛ فرض loopback/TLS آن میزبان را جدا بررسی کنید و پورت 1433 را عمومی باز نکنید. [نصب بومی Windows](Windows-sqlserver.md) اختیاری می‌ماند.
+
+## harness خودکار CBS08
+
+[راهنمای تست SQL Server](SQL-server-tests.md) اکنون profile نوع Failsafe با نام sqlserver-it، متغیرهای تست، fixture موقت و محافظ‌های خطا را توضیح می‌دهد. probe مستقل CBS07 برای عیب‌یابی مفید می‌ماند و harness خودکار نیست.

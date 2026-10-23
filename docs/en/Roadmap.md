@@ -80,3 +80,7 @@ Portable version-1 canonical intent and retained-funding fingerprints are implem
 ## CBS07 implementation checkpoint, 2026-10-23
 
 Pinned Compose, explicit license/secrets, persistent volume, loopback publishing, readiness, infrastructure-only bootstrap and actual driver probe are implemented. The authorized ARM64 experiment passed startup, dedicated-login JDBC SELECT in separate empty databases and restart checks. See [environment evidence](SQL-server-evidence.md). It does not establish Microsoft ARM64 support, financial behavior or independent acceptance. Next is CBS08 Failsafe sqlserver-it and real rollback/no-DB test evidence; CBS02–04 review still precedes CBS09 business migrations.
+
+## CBS08 implementation checkpoint, 2026-10-23
+
+The sqlserver-it Failsafe profile now requires explicit test-only credentials and checks the real connected cbs_test catalog. Portable verify passed 240 tests; full integration verify passed those plus five real SQL Server tests, all without failures/errors/skips. Missing infrastructure/settings, smoke and wrong-catalog Maven runs failed as intended. Temporary fixtures demonstrate rollback, separately committed multi-connection setup and cleanup without business tables. See [harness evidence](SQL-server-tests.md). Next is concrete CBS02–04 review closure before CBS09 migrations: numeric caps/classification, exact SQL identity comparison, locking/reservation/error/retry SQL and migration/runtime privileges. No financial schema is authorized by these harness results, and independent acceptance remains open.

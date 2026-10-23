@@ -120,3 +120,7 @@ FX آینده همین دفترکل تک‌ارزی را گسترش می‌ده�
 ## نقطهٔ اجرای CBS07 در ۲۰۲۶-۱۰-۲۳
 
 Compose pinned، license/راز صریح، volume، loopback، readiness، bootstrap فقط زیرساخت و probe driver واقعی پیاده شدند. آزمایش مجاز ARM64، startup، SELECT با login اختصاصی در دو دیتابیس خالی و restart را گذراند. [شواهد محیط](SQL-server-evidence.md). این پشتیبانی Microsoft روی ARM64، رفتار مالی یا پذیرش مستقل نیست. گام بعد Failsafe sqlserver-it در CBS08 و شاهد واقعی rollback/نبود DB است؛ مرور CBS02–04 همچنان پیش از migration تجاری CBS09 لازم است.
+
+## نقطهٔ اجرای CBS08 در ۲۰۲۶-۱۰-۲۳
+
+profile نوع Failsafe با نام sqlserver-it اکنون credential صریح تست می‌خواهد و catalog واقعی cbs_test را بررسی می‌کند. verify عادی ۲۴۰ تست و اجرای کامل integration همان موارد همراه پنج تست SQL Server واقعی را بدون failure، error یا skip گذراند. اجرای Maven با زیرساخت/تنظیم غایب، smoke و catalog اشتباه طبق انتظار fail شد. fixture موقت، rollback، setup commit‌شدهٔ جداگانهٔ چنداتصالی و cleanup را بدون جدول تجاری نشان می‌دهد. [شواهد harness](SQL-server-tests.md). گام بعد بستن مرور مشخص CBS02–04 پیش از migration CBS09 است: سقف عددی و طبقه‌بندی، مقایسهٔ دقیق هویت SQL، SQL قفل/رزرو/خطا/retry و مجوز migration/runtime. نتیجهٔ harness مجوز schema مالی یا پذیرش مستقل نیست.

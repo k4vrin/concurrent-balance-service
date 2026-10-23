@@ -55,3 +55,5 @@ collation پیش‌فرض CI_AS، semantics حساس به بزرگی حروف Tr
 جدول accounts، operations، journals یا postings نداریم و موجودی seed نشده است. handler مالی، fingerprint/outcome ذخیره‌شده، replay ماندگار و تراکنش ledger نداریم. CBS08 هنوز Failsafe sqlserver-it، datasource مستقل صریح، تعداد تست مثبت، fail بدون DB، rollback و سپس fixture commit‌شدهٔ چنداتصالی می‌خواهد.
 
 کانتینر مجاز روی loopback روشن می‌ماند. فرمان stop/down/reset در [Docker.md](Docker.md) است. volume حذف نشده و credential وارد commit نمی‌شود. پذیرش رسمی، checkpoint مستقل قبلی یادگیرنده و وضعیت مرور CBS02–04 تغییر نکرده‌اند.
+
+پیگیری CBS08: [harness خودکار](SQL-server-tests.md) اکنون پنج تست JDBC واقعی موفق، محافظ تنظیم و شاهد fail شدن Maven را دارد. شواهد بالای CBS07 همچنان مربوط به محیط‌اند؛ تست تازه persistence مالی پیاده نمی‌کند.

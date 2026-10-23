@@ -99,3 +99,7 @@ Record image digest, host/daemon architecture, exact server build/edition, datab
 Prepared here: Docker client/engine 28.2.2, Docker Desktop 4.42.0, daemon linux/arm64 and Compose 2.36.2; Microsoft registry manifest verified; Compose config validated using nonsecret placeholders without launching a container; shell syntax checked; Java probe compiled with Java 21. The authorized local experiment subsequently verified healthy startup, actual server metadata, JDBC to both databases and survival across one container restart; details and limitations are in [setup evidence](SQL-server-evidence.md). No financial tables or balances were initialized. CBS00 independent learner acceptance is unchanged.
 
 The environment can also run on an explicitly selected x86-64 Docker host. Recheck loopback/TLS assumptions at that host rather than exposing port 1433 broadly. [Native Windows](Windows-sqlserver.md) remains optional.
+
+## CBS08 automated harness
+
+The [SQL Server test guide](SQL-server-tests.md) now documents the sqlserver-it Failsafe profile, dedicated test variables, temporary fixtures and failure guards. The standalone CBS07 probe remains useful for diagnosis; it is not the automated harness.

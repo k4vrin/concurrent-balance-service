@@ -148,3 +148,7 @@ Maven با `-P` انتخاب می‌کند چه dependency‌هایی وارد �
 ## آزمایش SQL Server محلی در CBS07
 
 نمونهٔ pinned از SQL Server 2022 CU22 Developer با مجوز صریح روی loopback پورت 14333 در emulation ARM64 اجراست. دیتابیس خالی cbs_dev/cbs_test و login اختصاصی CONNECT-only، SELECT واقعی JDBC و بررسی restart را گذراندند. [setup](docs/fa/Docker.md) و [شواهد](docs/fa/SQL-server-evidence.md). ARM64 همچنان پشتیبانی رسمی ندارد؛ schema مالی، مجوز migration و اجرای عملیات پیاده نشده‌اند. گام بعد harness واقعی CBS08 است.
+
+## تست integration مربوط به SQL Server در CBS08
+
+`./mvnw verify` مستقل از زیرساخت می‌ماند. `./mvnw -Psqlserver-it verify` تست JDBC واقعی را با متغیرهای صریح SQLSERVER_TEST_URL/USERNAME/PASSWORD روی cbs_test اضافه می‌کند و DB_* را به ارث نمی‌گیرد. شواهد فعلی ۲۴۰ تست Portable و پنج SQL Server، بدون failure، error یا skip است. [فرمان Bash/PowerShell و بررسی خطا](docs/fa/SQL-server-tests.md). این fixtureهای موقت migration مالی اجرا و تراکنش ledger اثبات نمی‌کنند. پیش از CBS09 مرور CBS02–04 را ببندید.

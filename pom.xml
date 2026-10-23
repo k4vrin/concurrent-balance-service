@@ -103,6 +103,25 @@
   </build>
   <profiles>
     <profile>
+      <id>sqlserver-it</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>3.5.6</version>
+            <configuration>
+              <failIfNoTests>true</failIfNoTests>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+            </configuration>
+            <!-- The Spring Boot parent already binds integration-test and verify exactly once. -->
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>redis</id>
       <dependencies>
         <dependency>

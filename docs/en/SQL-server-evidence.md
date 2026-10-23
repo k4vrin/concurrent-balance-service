@@ -55,3 +55,5 @@ The default CI_AS collation does not establish the required case-sensitive Trans
 No accounts, operations, journals or postings tables exist; no balances were seeded. There are no financial mutation handlers, stored fingerprints/outcomes, durable replay or real ledger transactions. CBS08 still needs Failsafe sqlserver-it, explicit isolated datasource configuration, positive test counts, no-DB failure, rollback and later committed multi-connection fixtures.
 
 The authorized container remains running on loopback. The stop/down/reset commands are in [Docker.md](Docker.md). No volume was deleted and no credentials are committed. Formal task acceptance, earlier independent learner checkpoints and CBS02–04 review status remain unchanged.
+
+CBS08 follow-up: the [automated harness](SQL-server-tests.md) now provides five passing real JDBC tests, explicit configuration guards and negative Maven failure evidence. The CBS07 observations above remain environment evidence; the new tests do not implement financial persistence.

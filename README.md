@@ -112,3 +112,7 @@ Version-1 canonical bytes and SHA-256 companion fingerprints now encode typed mu
 ## CBS07 local SQL Server experiment
 
 The pinned Docker SQL Server 2022 CU22 Developer instance now runs on loopback port 14333 under the explicitly authorized ARM64 emulation experiment. Empty cbs_dev/cbs_test databases and a dedicated CONNECT-only login passed actual JDBC SELECT and restart checks. See [setup](docs/en/Docker.md) and [evidence](docs/en/SQL-server-evidence.md). ARM64 remains unsupported by Microsoft; no financial schema, migration permissions or operation execution is implemented. The CBS08 real integration harness is next.
+
+## CBS08 SQL Server integration tests
+
+`./mvnw verify` remains infrastructure-independent. `./mvnw -Psqlserver-it verify` additionally runs real JDBC tests against cbs_test using explicit SQLSERVER_TEST_URL/USERNAME/PASSWORD environment variables; it never inherits DB_* settings. Current evidence is 240 portable plus 5 SQL Server tests, zero failures/errors/skips. See the [Bash/PowerShell runbook and failure checks](docs/en/SQL-server-tests.md). These temporary-fixture tests do not run financial migrations or prove ledger transactions. Close CBS02–04 review before CBS09.

@@ -1,6 +1,6 @@
 # نگاشت persistence، fixture افتتاحیه و خواندن موجودی
 
-[English](../en/Persistence.md) · [schema و راه‌اندازی](Schema.md) · [projection سند](Journal-projection.md) · [API](API-v1.md)
+[English](../en/Persistence.md) · [schema و راه‌اندازی](Schema.md) · [projection سند](Journal-projection.md) · [API](API-v1.md) · [coordinator و قفل SQL](Operation-coordinator.md)
 
 ## رفتار پیاده‌شده
 

@@ -1,15 +1,19 @@
 package dev.kavrin.balance.infrastructure.sqlserver;
 
 import dev.kavrin.balance.account.domain.AccountId;
+import dev.kavrin.balance.account.application.AccountLockOrder;
 import dev.kavrin.balance.account.infrastructure.persistence.AccountEntity;
 import dev.kavrin.balance.account.infrastructure.persistence.AccountStore;
 import dev.kavrin.balance.ledger.infrastructure.persistence.*;
 import dev.kavrin.balance.operation.infrastructure.persistence.OperationEntity;
+import dev.kavrin.balance.operation.application.OperationCoordinator;
 import dev.kavrin.balance.money.Money;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.*;
+import java.sql.SQLException;
+import java.time.Duration;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +23,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -33,6 +39,60 @@ class SqlServerPersistenceIT {
     @Autowired AccountStore accounts;
     @Autowired PlatformTransactionManager manager;
     @Autowired Environment environment;
+    @Autowired OperationCoordinator coordinator;
+
+    @Test
+    void coordinatorUsesTheJpaManagerAndCommitsBeforeReturning() throws Exception {
+        assertThat(manager).isInstanceOf(JpaTransactionManager.class);
+        try (var fixture = CommittedSqlServerFixture.create(SqlServerTestDatabase.fromEnvironment())) {
+            var result = coordinator.execute(() -> {
+                assertThat(entities.isJoinedToTransaction()).isTrue();
+                var isolation = entities.createNativeQuery(
+                        "SELECT transaction_isolation_level FROM sys.dm_exec_sessions WHERE session_id=@@SPID")
+                        .getSingleResult();
+                assertThat(((Number) isolation).intValue()).isEqualTo(2);
+                entities.createNativeQuery("UPDATE " + fixture.tableName() + " SET probe_value=11 WHERE fixture_id=1")
+                        .executeUpdate();
+                return "committed probe";
+            });
+            assertThat(result).isEqualTo("committed probe");
+            assertProbeValue(fixture, 11);
+        }
+    }
+
+    @Test
+    void coordinatorRollsBackJpaWritesBeforePropagatingFailure() throws Exception {
+        try (var fixture = CommittedSqlServerFixture.create(SqlServerTestDatabase.fromEnvironment())) {
+            var failure = new IllegalStateException("injected coordinator failure");
+            assertThatThrownBy(() -> coordinator.execute(() -> {
+                entities.createNativeQuery("UPDATE " + fixture.tableName() + " SET probe_value=11 WHERE fixture_id=1")
+                        .executeUpdate();
+                throw failure;
+            })).isSameAs(failure);
+            assertProbeValue(fixture, 7);
+        }
+    }
+
+    @Test
+    void coordinatorRejectsAnAmbientJpaTransactionBeforeExecutingWork() {
+        var outer = new TransactionTemplate(manager);
+        outer.setTimeout(5);
+        outer.executeWithoutResult(status ->
+                assertThatThrownBy(() -> coordinator.execute(() -> {
+                    throw new AssertionError("Rejected attempt must not execute");
+                })).isInstanceOf(IllegalStateException.class).hasMessageContaining("own its transaction"));
+    }
+
+    private void assertProbeValue(CommittedSqlServerFixture fixture, int expected) throws Exception {
+        try (var connection = SqlServerTestDatabase.fromEnvironment().openConnection();
+                var statement = connection.createStatement()) {
+            statement.setQueryTimeout(2);
+            try (var result = statement.executeQuery("SELECT probe_value FROM " + fixture.tableName() + " WHERE fixture_id=1")) {
+                assertThat(result.next()).isTrue();
+                assertThat(result.getInt(1)).isEqualTo(expected);
+            }
+        }
+    }
 
     @DynamicPropertySource
     static void explicitRuntimeDatabase(DynamicPropertyRegistry properties) throws Exception {
@@ -114,13 +174,13 @@ class SqlServerPersistenceIT {
     void locksRequireATransactionAndOpeningRejectsAnAmbientTransaction() throws Exception {
         var pair = zeroAccounts();
         assertThatThrownBy(() -> accounts.lockAll(List.of(pair.customer())))
-                .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+                .isInstanceOf(InvalidDataAccessApiUsageException.class)
                 .hasRootCauseInstanceOf(IllegalStateException.class);
         var readOnly = new TransactionTemplate(manager);
         readOnly.setReadOnly(true);
         readOnly.executeWithoutResult(status ->
                 assertThatThrownBy(() -> accounts.lockAll(List.of(pair.customer())))
-                        .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+                        .isInstanceOf(InvalidDataAccessApiUsageException.class)
                         .hasRootCauseInstanceOf(IllegalStateException.class));
         new TransactionTemplate(manager).executeWithoutResult(status ->
                 assertThatThrownBy(() -> opening().open(pair.customer(), pair.funding(), new Money(100, Currency.getInstance("IRR")), OpeningFixture.FailurePoint.NONE))
@@ -153,10 +213,10 @@ class SqlServerPersistenceIT {
             new TransactionTemplate(manager).executeWithoutResult(status -> {
                 var locked = accounts.lockAll(List.of(pair.customer(), pair.funding(), pair.customer()));
                 assertThat(locked.keySet()).containsExactlyElementsOf(List.of(pair.customer(), pair.funding())
-                        .stream().sorted(dev.kavrin.balance.account.application.AccountLockOrder.DESCENDING).toList());
+                        .stream().sorted(AccountLockOrder.DESCENDING).toList());
                 assertThatThrownBy(() -> statement.executeUpdate("UPDATE dbo.accounts SET balance=balance WHERE account_id='"
                         + pair.customer().value() + "'"))
-                        .isInstanceOfSatisfying(java.sql.SQLException.class,
+                        .isInstanceOfSatisfying(SQLException.class,
                                 failure -> assertThat(failure.getErrorCode()).isEqualTo(1222));
             });
             assertThat(statement.executeUpdate("UPDATE dbo.accounts SET balance=balance WHERE account_id='"
@@ -186,7 +246,7 @@ class SqlServerPersistenceIT {
 
     private HttpResponse<String> get(AccountId id) throws Exception {
         var uri = URI.create("http://127.0.0.1:" + environment.getProperty("local.server.port") + "/api/v1/accounts/" + id.value() + "/balance");
-        return HttpClient.newHttpClient().send(HttpRequest.newBuilder(uri).timeout(java.time.Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        return HttpClient.newHttpClient().send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private record Pair(AccountId customer, AccountId funding) { }

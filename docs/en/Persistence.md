@@ -1,6 +1,6 @@
 # Persistence mappings, opening fixtures and balance reads
 
-[فارسی](../fa/Persistence.md) · [Schema/setup](Schema.md) · [Journal projection](Journal-projection.md) · [API](API-v1.md)
+[فارسی](../fa/Persistence.md) · [Schema/setup](Schema.md) · [Journal projection](Journal-projection.md) · [API](API-v1.md) · [Coordinator and SQL locks](Operation-coordinator.md)
 
 ## Implemented behavior
 

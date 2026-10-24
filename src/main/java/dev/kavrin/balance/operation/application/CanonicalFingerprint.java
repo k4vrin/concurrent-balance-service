@@ -10,7 +10,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HexFormat;
-import java.util.Objects;
 
 /** Versioned canonical bytes are the comparison authority; the digest is only an index/check aid. */
 public final class CanonicalFingerprint {
@@ -44,15 +43,6 @@ public final class CanonicalFingerprint {
             output.writeInt(encoded.length);
             output.write(encoded);
         }
-    }
-
-    static String requireIdentity(String text) {
-        Objects.requireNonNull(text, "Identity text is required");
-        if (text.isBlank()) {
-            throw new IllegalArgumentException("Identity text must not be blank");
-        }
-        utf8(text);
-        return text;
     }
 
     private static byte[] utf8(String text) {

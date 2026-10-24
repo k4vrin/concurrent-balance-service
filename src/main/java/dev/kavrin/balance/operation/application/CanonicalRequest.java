@@ -16,7 +16,7 @@ public final class CanonicalRequest {
     private CanonicalRequest(OperationType type, AccountId target, AccountId source,
             AccountId destination, Money amount, Optional<String> actorId) {
         Objects.requireNonNull(actorId, "Actor binding must be explicit");
-        actorId.ifPresent(CanonicalFingerprint::requireIdentity);
+        actorId.ifPresent(IdentityText::requireValid);
         this.targetAccountId = target;
         this.fingerprint = CanonicalFingerprint.encode("request", type.name(), uuid(target),
                 uuid(source), uuid(destination), Long.toString(amount.amount()),

@@ -7,6 +7,6 @@ import dev.kavrin.balance.account.domain.AccountId;
 public record FundingSelection(AccountId counterpartAccountId, String policyVersion) {
     public FundingSelection {
         Objects.requireNonNull(counterpartAccountId, "Funding counterpart is required");
-        CanonicalFingerprint.requireIdentity(policyVersion);
+        IdentityText.requireValid(policyVersion);
     }
 }

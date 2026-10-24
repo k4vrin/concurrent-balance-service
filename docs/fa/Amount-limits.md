@@ -1,6 +1,6 @@
 # سقف مبلغ و replay در V1
 
-به‌روزرسانی پیاده‌سازی، ۲۰۲۶-۱۰-۲۴: [snapshot سیاست اجرا](Execution-policy.md) اکنون predicate سقف شامل مقدار مساوی و انتخاب funding تغییرناپذیر را مستقل از زیرساخت دارد. بارگذاری runtime، ارزیابی و رد ماندگار و اتصال HTTP هنوز باقی‌اند.
+به‌روزرسانی پیاده‌سازی، ۲۰۲۶-۱۰-۲۴: [snapshot سیاست اجرا](Execution-policy.md) اکنون predicate سقف شامل مقدار مساوی و انتخاب funding تغییرناپذیر را مستقل از زیرساخت دارد. بارگذاری typed و اختیاری هنگام startup هم موجود است؛ ارزیابی و رد ماندگار و اتصال HTTP هنوز باقی‌اند.
 
 [English](../en/Amount-limits.md) · [نیازمندی‌ها](Requirements.md) · [پروتکل تراکنش](Transaction-protocol.md)
 

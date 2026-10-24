@@ -35,3 +35,9 @@ README عمومی قرارداد نسخهٔ اول را شرح می‌دهد. ن
 ## جداسازی اعتبارسنجی هویت، ۲۰۲۶-۱۰-۲۴
 
 طبق درخواست مرور، وابستگی ExecutionPolicy به CanonicalFingerprint حذف شد. بررسی تکرارشوندهٔ موجودبودن، غیرخالی‌بودن و Unicode معتبر اکنون در utility داخلی پکیج IdentityText است و نسخهٔ اجرا، نسخهٔ funding و actor اختیاری از آن استفاده می‌کنند. encoding مربوط به fingerprint همچنان دقیق است و قرارداد بایت/hash تغییر نکرد. یازده تست، Unicode معتبر شامل surrogate pair، surrogate نامعتبر، متن خالی و null را پوشش می‌دهند. کامپایل اولیه پیش از وجود utility شکست خورد؛ سپس verify مستقل از زیرساخت با Java 21 هر ۲۷۷ تست، از جمله بردارهای canonical موجود را بدون failure، error یا skip در ۷٫۱۸۴ ثانیه گذراند. اجرای SQL Server یا رفتار مالی runtime تازه‌ای ادعا نمی‌شود.
+
+## بارگذاری typed سیاست در CBS11، ۲۰۲۶-۱۰-۲۴
+
+پس از انتشار مرحلهٔ سیاست و هویت با commit `a13a54c`، دو کلاس ExecutionPolicyProperties و ExecutionPolicyConfiguration اضافه شدند. بیرون از smoke و فقط با فعال‌سازی صریح، تنظیم typed یک ExecutionPolicy معتبر و تغییرناپذیر در startup می‌سازد. پیش‌فرض اولیه execution-v1، ارز IRR و هر دو سقف پذیرفته‌شدهٔ 10000000000000 است؛ UUID و نسخهٔ funding باید داده شوند. YAML برنامه و .env.example ورودی‌های محیطی IRR را شرح می‌دهند. تنظیم فعال نامعتبر startup را متوقف می‌کند؛ loader حساب اختراع نمی‌کند و آن را در دیتابیس validate نمی‌کند. جزئیات در [تنظیم سیاست](Execution-policy.md) است.
+
+چهارده تست context و binding تازه پیش‌فرض، override، ورودی غایب/نامعتبر، کنارگذاشتن smoke و placeholder واقعی YAML را بررسی می‌کنند. کامپایل نخست پیش از وجود adapter شکست خورد. اجرای نهایی Java 21 با ./mvnw -o -B -ntp -Psqlserver-it verify در ۲۱٫۶۷۳ ثانیه، ۲۹۱ تست مستقل از زیرساخت و ۱۰۶ تست SQL Server را بدون failure، error یا skip گذراند. regression دیتابیس از سیاست غیرفعال پیش‌فرض استفاده می‌کند؛ binding فعال شاهد context مستقل از زیرساخت است. اجرای عمومی credit، رزرو، نتیجهٔ ذخیره‌شده/replay یا hot reload هنوز موجود نیست. گام بعد تراکنش ماندگار credit و پاسخ ذخیره‌شده است.

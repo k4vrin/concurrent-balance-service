@@ -2,7 +2,7 @@
 
 [English](../en/Execution-policy.md) · [تصمیم سقف مبلغ](Amount-limits.md) · [Coordinator](Operation-coordinator.md) · [قرارداد persistence](CBS09-contract.md)
 
-در CBS11 دو نوع application مستقل از framework برای ورودی‌های تلاش مالی آینده اضافه شده‌اند. تنظیمات بارگذاری نمی‌کنند، به SQL Server وصل نمی‌شوند، transaction ID رزرو نمی‌کنند و credit اجرا نمی‌کنند. routeهای mutation عمومی هنوز unavailable هستند. سیاست اولیهٔ پذیرفته‌شده IRR با سقف 10000000000000 ریال برای هر دو محدودیت است؛ نوع عمومی سیاست این انتخاب deployment را hardcode نمی‌کند.
+در CBS11 دو نوع application مستقل از framework برای ورودی تلاش مالی و یک adapter اختیاری تنظیمات typed در Spring داریم. value typeها به SQL Server وصل نمی‌شوند، transaction ID رزرو نمی‌کنند و credit اجرا نمی‌کنند. routeهای mutation عمومی هنوز unavailable هستند. سیاست اولیهٔ پذیرفته‌شده IRR با سقف 10000000000000 ریال برای هر دو محدودیت است؛ نوع عمومی سیاست این انتخاب deployment را hardcode نمی‌کند.
 
 ## نگه‌داشتن ورودی‌های سیاست کنار هم
 
@@ -33,4 +33,31 @@ predicate مشتری روی funding اعمال نمی‌شود؛ funding قوا�
 
 کامپایل اولیهٔ تست‌ها به‌دلیل نبود نوع‌ها شکست خورد. اجرای نهایی Java 21 با `./mvnw -o -B -ntp verify` در ۸٫۵۲۳ ثانیه، هر ۲۶۶ تست مستقل از زیرساخت را بدون failure، error یا skip گذراند؛ ۱۹ مورد تازه مربوط به سیاست‌اند. مرز دقیق، سقف نامعتبر، سقف‌های مستقل، مالکیت map، snapshot متفاوت، ارز غیرمجاز، غیرفعال‌بودن همهٔ ارزها، نسخهٔ نامعتبر و اجزای غایب بررسی شدند. این‌ها تست value سیاست‌اند، نه شاهد مالی SQL Server؛ اجرای قبلی ۱۰۶ تست دیتابیس پیش از این نوع‌ها بود.
 
-گام بعد بارگذاری عمدی سیاست از تنظیمات بیرونی و credit ماندگار است: بازیابی شناسهٔ قبلی پیش از ارزیابی سیاست، نگه‌داری ورودی اجرای تازه، رزرو شناسه، بررسی حساب قفل‌شده و projection، سپس ذخیرهٔ history متوازن و پاسخ اصلی. نگاشت نتیجهٔ سقف، replay و تست شکست باقی‌اند. این پیاده‌سازی کمکی به‌معنای پذیرش کار یا تسلط یادگیرنده نیست.
+بخش بعد loader بیرونی را که در ادامه پیاده شد توضیح می‌دهد. credit ماندگار هنوز به بازیابی شناسهٔ قبلی پیش از ارزیابی سیاست، نگه‌داری ورودی اجرا، رزرو شناسه، بررسی حساب قفل‌شده و projection و ذخیرهٔ اتمیک history و پاسخ نیاز دارد. نگاشت نتیجهٔ سقف، replay و تست شکست باقی‌اند. این پیاده‌سازی کمکی به‌معنای پذیرش کار یا تسلط یادگیرنده نیست.
+
+## بارگذاری یک snapshot از تنظیمات Spring
+
+کلاس `ExecutionPolicyProperties` تنظیمات `balance.execution` را به ارز، UUID، سقف و نسخهٔ typed تبدیل می‌کند. `ExecutionPolicyConfiguration` هنگام startup با شرط `balance.execution.enabled=true` و بیرون از profile فقط‌آزمایشی `smoke`، یک bean معتبر از `ExecutionPolicy` می‌سازد. تا زمانی که handler عمومی متصل نیست، مقدار پیش‌فرض فعال‌سازی false است. این سوییچ مرحلهٔ پیاده‌سازی است، نه مجوز دسترسی یا فعال‌سازی endpoint credit.
+
+| property | پیش‌فرض یا الزام |
+| --- | --- |
+| version | execution-v1 |
+| supported-currencies | IRR |
+| max-transaction-amount | 10000000000000 |
+| max-customer-balance | 10000000000000 |
+| funding[currency].account-id | UUID لازم برای هر ارز مجاز |
+| funding[currency].policy-version | نسخهٔ لازم، غیرخالی و Unicode معتبر |
+
+YAML اصلی برنامه mapping مربوط به IRR را با placeholder محیطی فراهم می‌کند. این متغیرها را کنار تنظیمات عادی دیتابیس runtime صادر کنید:
+
+```bash
+export EXECUTION_POLICY_ENABLED=true
+export EXECUTION_IRR_FUNDING_ACCOUNT_ID='<UUID of the selected internal funding account>'
+export EXECUTION_IRR_FUNDING_POLICY_VERSION='funding-v1'
+```
+
+مقدار داخل علامت زاویه‌دار نمونهٔ placeholder است و UUID قابل‌استفاده نیست. loader شناسهٔ حساب اختراع نمی‌کند و حساب نمی‌سازد. `.env.example` فقط مرجع است و Spring خودکار آن را بارگذاری نمی‌کند. overrideهای scalar اختیاری شامل `BALANCE_EXECUTION_VERSION`، `BALANCE_EXECUTION_MAXTRANSACTIONAMOUNT` و `BALANCE_EXECUTION_MAXCUSTOMERBALANCE` هستند. binder از مجموعه و map ارزِ ورودی پشتیبانی می‌کند؛ جایگزینی تنظیم اولیهٔ IRR با مجموعه‌ای دیگر، تنظیم کامل و mapping متناظر می‌خواهد و با تغییر یک متغیر ارز تمام نمی‌شود. رفتار FX اضافه نشده است.
+
+در حالت فعال، UUID یا ارز نامعتبر، سقف نادرست، نسخهٔ نامعتبر و mapping ناقص startup را متوقف می‌کنند. حالت غیرفعال یا smoke هیچ bean سیاستی نمی‌سازد. bean یک snapshot زمان startup است و hot reload یا مخزن سیاست دیتابیس ندارد. هنگام انتشار قواعد جدید نسخه را آگاهانه تغییر دهید؛ loader نسخه تولید نمی‌کند و یکتایی عمومی آن را تضمین نمی‌کند. نتیجهٔ ماندگار قبلی همچنان باید پیش از ارزیابی سیاست فعلی replay شود. وجود، دسته، status و ارز واقعی حساب باید داخل handler قفل‌شده بررسی شوند.
+
+چهارده تست context و binding تازه، از جمله placeholderهای واقعی YAML و شکست ورودی غایب را بررسی می‌کنند. پس از افزودن adapter، اجرای Java 21 با `./mvnw -o -B -ntp -Psqlserver-it verify` در ۲۱٫۶۷۳ ثانیه، ۲۹۱ تست مستقل از زیرساخت و ۱۰۶ تست SQL Server را بدون failure، error یا skip گذراند. اجرای regression دیتابیس سوییچ سیاست را در حالت پیش‌فرض غیرفعال دارد؛ binding فعال با contextهای مستقل از زیرساخت بررسی شد. این نتایج شاهد عملیات کامل credit نیستند. محیط ARM64 دیتابیس همچنان emulation بدون پشتیبانی رسمی است.

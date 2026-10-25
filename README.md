@@ -12,7 +12,7 @@ A Java and Spring Boot service for moving money safely under concurrent requests
 
 ## First version
 
-The first version is a local-development JSON API for credit, debit, atomic transfer and balance lookup. Its release contract is described below. For the current checkout's implemented behavior and verification evidence, see [implementation status](docs/en/Implementation-status.md).
+The first version is a local-development JSON API for credit, debit, atomic transfer and balance lookup. Its release contract is described below. For the current checkout's implemented behavior and verification evidence, see [implementation status](docs/en/Implementation-status.md). [Credit classes and request flows](docs/en/Credit-class-walkthrough.md).
 
 | Operation | Endpoint | Responsibility |
 | --- | --- | --- |

@@ -97,9 +97,9 @@ class ExecutionPolicyConfigurationTests {
     }
 
     @Test
-    void smokeProfileExcludesPolicyEvenWhenEnabled() {
+    void policyActivationDependsOnItsExplicitSettingInsteadOfATestProfile() {
         enabled().withInitializer(context -> context.getEnvironment().setActiveProfiles("smoke"))
-                .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(ExecutionPolicy.class));
+                .run(context -> assertThat(context).hasNotFailed().hasSingleBean(ExecutionPolicy.class));
     }
 
     private ApplicationContextRunner enabled() {

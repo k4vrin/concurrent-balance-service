@@ -6,6 +6,8 @@
 [![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927)](https://www.microsoft.com/sql-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+[کلاس‌های credit و جریان درخواست](docs/fa/Credit-class-walkthrough.md)
+
 سرویس Java و Spring Boot برای جابه‌جایی درست پول زیر درخواست‌های هم‌زمان؛ API موجودی مرجع، دفترکل دوطرفه و هویت ماندگار درخواست را در یک SQL Server کنار هم قرار می‌دهد.
 
 [English](README.md) · [مرجع API](docs/fa/API-v1.md) · [معماری](docs/fa/Architecture.md) · [راه‌اندازی](docs/fa/Schema.md)

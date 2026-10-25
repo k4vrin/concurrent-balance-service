@@ -9,7 +9,11 @@ public final class OperationFailure extends RuntimeException {
     private final Reason reason;
 
     public OperationFailure(Reason reason) {
-        super(Objects.requireNonNull(reason).name());
+        this(reason, null);
+    }
+
+    public OperationFailure(Reason reason, Throwable cause) {
+        super(Objects.requireNonNull(reason).name(), cause);
         this.reason = reason;
     }
 

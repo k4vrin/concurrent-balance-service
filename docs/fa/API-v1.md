@@ -1,3 +1,5 @@
+> به‌روزرسانی credit در CBS11–12، ۲۰۲۶-۱۰-۲۴: [credit ماندگار](Credit-execution.md) اکنون با فعال‌سازی صریح سیاست کار می‌کند. history/projection/outcome متوازن را commit و بایت موفقیت/رد اصلی را برمی‌گرداند؛ debit/transfer همان fallback با 503 هستند. وضعیت unavailable یا فقط adapter در بخش‌های قبلی شاهد تاریخی است.
+
 > به‌روزرسانی persistence: [شواهد CBS10](Persistence.md) اکنون نگاشت JPA، fixture افتتاحیهٔ committed و route موجودی SQL Server را تأیید می‌کند. mutation هنوز unavailable است. گفته‌های قبلی دربارهٔ 503 برای همهٔ routeها و شواهد فقط schema در ادامه تاریخی‌اند.
 
 # قرارداد HTTP API نسخهٔ اول
@@ -184,4 +186,4 @@ DTO موجودی شامل `accountId`، `balanceRial` و `currency` است؛ م�
 
 ## نوع مشخص برای body پاسخ mutation
 
-سه controller تغییردهنده و mapper موسوم به OperationResponses اکنون `ResponseEntity<OperationResponseBody>` برمی‌گردانند. این interface بسته فقط record موفقیت `OperationResponse` و کلاس final موسوم به `OperationProblem` را مجاز می‌داند. OperationProblem از ProblemDetail اسپرینگ ارث می‌برد؛ فیلدهای استاندارد و propertyهای افزوده در سطح اول JSON حفظ می‌شوند. ابتدا problem رد کپی و سپس metadata تراکنش اضافه می‌شود. wrapper یا فیلد تشخیص نوع JSON اضافه نشده است. exceptionهای framework، سیاست پذیرش و خرابی فنی همچنان advice جدا دارند؛ این خانواده فقط بازگشت عادی mutation را مشخص می‌کند. رد کسب‌وکار همچنان مقدار بازگشتی است و مرز نگاشت پس از commit آینده حفظ می‌شود.
+سه controller تغییردهنده و mapper موسوم به OperationResponses اکنون `ResponseEntity<OperationResponseBody>` برمی‌گردانند. این interface بسته record موفقیت `OperationResponse`، کلاس final موسوم به `OperationProblem` و پاسخ بایت‌محور `StoredOperationResponse` را مجاز می‌داند. OperationProblem از ProblemDetail اسپرینگ ارث می‌برد؛ فیلدهای استاندارد و propertyهای افزوده در سطح اول JSON حفظ می‌شوند. ابتدا problem رد کپی و سپس metadata تراکنش اضافه می‌شود. wrapper یا فیلد تشخیص نوع JSON اضافه نشده است. exceptionهای framework، سیاست پذیرش و خرابی فنی همچنان advice جدا دارند؛ این خانواده فقط بازگشت عادی mutation را مشخص می‌کند. رد کسب‌وکار همچنان مقدار بازگشتی است و مرز نگاشت پس از commit آینده حفظ می‌شود.

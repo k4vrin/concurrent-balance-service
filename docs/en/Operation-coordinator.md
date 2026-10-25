@@ -1,5 +1,7 @@
 # Operation coordinator and SQL Server locking
 
+Production components no longer carry smoke-profile exclusions. The standalone HTTP assembly is defined only in test sources. See the [class walkthrough](Credit-class-walkthrough.md) for wiring, class responsibilities and request flows. Historical checkpoint notes below describe the earlier wiring.
+
 [فارسی](../fa/Operation-coordinator.md) · [Persistence](Persistence.md) · [Accepted contract](CBS09-contract.md) · [ADR-010](../adr/ADR-010-persistence-contract.en.md)
 
 This guide explains the coordinator foundation added on 2026-10-24, its design alternatives and the account-lock protocol it will surround. It distinguishes current code, planned financial execution and existing test evidence. `READ_COMMITTED` is a database isolation level; rate limiting is a separate request-admission concern.
@@ -21,7 +23,7 @@ Commit
 Return the retained result
 ```
 
-The coordinator owns the transaction boundary. The future credit handler supplies the business work; persistence adapters perform database access. No network delivery, cache write or message publication belongs inside this locked attempt.
+The coordinator owns the transaction boundary. The credit handler supplies the business work; persistence adapters perform database access. No network delivery, cache write or message publication belongs inside this locked attempt.
 
 If a technical error occurs after projection updates but before outcome persistence and rollback is confirmed, this attempt leaves zero new operations, journals or postings and both balances unchanged. Previously committed account records remain. A transient rolled-back failure may permit a bounded whole-attempt retry with the same transaction ID. A persistent defect requires repair. A connection error during commit requires same-ID recovery because the outcome may be uncertain. An error alone never proves rollback.
 
@@ -31,13 +33,13 @@ Source: [OperationCoordinator.java](../../src/main/java/dev/kavrin/balance/opera
 
 ```java
 @Service
-@Profile("!smoke")
 public final class OperationCoordinator {
     private final TransactionTemplate transaction;
 
     public OperationCoordinator(PlatformTransactionManager manager) {
         transaction = new TransactionTemplate(manager);
         transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        transaction.setTimeout(5);
     }
 
     public <T> T execute(Supplier<T> attempt) {
@@ -50,7 +52,7 @@ public final class OperationCoordinator {
 }
 ```
 
-`Supplier<T>` is a block of work returning a value of type `T`. The coordinator does not need to understand credit/debit/transfer outcomes to execute that block. A future handler can return a retained business rejection normally so that its operation record commits. An unexpected runtime exception escapes and triggers rollback.
+`Supplier<T>` is a block of work returning a value of type `T`. The coordinator does not need to understand credit/debit/transfer outcomes to execute that block. A handler can return a retained business rejection normally so that its operation record commits. An unexpected runtime exception escapes and triggers rollback.
 
 The callback result is only a candidate until transaction completion:
 
@@ -206,7 +208,7 @@ Two credits to different customers can still update the same funding account. Th
 | Balanced immutable history and atomic projections/outcome | Preserve the accepted ledger contract |
 | Recovery and reconciliation | Resolve retries/uncertain completion and independently check committed effects |
 
-Only the minimal transaction wrapper is implemented here. It is registered with `@Service` outside the persistence-disabled `smoke` profile; credit-handler wiring remains pending. Reservation, policy snapshots, stored results, retry budgets and uncertain-commit recovery remain future work. In particular, the class currently sets isolation but not the accepted future timeout/retry settings. The account adapter already implements its ordered locking path; this is not a complete public financial operation.
+The coordinator remains a small transaction wrapper registered with `@Service`. The [durable credit handler](Credit-execution.md) now uses it for replay lookup and reservation/history/projection/outcome persistence. It sets READ_COMMITTED and a 5-second transaction timeout. General retry budgets, backoff and uncertain-commit recovery remain pending; debit and transfer are still unavailable. Historical evidence below describes each earlier increment.
 
 ## Evidence and review route
 

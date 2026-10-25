@@ -1,3 +1,5 @@
+> Current credit checkpoint, 2026-10-24: [Durable credit](Credit-execution.md) and the first replay/conflict slice are implemented with 305 portable and 120 SQL Server tests passing. Debit/transfer and broader retry/failure/mixed-operation acceptance remain open. Historical CBS08–10 descriptions below do not describe the entire current suite.
+
 > Bootstrap update, 2026-10-20: SQL Server replaces the earlier proposed Oracle target. Phase P0 is started, not complete. Dependencies and a health smoke test do not prove financial correctness.
 
 # Incremental roadmap

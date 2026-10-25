@@ -1,5 +1,7 @@
 # طراحی coordinator عملیات و قفل‌گذاری SQL Server
 
+اجزای production دیگر شرط حذف در smoke ندارند. assembly مستقل HTTP فقط در source تست تعریف شده است. [راهنمای کلاس‌ها](Credit-class-walkthrough.md) مسئولیت‌ها، wiring و جریان درخواست را توضیح می‌دهد. یادداشت‌های تاریخی پایین صفحه wiring قبلی را شرح می‌دهند.
+
 [English](../en/Operation-coordinator.md) · [Persistence](Persistence.md) · [قرارداد پذیرفته‌شده](CBS09-contract.md) · [ADR-010](../adr/ADR-010-persistence-contract.fa.md)
 
 این راهنما پایهٔ coordinator اضافه‌شده در ۲۰۲۶-۱۰-۲۴، دلیل انتخاب طراحی و پروتکل قفل حساب را توضیح می‌دهد. کد فعلی، رفتار مالی برنامه‌ریزی‌شده و شواهد تست جدا هستند. `READ_COMMITTED` سطح isolation دیتابیس است؛ rate limiting تعداد درخواست‌های ورودی را محدود می‌کند و موضوع دیگری است.
@@ -31,13 +33,13 @@ coordinator مرز تراکنش را کنترل می‌کند؛ handler آیند
 
 ```java
 @Service
-@Profile("!smoke")
 public final class OperationCoordinator {
     private final TransactionTemplate transaction;
 
     public OperationCoordinator(PlatformTransactionManager manager) {
         transaction = new TransactionTemplate(manager);
         transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        transaction.setTimeout(5);
     }
 
     public <T> T execute(Supplier<T> attempt) {
@@ -206,7 +208,7 @@ WHERE transaction_id >= N'credit-100'
 | history متوازن تغییرناپذیر و projection و نتیجهٔ اتمیک | حفظ قرارداد پذیرفته‌شدهٔ ledger |
 | recovery و reconciliation | بازیابی retry یا commit نامطمئن و بررسی مستقل اثر committed |
 
-فعلاً فقط wrapper حداقلی تراکنش پیاده شده است. کلاس با `@Service` بیرون از profile بدون persistence یعنی `smoke` ثبت می‌شود؛ اتصال handler مربوط به credit هنوز باقی است. رزرو، snapshot سیاست، نتیجهٔ ذخیره‌شده، بودجهٔ retry و بازیابی commit نامطمئن باقی‌اند. کلاس اکنون isolation را تنظیم می‌کند، ولی timeout و تنظیمات آیندهٔ retry را ندارد. adapter حساب مسیر قفل مرتب‌شده را دارد؛ این مجموعه هنوز عملیات مالی عمومی کامل نیست.
+coordinator همچنان wrapper کوچک تراکنش با `@Service` است. [handler ماندگار credit](Credit-execution.md) اکنون برای lookup replay و ذخیرهٔ رزرو/history/projection/outcome از آن استفاده می‌کند. READ_COMMITTED و timeout پنج‌ثانیه‌ای دارد. بودجهٔ عمومی retry، backoff و بازیابی commit نامطمئن باقی‌اند؛ debit و transfer هنوز unavailable هستند. شواهد بعدی هر مرحلهٔ قبلی را با دامنهٔ تاریخی آن شرح می‌دهند.
 
 ## شواهد و ترتیب مرور
 

@@ -1,24 +1,44 @@
 package dev.kavrin.balance;
 
+import dev.kavrin.balance.account.application.GetBalanceHandler;
+import dev.kavrin.balance.account.infrastructure.persistence.AccountStore;
+import dev.kavrin.balance.operation.application.CreditHandler;
+import dev.kavrin.balance.operation.application.OperationCoordinator;
+import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = HttpSmokeConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "balance.execution.enabled=true")
 @ActiveProfiles("smoke")
 class ConcurrentBalanceServiceApplicationTests {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private ApplicationContext context;
+
+    @Test
+    void smokeAssemblyDoesNotLoadFinancialOrPersistenceComponents() {
+        for (var type : List.of(AccountStore.class, GetBalanceHandler.class, CreditHandler.class,
+                OperationCoordinator.class, PlatformTransactionManager.class, EntityManagerFactory.class)) {
+            assertThat(context.getBeanNamesForType(type)).as(type.getSimpleName()).isEmpty();
+        }
+    }
 
     @Test
     void unwiredFinancialRoutesNeverReportSuccess() throws Exception {
@@ -26,7 +46,7 @@ class ConcurrentBalanceServiceApplicationTests {
             var root = "http://127.0.0.1:" + port + "/api/v1";
             var account = "/accounts/00000000-0000-0000-0000-000000000001";
             var body = "{\"transactionId\":\"local-001\",\"amountRial\":100,\"currency\":\"IRR\"}";
-            for (var route : java.util.List.of(account + "/credits", account + "/debits", "/transfers")) {
+            for (var route : List.of(account + "/credits", account + "/debits", "/transfers")) {
                 var payload = route.equals("/transfers") ? body.replace("}",
                         ",\"sourceAccountId\":\"00000000-0000-0000-0000-000000000001\","
                         + "\"destinationAccountId\":\"00000000-0000-0000-0000-000000000002\"}") : body;

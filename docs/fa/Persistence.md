@@ -1,3 +1,5 @@
+> به‌روزرسانی credit در CBS11–12، ۲۰۲۶-۱۰-۲۴: [credit ماندگار](Credit-execution.md) اکنون با فعال‌سازی صریح سیاست کار می‌کند. history/projection/outcome متوازن را commit و بایت موفقیت/رد اصلی را برمی‌گرداند؛ debit/transfer همان fallback با 503 هستند. وضعیت unavailable یا فقط adapter در بخش‌های قبلی شاهد تاریخی است.
+
 # نگاشت persistence، fixture افتتاحیه و خواندن موجودی
 
 [English](../en/Persistence.md) · [schema و راه‌اندازی](Schema.md) · [projection سند](Journal-projection.md) · [API](API-v1.md) · [coordinator و قفل SQL](Operation-coordinator.md)

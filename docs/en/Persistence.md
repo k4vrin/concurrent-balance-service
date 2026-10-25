@@ -1,3 +1,5 @@
+> Current CBS11–12 credit update, 2026-10-24: [Durable credit](Credit-execution.md) is now active with explicit policy enablement. It commits balanced history/projections/outcome and returns retained success/rejection bytes; debit/transfer keep their 503 fallbacks. Earlier unavailable/adapter-only statements below are historical.
+
 # Persistence mappings, opening fixtures and balance reads
 
 [فارسی](../fa/Persistence.md) · [Schema/setup](Schema.md) · [Journal projection](Journal-projection.md) · [API](API-v1.md) · [Coordinator and SQL locks](Operation-coordinator.md)

@@ -5,13 +5,11 @@ import dev.kavrin.balance.money.Money;
 import dev.kavrin.balance.operation.application.OperationFailure;
 import jakarta.persistence.PersistenceException;
 import org.springframework.dao.DataAccessException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Profile("!smoke")
 public class GetBalanceHandler {
     private final BalanceReader balances;
 

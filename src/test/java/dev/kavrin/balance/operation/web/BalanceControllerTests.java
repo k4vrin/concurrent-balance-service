@@ -134,7 +134,7 @@ class BalanceControllerTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"ACCOUNT_NOT_FOUND", "INSUFFICIENT_FUNDS", "BALANCE_OVERFLOW"})
+    @ValueSource(strings = {"ACCOUNT_NOT_FOUND", "INSUFFICIENT_FUNDS", "BALANCE_OVERFLOW", "TRANSACTION_LIMIT_EXCEEDED", "BALANCE_LIMIT_EXCEEDED"})
     void mapsCommittedBusinessRejections(String reason) throws Exception {
         var rejection = new OperationOutcome.Rejected(new TransactionId("Tx-001"), OperationType.CREDIT,
                 RejectionReason.valueOf(reason));

@@ -1,10 +1,16 @@
 # وضعیت پیاده‌سازی
 
-README عمومی قرارداد نسخهٔ اول را شرح می‌دهد. نسخهٔ فعلی قواعد دامنه و پایهٔ HTTP، schema چهار جدول تأییدشده، نگاشت JPA و route واقعی موجودی از SQL Server را دارد. GET موجودی اکنون 200/404 می‌دهد و unavailable موقت query به 503 نگاشت می‌شود. credit/debit/transfer عمومی هنوز unavailable هستند.
+## assembly مربوط به smoke و وضعیت بررسی، ۲۰۲۶-۱۰-۲۵
 
-آخرین اجرای کامل ۲۴۰ تست مستقل از زیرساخت و ۱۰۳ تست واقعی SQL Server را بدون failure، error یا skip گذراند. [شواهد persistence و افتتاحیه](Persistence.md) افتتاحیهٔ journal-backed committed فقط در تست، طول عمر قفل بومی JPA، سه مرز rollback، reconciliation و HTTP واقعی را شرح می‌دهد. راه‌اندازی در [schema و راهنما](Schema.md) است.
+همهٔ شرط‌های `@Profile("!smoke")` از production حذف شدند. `HttpSmokeConfiguration` مستقل در source تست فقط مرز HTTP را import می‌کند. تست حتی با execution فعال، نبودن beanهای مالی و persistence را بررسی می‌کند. تست coordinator و سیاست هم رفتار عادی dependency و property را مستقل از profile آزمایشی بررسی می‌کنند. [راهنمای کلاس‌ها](Credit-class-walkthrough.md) مسئولیت کلاس‌ها، funding، هویت و جریان موفقیت، خطا و replay را توضیح می‌دهد.
 
-گام بعد slice ماندگار credit/coordinator/replay است. افتتاحیه فقط fixture تست است و route عمومی پنجم نیست. runtime هنوز handler عمومی جابه‌جایی پول، مجوز production یا موتور کامل retry/recovery ندارد.
+assembly اصلاح‌شده هر ۳۰۶ تست مستقل از زیرساخت را بدون failure، error یا skip گذراند. مرحلهٔ SQL Server کامل نشد؛ ابتدا environment صریح تست وجود نداشت و سپس اتصال تنظیم‌شده refused شد. container متوقف‌شدهٔ موجود بدون تغییر image، volume یا تنظیمات شروع شد ولی هنگام startup با status برابر 114 خارج شد. برای این تغییر pass فعلی SQL Server ادعا نمی‌شود؛ نتیجهٔ قبلی ۳۰۵+۱۲۰ پایین صفحه پیش از refactor مربوط به smoke است. تلاش نخست assembly به‌دلیل اضافه‌شدن برنامهٔ اصلی توسط `@TestConfiguration` شکست خورد و با `@Configuration` مستقل آزمایشی اصلاح شد. اجرای پیشین sandbox هم محدودیت attach مربوط به Mockito داشت. به درخواست کاربر، تست بیشتر متوقف شد. pass مستقل از زیرساخت اثبات runtime دیتابیس یا تکمیل gate مربوط به retry و concurrency نیست.
+
+README عمومی قرارداد نسخهٔ اول را شرح می‌دهد. نسخهٔ فعلی schema چهار جدول، نگاشت JPA، خواندن موجودی committed از SQL Server و credit ماندگار اختیاری دارد. فعال‌سازی credit به balance.execution.enabled=true و تنظیم معتبر funding نیاز دارد؛ debit و transfer هنوز unavailable هستند. دامنهٔ دسترسی همچنان محلی و قابل‌اعتماد است.
+
+آخرین اجرای کامل در ۲۶٫۸۴۰ ثانیه، ۳۰۵ تست مستقل از زیرساخت و ۱۲۰ تست واقعی SQL Server را بدون failure، error یا skip گذراند. [شواهد اجرای credit و replay](Credit-execution.md) history/projection/outcome اتمیک، پاسخ بایت‌به‌بایت، رد نهایی، بازسازی context/pool، یک race رزرو و rollback تزریق‌شده را توضیح می‌دهد. [شواهد persistence و افتتاحیه](Persistence.md) و [schema و راهنما](Schema.md) برای راه‌اندازی در دسترس‌اند.
+
+گام بعد sliceهای debit/transfer و gateهای باقی‌ماندهٔ شکست، retry و عملیات ترکیبی است. retry/backoff عمومی، recovery مربوط به commit نامطمئن، احراز هویت و مالکیت هنوز پیاده نشده‌اند. افتتاحیه فقط تستی است. بخش‌های checkpoint قبلی شاهد تاریخی‌اند؛ هر جا پیاده‌سازی جلو رفته، خلاصهٔ فعلی جای وضعیت قبلی را می‌گیرد.
 
 ## پایهٔ coordinator، ۲۰۲۶-۱۰-۲۴
 
@@ -41,3 +47,9 @@ README عمومی قرارداد نسخهٔ اول را شرح می‌دهد. ن
 پس از انتشار مرحلهٔ سیاست و هویت با commit `a13a54c`، دو کلاس ExecutionPolicyProperties و ExecutionPolicyConfiguration اضافه شدند. بیرون از smoke و فقط با فعال‌سازی صریح، تنظیم typed یک ExecutionPolicy معتبر و تغییرناپذیر در startup می‌سازد. پیش‌فرض اولیه execution-v1، ارز IRR و هر دو سقف پذیرفته‌شدهٔ 10000000000000 است؛ UUID و نسخهٔ funding باید داده شوند. YAML برنامه و .env.example ورودی‌های محیطی IRR را شرح می‌دهند. تنظیم فعال نامعتبر startup را متوقف می‌کند؛ loader حساب اختراع نمی‌کند و آن را در دیتابیس validate نمی‌کند. جزئیات در [تنظیم سیاست](Execution-policy.md) است.
 
 چهارده تست context و binding تازه پیش‌فرض، override، ورودی غایب/نامعتبر، کنارگذاشتن smoke و placeholder واقعی YAML را بررسی می‌کنند. کامپایل نخست پیش از وجود adapter شکست خورد. اجرای نهایی Java 21 با ./mvnw -o -B -ntp -Psqlserver-it verify در ۲۱٫۶۷۳ ثانیه، ۲۹۱ تست مستقل از زیرساخت و ۱۰۶ تست SQL Server را بدون failure، error یا skip گذراند. regression دیتابیس از سیاست غیرفعال پیش‌فرض استفاده می‌کند؛ binding فعال شاهد context مستقل از زیرساخت است. اجرای عمومی credit، رزرو، نتیجهٔ ذخیره‌شده/replay یا hot reload هنوز موجود نیست. گام بعد تراکنش ماندگار credit و پاسخ ذخیره‌شده است.
+
+## credit ماندگار و بخش نخست replay/conflict، ۲۰۲۶-۱۰-۲۴
+
+پس از انتشار تنظیمات با commit 1c51748، CreditHandler/CreditStore/JpaCreditStore و نگه‌داری پاسخ اصلی پیاده شدند. فعال‌سازی صریح سیاست اکنون credit عمومی را فعال می‌کند. یک تراکنش متعلق به coordinator پیش از قفل مرتب حساب شناسه را رزرو می‌کند، همهٔ projectionها را checked اعتبارسنجی و journal/posting، هر دو موجودی و پاسخ نهایی را با هم commit می‌کند. replay نیت کامل canonical را پیش از سیاست فعلی مقایسه می‌کند؛ برخورد کلید شناسه از تراکنش ناموفق خارج و سپس recovery تازه انجام می‌شود. رد سقف یا حساب غایب بدون نوشتن پولی commit می‌شود. HTTP بایت موفقیت/problem اصلی را با خانوادهٔ sealed توسعه‌یافته برمی‌گرداند. debit/transfer هنوز unavailable هستند.
+
+اجرای نهایی Java 21 با ./mvnw -o -B -ntp -Psqlserver-it verify در ۲۶٫۸۴۰ ثانیه، ۳۰۵ تست مستقل از زیرساخت و ۱۲۰ تست SQL Server را بدون failure، error یا skip گذراند. چهارده مورد واقعی credit شامل HTTP replay/conflict، حفظ رد سقف/حساب غایب، بازسازی context/pool، یک race یکتایی، تعداد/مجموع دقیق حسابداری و مرزهای rollback است. تست overflow funding یک snapshot دامنه را داخل تراکنش رزرو واقعی تزریق می‌کند و شاهد SQL overflow نیست. سه assertion نخست تزریق خطا برای ترجمهٔ exception توسط repository اصلاح شدند و اکنون علت اصلی را حفظ و بررسی می‌کنند. recovery عمومی شکست گذرا/commit نامطمئن و gate عملیات ترکیبی باقی‌اند. جزئیات در Credit-execution.md است. کار تازه پس از push درخواستی محلی مانده و پذیرش یادگیرنده تغییر نکرده است.

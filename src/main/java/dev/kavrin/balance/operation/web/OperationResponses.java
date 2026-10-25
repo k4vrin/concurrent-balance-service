@@ -1,9 +1,12 @@
 package dev.kavrin.balance.operation.web;
 
-import org.springframework.http.ResponseEntity;
 import dev.kavrin.balance.operation.application.MutationResult;
 import dev.kavrin.balance.operation.domain.OperationOutcome;
 import dev.kavrin.balance.operation.domain.OperationType;
+import java.nio.charset.StandardCharsets;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import tools.jackson.databind.util.RawValue;
 
 final class OperationResponses {
     private OperationResponses() { }
@@ -11,6 +14,11 @@ final class OperationResponses {
     static ResponseEntity<OperationResponseBody> from(MutationResult result) {
         if (result.outcome().operationType() == OperationType.OPENING) {
             throw new IllegalStateException("Opening is not a public operation");
+        }
+        if (result.storedResponse().isPresent()) {
+            var response = result.storedResponse().get();
+            return ResponseEntity.status(response.status()).contentType(MediaType.parseMediaType(response.contentType()))
+                    .body(new StoredOperationResponse(new RawValue(new String(response.body(), StandardCharsets.UTF_8))));
         }
         // The application boundary must supply a committed result, including on replay.
         return switch (result.outcome()) {

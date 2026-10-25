@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import dev.kavrin.balance.operation.application.OperationFailure;
+import dev.kavrin.balance.operation.domain.RejectionReason;
 
 // Media/method negotiation can fail before Spring selects a controller.
 @RestControllerAdvice
@@ -22,7 +23,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(OperationFailure.class)
     ProblemDetail applicationFailure(OperationFailure failure) {
         return switch (failure.reason()) {
-            case ACCOUNT_NOT_FOUND -> ApiProblems.rejection(dev.kavrin.balance.operation.domain.RejectionReason.ACCOUNT_NOT_FOUND);
+            case ACCOUNT_NOT_FOUND -> ApiProblems.rejection(RejectionReason.ACCOUNT_NOT_FOUND);
             case TRANSACTION_ID_CONFLICT -> ApiProblems.problem(HttpStatus.CONFLICT,
                     "TRANSACTION_ID_CONFLICT", "Transaction ID is already bound to a different request.");
             case UNSUPPORTED_CURRENCY -> ApiProblems.problem(HttpStatus.BAD_REQUEST,

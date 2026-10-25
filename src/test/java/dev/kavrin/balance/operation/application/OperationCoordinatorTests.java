@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -33,13 +34,11 @@ class OperationCoordinatorTests {
     }
 
     @Test
-    void smokeProfileDoesNotRequireATransactionManager() {
+    void productionServiceStillRequiresAManagerEvenIfATestProfileIsNamed() {
         try (var context = new AnnotationConfigApplicationContext()) {
             context.getEnvironment().setActiveProfiles("smoke");
             context.register(OperationCoordinator.class);
-            context.refresh();
-
-            assertThat(context.getBeansOfType(OperationCoordinator.class)).isEmpty();
+            assertThatThrownBy(context::refresh).hasRootCauseInstanceOf(NoSuchBeanDefinitionException.class);
         }
     }
 

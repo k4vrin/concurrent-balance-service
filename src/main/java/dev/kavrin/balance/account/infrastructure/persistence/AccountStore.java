@@ -6,16 +6,15 @@ import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.money.Money;
 import jakarta.persistence.EntityManager;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Currency;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Repository
-@Profile("!smoke")
 public class AccountStore implements BalanceReader {
     private final EntityManager entities;
 
@@ -48,6 +47,6 @@ public class AccountStore implements BalanceReader {
                 result.put(id, account);
             }
         }
-        return java.util.Collections.unmodifiableMap(result);
+        return Collections.unmodifiableMap(result);
     }
 }

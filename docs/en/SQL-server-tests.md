@@ -1,3 +1,7 @@
+> Current credit checkpoint, 2026-10-24: [Durable credit](Credit-execution.md) and the first replay/conflict slice are implemented with 305 portable and 120 SQL Server tests passing. Debit/transfer and broader retry/failure/mixed-operation acceptance remain open. Historical CBS08–10 descriptions below do not describe the entire current suite.
+
+Latest attempt, 2026-10-25: 306 portable tests passed; the SQL Server phase could not connect and the existing container exited during startup. Further testing stopped at the user's request. See [current verification](Implementation-status.md).
+
 > CBS09 implementation update, 2026-10-23: V1 is applied and validated in the local development/test databases. [Schema/runbook](Schema.md) records actual constraints, grants and 240 portable + 94 SQL Server tests. Historical pre-migration statements below are superseded by this implementation evidence. Financial execution remains pending.
 
 # CBS08 real SQL Server integration harness

@@ -1,3 +1,5 @@
+> Current CBS11–12 credit update, 2026-10-24: [Durable credit](Credit-execution.md) is now active with explicit policy enablement. It commits balanced history/projections/outcome and returns retained success/rejection bytes; debit/transfer keep their 503 fallbacks. Earlier unavailable/adapter-only statements below are historical.
+
 > Current persistence update: [CBS10 evidence](Persistence.md) now verifies JPA mappings, committed opening fixtures and the SQL Server balance route. Mutations remain unavailable. Earlier all-route-503 and schema-only statements below are historical.
 
 # V1 HTTP API contract
@@ -121,4 +123,4 @@ See [HTTP adapter evidence](HTTP-adapter-evidence.md) for verification and the n
 
 ## Typed mutation response bodies
 
-The three mutation controllers and OperationResponses mapper return `ResponseEntity<OperationResponseBody>`. This sealed interface permits only the success record `OperationResponse` and final `OperationProblem`. OperationProblem extends Spring ProblemDetail, preserving standard problem fields and top-level extension properties. It copies the existing rejection problem before adding transaction metadata. No wrapper object or JSON type discriminator is added. Framework/admission/technical exceptions still use the separate exception advice; the sealed family describes normal mutation returns. Business rejections remain returned values, preserving the future post-commit mapping boundary.
+The three mutation controllers and OperationResponses mapper return `ResponseEntity<OperationResponseBody>`. This sealed interface permits the success record `OperationResponse`, final `OperationProblem` and retained-byte `StoredOperationResponse`. OperationProblem extends Spring ProblemDetail, preserving standard problem fields and top-level extension properties. It copies the existing rejection problem before adding transaction metadata. No wrapper object or JSON type discriminator is added. Framework/admission/technical exceptions still use the separate exception advice; the sealed family describes normal mutation returns. Business rejections remain returned values, preserving the future post-commit mapping boundary.

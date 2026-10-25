@@ -1,5 +1,11 @@
 # Implementation status
 
+## Journal documentation and debit preparation, 2026-10-25
+
+Added Javadoc for `Journal`, its constructor and every projection helper. New portable journal cases check debit projections for 100 and exact-funds 500 rials, rejection of a negative final customer balance and unchanged input snapshots. Added `DebitAttempt` as an execution-context record and reformatted `CreditAttempt`; no debit handler, persistence adapter or HTTP execution is introduced.
+
+Java 21 wrapper verify with the documented workspace-local socket option passed 325 portable tests, zero failures/errors/skips, in 42.065 seconds. SQL Server integration testing is explicitly deferred to a Docker-capable machine; this checkpoint establishes domain calculations, not durable debit or database atomicity.
+
 ## Credit readability and persistence mapping, 2026-10-25
 
 Refactored `CreditHandler` into explicit replay, preparation, execution/recovery and journal/projection helpers. `JpaCreditStore` now uses SQL text blocks, named parameters, a private typed replay row mapped by column labels and an exhaustive completion mapping. Added Javadoc across the credit path and updated both [class walkthroughs](Credit-class-walkthrough.md). Schema, lock ordering, transaction boundaries and write/flush order are preserved by the refactor.

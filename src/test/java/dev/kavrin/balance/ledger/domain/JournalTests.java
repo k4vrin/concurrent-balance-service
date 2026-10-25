@@ -1,15 +1,14 @@
 package dev.kavrin.balance.ledger.domain;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Currency;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
+import dev.kavrin.balance.account.domain.Account;
+import dev.kavrin.balance.account.domain.AccountCategory;
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.money.Money;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,6 +93,88 @@ class JournalTests {
     void rejectsUnequalTotals() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new Journal(List.of(debit(100), credit(99))));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "100, 400",
+        "500, 0"
+    })
+    void debitProjectsCustomerAndFundingBalances(
+        long debitAmount,
+        long expectedBalance
+    ) {
+        var currency = Currency.getInstance("IRR");
+        var customerId = new AccountId(new UUID(0 , 1));
+        var fundingId = new AccountId(new UUID(0 , 2));
+        var customer = new Account(
+            customerId,
+            AccountCategory.CUSTOMER_LIABILITY,
+            new Money(500,
+                currency
+            )
+        );
+        var funding = new Account(
+            fundingId,
+            AccountCategory.FUNDING_CLEARING,
+            new Money(500,
+                currency
+            )
+        );
+        var accounts = Map.of(
+            customerId, customer,
+            fundingId, funding
+        );
+
+        var journal = new Journal(List.of(
+            debit(debitAmount),
+            credit(debitAmount)
+        ));
+
+        var projections = journal.projectBalances(accounts);
+
+        assertThat(projections.get(customerId).balance().amount()).isEqualTo(expectedBalance);
+        assertThat(projections.get(fundingId).balance().amount()).isEqualTo(expectedBalance);
+
+        assertThat(customer.balance().amount()).isEqualTo(500);
+        assertThat(funding.balance().amount()).isEqualTo(500);
+    }
+
+    @Test
+    void debitRejectsNegativeCustomerBalance() {
+        var currency = Currency.getInstance("IRR");
+        var customerId = new AccountId(new UUID(0 , 1));
+        var fundingId = new AccountId(new UUID(0 , 2));
+        var customer = new Account(
+            customerId,
+            AccountCategory.CUSTOMER_LIABILITY,
+            new Money(500,
+                currency
+            )
+        );
+        var funding = new Account(
+            fundingId,
+            AccountCategory.FUNDING_CLEARING,
+            new Money(500,
+                currency
+            )
+        );
+        var accounts = Map.of(
+            customerId, customer,
+            fundingId, funding
+        );
+        // Construct a debit journal for 501 IRR
+
+        var journal = new Journal(List.of(
+            debit(501),
+            credit(501)
+        ));
+
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> journal.projectBalances(accounts));
+
+        assertThat(customer.balance().amount()).isEqualTo(500);
+        assertThat(funding.balance().amount()).isEqualTo(500);
     }
 
     private Posting debit(long amount) {

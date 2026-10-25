@@ -1,5 +1,11 @@
 # وضعیت پیاده‌سازی
 
+## مستندات Journal و آماده‌سازی debit، ۲۰۲۶-۱۰-۲۵
+
+برای `Journal`، سازنده و همهٔ helperهای projection، Javadoc اضافه شد. تست‌های قابل‌حمل تازه، projection برداشت ۱۰۰ ریال و برداشت کل موجودی ۵۰۰ ریال، رد موجودی نهایی منفی مشتری و تغییرنکردن snapshotهای ورودی را بررسی می‌کنند. `DebitAttempt` به‌عنوان record زمینهٔ اجرا اضافه و قالب `CreditAttempt` مرتب شد؛ handler، adapter ذخیره‌سازی یا اجرای HTTP مربوط به debit اضافه نشده است.
+
+اجرای verify با Java 21 و Maven wrapper و گزینهٔ مستند پوشهٔ socket در workspace، هر ۳۲۵ تست قابل‌حمل را بدون failure، error یا skip در 42.065 ثانیه گذراند. تست integration مربوط به SQL Server به‌صراحت به ماشین دارای Docker موکول شده است؛ این گام محاسبات دامنه را بررسی می‌کند، نه debit ماندگار یا اتمی‌بودن دیتابیس را.
+
 ## خوانایی credit و نگاشت ذخیره‌سازی، ۲۰۲۶-۱۰-۲۵
 
 کلاس `CreditHandler` به گام‌های روشن replay، آماده‌سازی، اجرا و بازیابی، و ساخت journal و projection بازآرایی شد. `JpaCreditStore` اکنون SQL را با text block و پارامترهای نام‌دار می‌نویسد، ردیف replay را با نام ستون‌ها به record خصوصی و نوع‌دار نگاشت می‌کند و برای وضعیت completion از switch کامل استفاده می‌کند. مسیر credit Javadoc دارد و هر دو [راهنمای کلاس‌ها](Credit-class-walkthrough.md) به‌روز شدند. این بازآرایی schema، ترتیب قفل‌ها، مرز تراکنش و ترتیب نوشتن و flush را حفظ می‌کند.

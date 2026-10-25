@@ -29,7 +29,7 @@ coordinator مرز تراکنش را کنترل می‌کند؛ handler آیند
 
 ## خواندن کد فعلی
 
-منبع: [OperationCoordinator.java](../../src/main/java/dev/kavrin/balance/operation/application/OperationCoordinator.java).
+منبع: [OperationCoordinator.java](../../src/main/java/dev/kavrin/balance/operation/application/execution/OperationCoordinator.java).
 
 ```java
 @Service
@@ -212,7 +212,7 @@ coordinator همچنان wrapper کوچک تراکنش با `@Service` است. [
 
 ## شواهد و ترتیب مرور
 
-پنج مورد [OperationCoordinatorTests](../../src/test/java/dev/kavrin/balance/operation/application/OperationCoordinatorTests.java) با manager ثبت‌کننده، اجرای قابل‌نوشتن READ_COMMITTED، بازگشت پس از commit، rollback خطای callback، انتقال خطای commit و رد دو نوع تراکنش فعال را بررسی می‌کنند. اجرای Java 21 با `./mvnw -o -B -ntp verify` برای این پایه، ۲۴۵ تست مستقل از زیرساخت را بدون failure، error یا skip گذراند. این تست‌ها شاهد commit دیتابیس، replay ذخیره‌شده یا rollback در SQL Server نیستند.
+پنج مورد [OperationCoordinatorTests](../../src/test/java/dev/kavrin/balance/operation/application/execution/OperationCoordinatorTests.java) با manager ثبت‌کننده، اجرای قابل‌نوشتن READ_COMMITTED، بازگشت پس از commit، rollback خطای callback، انتقال خطای commit و رد دو نوع تراکنش فعال را بررسی می‌کنند. اجرای Java 21 با `./mvnw -o -B -ntp verify` برای این پایه، ۲۴۵ تست مستقل از زیرساخت را بدون failure، error یا skip گذراند. این تست‌ها شاهد commit دیتابیس، replay ذخیره‌شده یا rollback در SQL Server نیستند.
 
 [تست‌های persistence قبلی](Persistence.md)، طول عمر قفل واقعی JPA، تازگی state، خواندن committed در HTTP و مرزهای rollback افتتاحیه را بررسی کردند. اجرای کامل ثبت‌شده ۱۰۳ تست SQL Server و ۲۴۰ تست مستقل از زیرساخت داشت. این اجرای تاریخی پیش از coordinator بود و برای پایهٔ آن تکرار نشد. محیط SQL Server روی ARM64 همچنان آزمایش محلی بدون پشتیبانی رسمی است. timelineهای این راهنما مثال آموزشی‌اند، نه benchmark اجراشده.
 

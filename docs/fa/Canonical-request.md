@@ -16,9 +16,9 @@ retry ممکن است فاصله و ترتیب فیلدهای JSON یا بزرگ
 
 | نوع | مسئولیت |
 | --- | --- |
-| [CanonicalRequest](../../src/main/java/dev/kavrin/balance/operation/application/CanonicalRequest.java) | ساخت هویت درخواست از commandهای credit/debit/transfer یا قصد مثبت افتتاحیهٔ داخلی |
-| [CanonicalFingerprint](../../src/main/java/dev/kavrin/balance/operation/application/CanonicalFingerprint.java) | بایت نسخه‌دار تغییرناپذیر، SHA-256 هگز کوچک و برابری مبتنی بر بایت |
-| [FundingSelection](../../src/main/java/dev/kavrin/balance/operation/application/FundingSelection.java) | AccountId حساب مقابل و نسخهٔ دقیق سیاست تأمین برای نگه‌داری کنار metadata اجرا |
+| [CanonicalRequest](../../src/main/java/dev/kavrin/balance/operation/application/identity/CanonicalRequest.java) | ساخت هویت درخواست از commandهای credit/debit/transfer یا قصد مثبت افتتاحیهٔ داخلی |
+| [CanonicalFingerprint](../../src/main/java/dev/kavrin/balance/operation/application/identity/CanonicalFingerprint.java) | بایت نسخه‌دار تغییرناپذیر، SHA-256 هگز کوچک و برابری مبتنی بر بایت |
+| [FundingSelection](../../src/main/java/dev/kavrin/balance/operation/application/policy/FundingSelection.java) | AccountId حساب مقابل و نسخهٔ دقیق سیاست تأمین برای نگه‌داری کنار metadata اجرا |
 
 factoryها وابستگی actor را با `Optional<String>` صریح می‌گیرند. `Optional.empty()` زمینهٔ محلی مورداعتماد فعلی را بدون هویت مشتری ساختگی نشان می‌دهد. actor حاضر باید غیرblank و Unicode معتبر باشد. trim، تبدیل بزرگی حروف و Unicode normalization نداریم. منبع آیندهٔ آن باید احراز هویت معتبر باشد، نه فیلد actor دلخواه JSON. این کد احراز هویت پیاده نمی‌کند.
 
@@ -101,7 +101,7 @@ coordinator آینده ابتدا با شناسهٔ تراکنش رکورد حف
 
 ## شواهد و محدودیت‌ها
 
-[CanonicalRequestTests](../../src/test/java/dev/kavrin/balance/operation/application/CanonicalRequestTests.java) درخواست معنایی یکسان با lookup ID متفاوت، بایت/hash ثابت نسخهٔ ۱، تغییر جهت/نوع/مبلغ/ارز/actor، برابری بزرگی حروف UUID، هویت دقیق actor، framing غیاب و delimiter، UTF-8 معتبر، کپی دفاعی، تغییر counterpart/نسخهٔ سیاست، افتتاحیه و ورودی لازم را بررسی می‌کند.
+[CanonicalRequestTests](../../src/test/java/dev/kavrin/balance/operation/application/identity/CanonicalRequestTests.java) درخواست معنایی یکسان با lookup ID متفاوت، بایت/hash ثابت نسخهٔ ۱، تغییر جهت/نوع/مبلغ/ارز/actor، برابری بزرگی حروف UUID، هویت دقیق actor، framing غیاب و delimiter، UTF-8 معتبر، کپی دفاعی، تغییر counterpart/نسخهٔ سیاست، افتتاحیه و ورودی لازم را بررسی می‌کند.
 
 با Java 21:
 

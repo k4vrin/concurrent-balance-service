@@ -1,10 +1,10 @@
 package dev.kavrin.balance.operation.infrastructure.configuration;
 
 import dev.kavrin.balance.account.domain.AccountId;
-import dev.kavrin.balance.operation.application.AmountLimits;
-import dev.kavrin.balance.operation.application.ExecutionPolicy;
-import dev.kavrin.balance.operation.application.FundingSelection;
-import dev.kavrin.balance.operation.application.SupportedCurrencies;
+import dev.kavrin.balance.operation.application.policy.AmountLimits;
+import dev.kavrin.balance.operation.application.policy.ExecutionPolicy;
+import dev.kavrin.balance.operation.application.policy.FundingSelection;
+import dev.kavrin.balance.operation.application.policy.SupportedCurrencies;
 import java.util.Currency;
 import java.util.Map;
 import java.util.Objects;

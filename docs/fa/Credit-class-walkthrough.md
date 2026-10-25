@@ -113,7 +113,7 @@ encoding پیش از تکمیل terminal و commit انجام می‌شود. ش�
 
 ## wiring در Spring و smoke بدون زیرساخت
 
-`HttpAdapterConfiguration` adapter مرحله‌ای `BalanceOperations` را می‌سازد. `ObjectProvider<GetBalanceHandler>` و `ObjectProvider<CreditHandler>` اجازه می‌دهند همین adapter در context آزمایشی محدود اجرا شود. برنامهٔ واقعی serviceهای production را طبق روال scan می‌کند. credit با فعال‌بودن feature سیاست در دسترس است؛ debit و transfer فعلاً 503 مرحله‌ای دارند.
+`HttpAdapterConfiguration` adapter مرحله‌ای `BalanceOperations` را می‌سازد. `ObjectProvider<GetBalanceHandler>`، `ObjectProvider<CreditHandler>` و `ObjectProvider<DebitHandler>` اجازه می‌دهند همین adapter در context آزمایشی محدود اجرا شود. برنامهٔ واقعی serviceهای production را طبق روال scan می‌کند. credit و debit با فعال‌بودن feature سیاست در دسترس‌اند؛ انتقال تا CBS14 پاسخ 503 مرحله‌ای دارد. [اجرای debit و شواهد](Debit-execution.md) را ببینید.
 
 کد production هیچ `@Profile("!smoke")` ندارد. `HttpSmokeConfiguration` در `src/test` قرار دارد، `@Configuration` مستقل است، فقط `HttpAdapterConfiguration`، `BalanceController` و `ApiExceptionHandler` را import می‌کند و auto-configuration را فعال می‌کند. یک `@Profile("smoke")` روی همین تنظیم آزمایشی مانع کشف آن در تست‌های full-context دیگر می‌شود. resource آزمایشی datasource، JPA و Flyway را غیرفعال می‌کند؛ serviceهای production نیازی به شناختن این profile ندارند.
 

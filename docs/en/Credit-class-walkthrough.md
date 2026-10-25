@@ -113,7 +113,7 @@ Encoding happens before terminal completion and commit. An encoding failure ther
 
 ## Spring wiring and infrastructure-free smoke tests
 
-`HttpAdapterConfiguration` assembles the staged `BalanceOperations` adapter. `ObjectProvider<GetBalanceHandler>` and `ObjectProvider<CreditHandler>` allow this adapter to operate in a deliberately restricted test context. The real application scans its normal production services. Credit is available when its explicit policy feature is enabled; debit and transfer retain their staged 503 responses.
+`HttpAdapterConfiguration` assembles the staged `BalanceOperations` adapter. `ObjectProvider<GetBalanceHandler>`, `ObjectProvider<CreditHandler>` and `ObjectProvider<DebitHandler>` allow this adapter to operate in a deliberately restricted test context. The real application scans its normal production services. Credit and debit are available when their explicit policy feature is enabled; transfer retains its staged 503 response until CBS14. See [debit execution and verification](Debit-execution.md).
 
 Production code contains no `@Profile("!smoke")`. `HttpSmokeConfiguration` lives under `src/test`, uses standalone `@Configuration`, imports only `HttpAdapterConfiguration`, `BalanceController` and `ApiExceptionHandler`, and enables auto-configuration. One `@Profile("smoke")` on that test configuration prevents other full-context tests from discovering it. The test resource excludes datasource, JPA and Flyway auto-configuration. No production service needs to know this test profile exists.
 

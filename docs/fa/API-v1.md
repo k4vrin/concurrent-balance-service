@@ -1,3 +1,5 @@
+> به‌روزرسانی CBS13، ۲۰۲۶-۱۰-۲۵: [debit ماندگار](Debit-execution.md) کنار credit با فعال‌سازی صریح و استعلام موجودی مرجع پیاده شده است. انتقال تا CBS14 unavailable می‌ماند. اجرای کامل ۳۵۱ تست مستقل و ۱۳۴ تست واقعی SQL Server را با صفر failure/error/skip گذراند. گفته‌های قدیمی pending/unavailable در ادامه تاریخی‌اند.
+
 > به‌روزرسانی credit در CBS11–12، ۲۰۲۶-۱۰-۲۴: [credit ماندگار](Credit-execution.md) اکنون با فعال‌سازی صریح سیاست کار می‌کند. history/projection/outcome متوازن را commit و بایت موفقیت/رد اصلی را برمی‌گرداند؛ debit/transfer همان fallback با 503 هستند. وضعیت unavailable یا فقط adapter در بخش‌های قبلی شاهد تاریخی است.
 
 > به‌روزرسانی persistence: [شواهد CBS10](Persistence.md) اکنون نگاشت JPA، fixture افتتاحیهٔ committed و route موجودی SQL Server را تأیید می‌کند. mutation هنوز unavailable است. گفته‌های قبلی دربارهٔ 503 برای همهٔ routeها و شواهد فقط schema در ادامه تاریخی‌اند.

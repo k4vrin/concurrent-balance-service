@@ -1,14 +1,14 @@
 package dev.kavrin.balance.operation.infrastructure.configuration;
 
 import dev.kavrin.balance.account.domain.AccountId;
-import dev.kavrin.balance.operation.application.ExecutionPolicy;
+import dev.kavrin.balance.operation.application.policy.ExecutionPolicy;
 import java.util.Currency;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -85,6 +85,8 @@ verify مستقل از زیرساخت دیتابیس نمی‌خواهد. طبق
 
 ## راهنمای طراحی
 
+- [debit ماندگار، کسری وجه و شواهد SQL Server](docs/fa/Debit-execution.md)
+- [یادگیری Hexagonal Architecture، port و adapter با مثال‌های پروژه](docs/fa/Hexagonal-architecture.md)
 - [دلیل جدایی canonical request و fingerprint](docs/fa/Canonical-design.md)
 - [دفترکل دوطرفه و دستهٔ حساب](docs/fa/Ledger.md)
 - [محاسبهٔ journal و projection موجودی](docs/fa/Journal-projection.md)

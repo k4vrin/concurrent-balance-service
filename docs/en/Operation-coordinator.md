@@ -29,7 +29,7 @@ If a technical error occurs after projection updates but before outcome persiste
 
 ## Read the current implementation
 
-Source: [OperationCoordinator.java](../../src/main/java/dev/kavrin/balance/operation/application/OperationCoordinator.java).
+Source: [OperationCoordinator.java](../../src/main/java/dev/kavrin/balance/operation/application/execution/OperationCoordinator.java).
 
 ```java
 @Service
@@ -212,7 +212,7 @@ The coordinator remains a small transaction wrapper registered with `@Service`. 
 
 ## Evidence and review route
 
-The five [OperationCoordinatorTests](../../src/test/java/dev/kavrin/balance/operation/application/OperationCoordinatorTests.java) use a recording transaction manager: they check writable READ_COMMITTED execution, return after commit, rollback on callback exception, commit-failure propagation and rejection of both ambient transaction kinds. Java 21 `./mvnw -o -B -ntp verify` passed 245 portable tests with zero failures/errors/skips for this foundation. They do not prove database commit, stored replay or SQL Server rollback.
+The five [OperationCoordinatorTests](../../src/test/java/dev/kavrin/balance/operation/application/execution/OperationCoordinatorTests.java) use a recording transaction manager: they check writable READ_COMMITTED execution, return after commit, rollback on callback exception, commit-failure propagation and rejection of both ambient transaction kinds. Java 21 `./mvnw -o -B -ntp verify` passed 245 portable tests with zero failures/errors/skips for this foundation. They do not prove database commit, stored replay or SQL Server rollback.
 
 Earlier [persistence tests](Persistence.md) exercised actual JPA account lock lifetime, freshness, committed HTTP reads and opening rollback boundaries; the documented full run passed 103 SQL Server tests alongside 240 portable tests. That historical run predates the coordinator and was not rerun for its foundation. The SQL Server ARM64 environment remains an unsupported local experiment. The timelines in this guide are teaching examples, not executed benchmarks.
 

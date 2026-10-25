@@ -2,7 +2,7 @@ package dev.kavrin.balance.account.application;
 
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.money.Money;
-import dev.kavrin.balance.operation.application.OperationFailure;
+import dev.kavrin.balance.operation.application.result.OperationFailure;
 import jakarta.persistence.PersistenceException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;

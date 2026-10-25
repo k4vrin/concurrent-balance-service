@@ -54,11 +54,11 @@ sort کردن حساب‌های transfer اشتباه است. A→B با B→A �
 
 ## ۳. چرا سه نوع داریم؟
 
-[CanonicalRequest](../../src/main/java/dev/kavrin/balance/operation/application/CanonicalRequest.java) قصد تایپ‌شده را به schema ثابت تبدیل می‌کند و نوع عملیات و نقش حساب را می‌شناسد. حساب نمی‌خواند، actor را احراز هویت نمی‌کند و سیاست تأمین انتخاب نمی‌کند.
+[CanonicalRequest](../../src/main/java/dev/kavrin/balance/operation/application/identity/CanonicalRequest.java) قصد تایپ‌شده را به schema ثابت تبدیل می‌کند و نوع عملیات و نقش حساب را می‌شناسد. حساب نمی‌خواند، actor را احراز هویت نمی‌کند و سیاست تأمین انتخاب نمی‌کند.
 
-[CanonicalFingerprint](../../src/main/java/dev/kavrin/balance/operation/application/CanonicalFingerprint.java) نمایش تغییرناپذیر را نگه می‌دارد: نسخه، بایت canonical، SHA-256 و برابری. دربارهٔ کافی‌بودن وجه تصمیم نمی‌گیرد و شناسه رزرو نمی‌کند.
+[CanonicalFingerprint](../../src/main/java/dev/kavrin/balance/operation/application/identity/CanonicalFingerprint.java) نمایش تغییرناپذیر را نگه می‌دارد: نسخه، بایت canonical، SHA-256 و برابری. دربارهٔ کافی‌بودن وجه تصمیم نمی‌گیرد و شناسه رزرو نمی‌کند.
 
-[FundingSelection](../../src/main/java/dev/kavrin/balance/operation/application/FundingSelection.java) تصمیمی از سرور را ثبت می‌کند که ممکن است در طول زمان عوض شود. دقیقاً دو فیلد دارد:
+[FundingSelection](../../src/main/java/dev/kavrin/balance/operation/application/policy/FundingSelection.java) تصمیمی از سرور را ثبت می‌کند که ممکن است در طول زمان عوض شود. دقیقاً دو فیلد دارد:
 
 ```java
 public record FundingSelection(
@@ -266,10 +266,10 @@ import java.util.Optional;
 import java.util.UUID;
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.money.Money;
-import dev.kavrin.balance.operation.application.CanonicalRequest;
-import dev.kavrin.balance.operation.application.CreditCommand;
-import dev.kavrin.balance.operation.application.FundingSelection;
-import dev.kavrin.balance.operation.application.TransferCommand;
+import dev.kavrin.balance.operation.application.identity.CanonicalRequest;
+import dev.kavrin.balance.operation.application.command.CreditCommand;
+import dev.kavrin.balance.operation.application.policy.FundingSelection;
+import dev.kavrin.balance.operation.application.command.TransferCommand;
 import dev.kavrin.balance.operation.domain.TransactionId;
 
 public class CanonicalDesignExample {

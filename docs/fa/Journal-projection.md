@@ -1,3 +1,5 @@
+> به‌روزرسانی CBS13، ۲۰۲۶-۱۰-۲۵: [debit ماندگار](Debit-execution.md) کنار credit با فعال‌سازی صریح و استعلام موجودی مرجع پیاده شده است. انتقال تا CBS14 unavailable می‌ماند. اجرای کامل ۳۵۱ تست مستقل و ۱۳۴ تست واقعی SQL Server را با صفر failure/error/skip گذراند. گفته‌های قدیمی pending/unavailable در ادامه تاریخی‌اند.
+
 # راهنمای record مربوط به Journal و محاسبهٔ مانده
 
 [English](../en/Journal-projection.md) · [طراحی دفترکل](Ledger.md) · [بدهکار و بستانکار](Debit-and-credit.md)

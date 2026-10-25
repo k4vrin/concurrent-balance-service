@@ -1,8 +1,35 @@
+> به‌روزرسانی CBS13، ۲۰۲۶-۱۰-۲۵: [debit ماندگار](Debit-execution.md) و credit با فعال‌سازی صریح، با ۳۵۱ تست مستقل و ۱۳۴ تست SQL Server و صفر failure/error/skip تأیید شده‌اند. انتقال تا CBS14 unavailable می‌ماند. گفته‌های قبلی دربارهٔ وضعیت اجرا در ادامه دامنهٔ تاریخی خود را دارند.
+
 # معماری پذیرفته‌شدهٔ برنامه
 
 [English](../en/Architecture.md) · [ADR-008](../adr/ADR-008-application-architecture.fa.md) · [دفترکل](Ledger.md) · [پروتکل تراکنش](Transaction-protocol.md)
 
+[آموزش Hexagonal Architecture، port و adapter](Hexagonal-architecture.md)
+
 مالک پروژه در ۲۰۲۶-۱۰-۲۳ معماری و مثال‌های این سند را پذیرفت. packageها، مسئولیت‌ها و جهت وابستگی طرح مبنا هستند؛ نام کلاس‌های آینده مثال است و نباید برای آن‌ها لایهٔ خالی تولید کنیم. فعلاً bootstrap، اسکلت بدون پیاده‌سازی BalanceService، Money با محاسبات تست‌شده، مدل تغییرناپذیر Account/AccountId و سیاست علامت موجودی AccountCategory وجود دارند. persistence، endpoint مالی و کنترل خودکار مرز ماژول‌ها پیاده نشده‌اند.
+
+## ساختار فعلی packageهای operation
+
+در پوشه‌های تخت قبلی، پیدا کردن کد parsing درخواست، نگاشت پاسخ و اجرای credit سخت بود. مثلاً `StrictAmountDeserializer` به DTOهای درخواست مربوط است، اما `CreditStore` بخشی از use case اعتباردهی است. ساختار فعلی این مسئولیت‌ها را داخل همان feature عملیات گروه‌بندی می‌کند.
+
+| package زیر `operation` | مسئولیت |
+| --- | --- |
+| `web` | `BalanceController`، نقطهٔ ورود چهار مسیر HTTP |
+| `web.request` | DTOهای درخواست، deserializerهای سخت‌گیرانه و تبدیل فیلدهای HTTP |
+| `web.response` | DTOهای پاسخ، خانوادهٔ sealed بدنه، نگاشت نتیجه و تولید JSON ماندگار credit/debit |
+| `web.error` | advice سراسری خطا و ساخت problem detail |
+| `web.configuration` | تنظیم JSON سخت‌گیرانه و اتصال مرحله‌ای سرویس‌ها |
+| `application` | مرز عمومی `BalanceOperations` و اسکلت اولیهٔ `BalanceService` |
+| `application.command` | قصد credit/debit/transfer و اعتبارسنجی ساختاری command |
+| `application.credit` | handler، اطلاعات attempt، پورت ذخیره‌سازی و پورت تولید پاسخ credit |
+| `application.debit` | handler، اطلاعات attempt، پورت ذخیره‌سازی و پورت تولید پاسخ debit |
+| `application.identity` | قصد canonical درخواست و fingerprint نسخه‌دار |
+| `application.policy` | سیاست ارز و سقف مبلغ، انتخاب ماندگار حساب تأمین و اعتبارسنجی شناسهٔ سیاست |
+| `application.execution` | مالکیت تراکنش و سیگنال عملیات تکراری |
+| `application.result` | نتیجهٔ mutation، پاسخ ماندگار و خطای application |
+
+تست‌ها package مسئولیت مربوط را دنبال می‌کنند. تست‌های SQL Server در `infrastructure.sqlserver` باقی می‌مانند، چون مسیر کامل persistence را بررسی می‌کنند. interface پاسخ sealed و تمام پیاده‌سازی‌هایش در `web.response` کنار هم هستند؛ Java در این پروژهٔ بدون named module همین هم‌مکانی را لازم دارد. helperهای کوچکی که بین packageها استفاده می‌شوند، متدهای فعلی‌شان را صریحاً عمومی می‌کنند؛ constructor آن‌ها خصوصی می‌ماند. این تغییر فقط ساختار packageهای سورس را جابه‌جا می‌کند و endpoint، JSON، تراکنش و schema را تغییر نمی‌دهد. رفتار فعلی و شواهد اجرا در [وضعیت پیاده‌سازی](Implementation-status.md) آمده است. درخت پایین طرح معماری اولیه است و فهرست فایل‌های فعلی نیست.
+
 
 ## شکل برنامه و مرز سازگاری
 

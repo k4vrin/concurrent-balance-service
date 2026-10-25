@@ -16,9 +16,9 @@ The transaction ID is the lookup key, not part of the compared payload. Two dist
 
 | Type | Responsibility |
 | --- | --- |
-| [CanonicalRequest](../../src/main/java/dev/kavrin/balance/operation/application/CanonicalRequest.java) | Build request identity from credit/debit/transfer commands or positive internal opening intent |
-| [CanonicalFingerprint](../../src/main/java/dev/kavrin/balance/operation/application/CanonicalFingerprint.java) | Immutable versioned bytes, lowercase SHA-256 hex and byte-based equality |
-| [FundingSelection](../../src/main/java/dev/kavrin/balance/operation/application/FundingSelection.java) | Explicit counterpart AccountId and exact funding-policy version to retain with execution metadata |
+| [CanonicalRequest](../../src/main/java/dev/kavrin/balance/operation/application/identity/CanonicalRequest.java) | Build request identity from credit/debit/transfer commands or positive internal opening intent |
+| [CanonicalFingerprint](../../src/main/java/dev/kavrin/balance/operation/application/identity/CanonicalFingerprint.java) | Immutable versioned bytes, lowercase SHA-256 hex and byte-based equality |
+| [FundingSelection](../../src/main/java/dev/kavrin/balance/operation/application/policy/FundingSelection.java) | Explicit counterpart AccountId and exact funding-policy version to retain with execution metadata |
 
 Factories accept an explicit `Optional<String>` actor binding. `Optional.empty()` represents the current trusted local context, with no fabricated customer identity. A present actor is exact, nonblank valid Unicode. No trimming, case folding or Unicode normalization occurs. Its future source must be trusted authentication, not an arbitrary JSON actor field. There is no authentication implementation here.
 
@@ -101,7 +101,7 @@ If funding-v2 selects account C after funding-v1 selected B, retrying the origin
 
 ## Evidence and limits
 
-[CanonicalRequestTests](../../src/test/java/dev/kavrin/balance/operation/application/CanonicalRequestTests.java) covers equal semantic requests with different lookup IDs; fixed version-1 bytes/hash; account direction/type/amount/currency/actor differences; UUID case equivalence; exact actor case/whitespace/Unicode identity; delimiter/null framing; UTF-8 validity; defensive copying; funding counterpart/policy differences; internal opening identity and required inputs.
+[CanonicalRequestTests](../../src/test/java/dev/kavrin/balance/operation/application/identity/CanonicalRequestTests.java) covers equal semantic requests with different lookup IDs; fixed version-1 bytes/hash; account direction/type/amount/currency/actor differences; UUID case equivalence; exact actor case/whitespace/Unicode identity; delimiter/null framing; UTF-8 validity; defensive copying; funding counterpart/policy differences; internal opening identity and required inputs.
 
 With Java 21:
 

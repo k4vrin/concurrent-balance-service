@@ -1,3 +1,5 @@
+> Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) and opt-in credit are verified with 351 portable and 134 SQL Server tests, zero failures/errors/skips. Transfer remains unavailable until CBS14. Earlier implementation-status statements below retain their historical scope.
+
 > Current CBS11–12 credit update, 2026-10-24: [Durable credit](Credit-execution.md) is now active with explicit policy enablement. It commits balanced history/projections/outcome and returns retained success/rejection bytes; debit/transfer keep their 503 fallbacks. Earlier unavailable/adapter-only statements below are historical.
 
 # Persistence mappings, opening fixtures and balance reads
@@ -18,6 +20,12 @@ The balance route now reads the authoritative SQL Server account projection. It 
 | OpeningFixture | Test-only atomic internal opening through the actual JPA transaction manager, shared domain journal calculation and runtime authority. No production bean or public endpoint. |
 
 UUID maps to SQL Server uniqueidentifier. Currency explicitly maps to nchar(3), retained Unicode text to nvarchar, hashes to binary(32), payloads to varbinary(max), and UTC database timestamps to LocalDateTime. The timestamp columns contain UTC by contract; LocalDateTime alone does not carry a timezone. SQL identifiers and application/domain value types remain separate. Actual startup schema validation and committed round trips verify these choices.
+
+### AccountStore query layout
+
+`AccountStore` keeps its JPQL balance query and native locking SQL in named constants. Both queries bind `accountId` by name and use the same two-second query-timeout hint. `BalanceProjection` maps the JPQL `Tuple` by typed aliases before creating `Money`, replacing positional `Object[]` access. `lockAccount` owns the point lookup and refresh, while `requireWritableTransaction` guards the write path. Public JavaDoc describes caller-owned transactions, missing accounts, map ordering and the managed entities returned to the writer.
+
+These are readability changes to the adapter. The existing SQL Server tests cover projection reads, lock lifetime, ordering and stale-state refresh; portable verification alone does not establish that the revised query binding and mapping work against SQL Server.
 
 ## Read path
 

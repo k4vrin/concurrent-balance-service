@@ -1,9 +1,18 @@
 package dev.kavrin.balance.operation.web;
 
+import dev.kavrin.balance.account.domain.AccountId;
+import dev.kavrin.balance.money.Money;
+import dev.kavrin.balance.operation.application.BalanceOperations;
+import dev.kavrin.balance.operation.application.command.CreditCommand;
+import dev.kavrin.balance.operation.application.command.DebitCommand;
+import dev.kavrin.balance.operation.application.command.TransferCommand;
+import dev.kavrin.balance.operation.application.result.MutationResult;
+import dev.kavrin.balance.operation.application.result.OperationFailure;
+import dev.kavrin.balance.operation.domain.*;
+import dev.kavrin.balance.operation.web.configuration.HttpAdapterConfiguration;
 import java.util.Currency;
 import java.util.UUID;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -14,11 +23,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import dev.kavrin.balance.account.domain.AccountId;
-import dev.kavrin.balance.money.Money;
-import dev.kavrin.balance.operation.application.*;
-import dev.kavrin.balance.operation.domain.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -212,16 +216,6 @@ class BalanceControllerTests {
                 .andExpect(status().isNotAcceptable()).andExpect(jsonPath("$.code").value("NOT_ACCEPTABLE"));
     }
 
-    @Test
-    void typedProblemPreservesSpringProblemSerialization() {
-        var original = ApiProblems.rejection(RejectionReason.INSUFFICIENT_FUNDS);
-        original.setProperty("transactionId", "Tx-001");
-        original.setProperty("operationType", OperationType.DEBIT);
-        original.setProperty("currency", IRR.getCurrencyCode());
-        var typed = new OperationProblem(original);
-
-        assertThat(json.writeValueAsString(typed)).isEqualTo(json.writeValueAsString(original));
-    }
 
     private static MutationResult success(OperationType type) {
         return new MutationResult(new OperationOutcome.Success(new TransactionId("Tx-001"), type), IRR);

@@ -1,5 +1,15 @@
 package dev.kavrin.balance.operation.web;
 
+import dev.kavrin.balance.operation.application.BalanceOperations;
+import dev.kavrin.balance.operation.application.command.CreditCommand;
+import dev.kavrin.balance.operation.application.command.DebitCommand;
+import dev.kavrin.balance.operation.application.command.TransferCommand;
+import dev.kavrin.balance.operation.web.request.AmountRequest;
+import dev.kavrin.balance.operation.web.request.RequestValues;
+import dev.kavrin.balance.operation.web.request.TransferRequest;
+import dev.kavrin.balance.operation.web.response.BalanceResponse;
+import dev.kavrin.balance.operation.web.response.OperationResponseBody;
+import dev.kavrin.balance.operation.web.response.OperationResponses;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,10 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import dev.kavrin.balance.operation.application.BalanceOperations;
-import dev.kavrin.balance.operation.application.CreditCommand;
-import dev.kavrin.balance.operation.application.DebitCommand;
-import dev.kavrin.balance.operation.application.TransferCommand;
 
 @RestController
 @RequestMapping("/api/v1")

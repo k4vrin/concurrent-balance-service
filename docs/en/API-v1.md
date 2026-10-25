@@ -1,3 +1,5 @@
+> Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) is implemented alongside opt-in credit and authoritative balance lookup. Transfer remains unavailable until CBS14. Full verification passed 351 portable plus 134 real SQL Server tests, zero failures/errors/skips. Earlier pending/unavailable statements below are historical.
+
 > Current CBS11–12 credit update, 2026-10-24: [Durable credit](Credit-execution.md) is now active with explicit policy enablement. It commits balanced history/projections/outcome and returns retained success/rejection bytes; debit/transfer keep their 503 fallbacks. Earlier unavailable/adapter-only statements below are historical.
 
 > Current persistence update: [CBS10 evidence](Persistence.md) now verifies JPA mappings, committed opening fixtures and the SQL Server balance route. Mutations remain unavailable. Earlier all-route-503 and schema-only statements below are historical.

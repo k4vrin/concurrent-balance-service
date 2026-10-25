@@ -1,8 +1,35 @@
+> Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) and opt-in credit are verified with 351 portable and 134 SQL Server tests, zero failures/errors/skips. Transfer remains unavailable until CBS14. Earlier implementation-status statements below retain their historical scope.
+
 # Accepted application architecture
 
 [فارسی](../fa/Architecture.md) · [ADR-008](../adr/ADR-008-application-architecture.en.md) · [Ledger](Ledger.md) · [Transaction protocol](Transaction-protocol.md)
 
+[Tutorial: hexagonal architecture, ports and adapters](Hexagonal-architecture.md)
+
 Accepted by the project owner on 2026-10-23. This records the architecture and examples requested in the discussion. Package names, responsibilities and dependency direction are the accepted blueprint; the listed future class names are illustrative targets, not an instruction to generate empty layers. Current implementation consists of the bootstrap, unimplemented BalanceService scaffold, tested Money value/arithmetic and immutable Account/AccountId with AccountCategory balance-sign policy. Persistence, financial endpoints and modular-boundary enforcement remain unimplemented.
+
+## Current operation packages
+
+The original flat folders made request parsing, response mapping and credit execution difficult to browse. For example, `StrictAmountDeserializer` belongs with request DTOs, while `CreditStore` belongs with the credit use case. The implementation now groups those responsibilities under the existing operation feature.
+
+| Package under `operation` | Responsibility |
+| --- | --- |
+| `web` | `BalanceController`, the entry point for the four HTTP routes |
+| `web.request` | Request DTOs, strict JSON deserializers and HTTP field conversion |
+| `web.response` | Response DTOs, the sealed body family, outcome mapping and retained credit/debit JSON encoding |
+| `web.error` | Global exception advice and problem detail construction |
+| `web.configuration` | Strict JSON configuration and staged application wiring |
+| `application` | `BalanceOperations` public boundary and the original `BalanceService` scaffold |
+| `application.command` | Credit/debit/transfer intent and structural command validation |
+| `application.credit` | Credit handler, attempt context, store port and response encoder port |
+| `application.debit` | Debit handler, attempt context, store port and response encoder port |
+| `application.identity` | Canonical caller intent and versioned fingerprint encoding |
+| `application.policy` | Currency and amount policy, retained funding selection and policy identity validation |
+| `application.execution` | Transaction ownership and duplicate-operation signal |
+| `application.result` | Mutation outcome, retained response and application failure |
+
+Tests follow the corresponding responsibility packages. SQL Server integration tests remain together under `infrastructure.sqlserver` because they verify complete persistence flows. The sealed response interface and all its implementations remain in `web.response`, as required for sealed types in this unnamed Java module. Small helpers used across these packages expose their existing methods explicitly; constructors stay private. This is a source-package refactor, with no endpoint, JSON, transaction or schema changes. See [implementation status](Implementation-status.md) for current behavior and evidence. The tree below is the original architectural blueprint, rather than an inventory of current files.
+
 
 ## Shape and consistency boundary
 

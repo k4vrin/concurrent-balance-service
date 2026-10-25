@@ -2,6 +2,11 @@ package dev.kavrin.balance.operation.application;
 
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.money.Money;
+import dev.kavrin.balance.operation.application.command.CreditCommand;
+import dev.kavrin.balance.operation.application.command.DebitCommand;
+import dev.kavrin.balance.operation.application.command.TransferCommand;
+import dev.kavrin.balance.operation.application.result.MutationResult;
+import dev.kavrin.balance.operation.application.result.OperationFailure;
 
 /**
  * Application boundary used by HTTP controllers for balance mutations and lookup.

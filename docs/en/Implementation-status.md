@@ -1,5 +1,12 @@
 # Implementation status
 
+## CBS13 durable debit and fresh SQL Server regression, 2026-10-25
+
+[Debit execution and evidence](Debit-execution.md) records the explicit debit handler/store/encoder slice and HTTP wiring. Exact funds succeed; insufficient funds commits its original rejection without history, even when a later credit makes funds sufficient. Replay precedes current policy, and global-ID payload/account/type conflicts add no effects. All successful history/projections/retained response share the coordinator's transaction. Transfer remains unavailable and CBS14 is deliberately excluded.
+
+The full Java 21 offline Maven SQL Server profile passed 351 portable and 134 real SQL Server tests, zero failures/errors/skips, in 31.235 seconds. New coverage is 26 portable cases and 14 debit database cases, including real blocked-account timeout, post-write failure rollback, same-ID retry, independent reconciliation and pool/context recreation. Existing credit and AccountStore tuple/named-binding regressions passed. Earlier startup/pre-login failures are recorded in the debit guide; restarting the existing container restored health without image, volume, settings or permission changes. No formal learner acceptance is inferred. General retry/uncertain-commit, auth and mixed-operation gates remain open.
+
+
 ## Journal documentation and debit preparation, 2026-10-25
 
 Added Javadoc for `Journal`, its constructor and every projection helper. New portable journal cases check debit projections for 100 and exact-funds 500 rials, rejection of a negative final customer balance and unchanged input snapshots. Added `DebitAttempt` as an execution-context record and reformatted `CreditAttempt`; no debit handler, persistence adapter or HTTP execution is introduced.

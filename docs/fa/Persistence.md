@@ -1,3 +1,5 @@
+> به‌روزرسانی CBS13، ۲۰۲۶-۱۰-۲۵: [debit ماندگار](Debit-execution.md) و credit با فعال‌سازی صریح، با ۳۵۱ تست مستقل و ۱۳۴ تست SQL Server و صفر failure/error/skip تأیید شده‌اند. انتقال تا CBS14 unavailable می‌ماند. گفته‌های قبلی دربارهٔ وضعیت اجرا در ادامه دامنهٔ تاریخی خود را دارند.
+
 > به‌روزرسانی credit در CBS11–12، ۲۰۲۶-۱۰-۲۴: [credit ماندگار](Credit-execution.md) اکنون با فعال‌سازی صریح سیاست کار می‌کند. history/projection/outcome متوازن را commit و بایت موفقیت/رد اصلی را برمی‌گرداند؛ debit/transfer همان fallback با 503 هستند. وضعیت unavailable یا فقط adapter در بخش‌های قبلی شاهد تاریخی است.
 
 # نگاشت persistence، fixture افتتاحیه و خواندن موجودی
@@ -18,6 +20,12 @@ route موجودی اکنون projection مرجع حساب را از SQL Server 
 | OpeningFixture | افتتاحیهٔ داخلی اتمیک فقط در تست، با transaction manager واقعی JPA، محاسبهٔ دامنهٔ journal و اختیار runtime؛ bean تولید یا endpoint عمومی نیست. |
 
 UUID به uniqueidentifier، ارز صریحاً به nchar(3)، متن Unicode ذخیره‌شده به nvarchar، hash به binary(32)، payload به varbinary(max) و زمان UTC دیتابیس به LocalDateTime نگاشت می‌شود. ستون زمانی طبق قرارداد UTC است؛ LocalDateTime به‌تنهایی timezone ندارد. شناسهٔ SQL و value type دامنه جدا می‌مانند. schema validation واقعی هنگام startup و round trip committed این انتخاب‌ها را می‌سنجند.
+
+### ساختار queryهای AccountStore
+
+`AccountStore` متن query موجودی JPQL و SQL بومی قفل را در constantهای مشخص نگه می‌دارد. هر دو query پارامتر `accountId` را با نام bind می‌کنند و از hint یکسان timeout دوثانیه‌ای استفاده می‌کنند. `BalanceProjection` پیش از ساخت `Money`، مقدارهای `Tuple` را با alias و نوع مشخص می‌خواند؛ دسترسی موقعیتی به `Object[]` حذف شده است. `lockAccount` مسئول lookup نقطه‌ای و refresh است و `requireWritableTransaction` مسیر نوشتن را کنترل می‌کند. JavaDoc متدهای عمومی مالکیت تراکنش توسط caller، حساب غایب، ترتیب map و entityهای مدیریت‌شدهٔ خروجی را توضیح می‌دهد.
+
+این تغییر خوانایی adapter را بهتر می‌کند. تست‌های موجود SQL Server، استعلام projection، طول عمر قفل، ترتیب و refresh دادهٔ قدیمی را پوشش می‌دهند؛ اجرای تست‌های مستقل از زیرساخت به‌تنهایی درستی binding و mapping جدید را روی SQL Server ثابت نمی‌کند.
 
 ## مسیر خواندن
 

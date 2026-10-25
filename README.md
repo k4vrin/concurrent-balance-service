@@ -85,6 +85,8 @@ OTP transfer confirmation, Redis replay caching, Kafka/outbox events, Debezium C
 
 ## Learn the design
 
+- [Durable debit, insufficient funds and SQL Server evidence](docs/en/Debit-execution.md)
+- [Hexagonal architecture, ports and adapters through this project](docs/en/Hexagonal-architecture.md)
 - [Why canonical requests and fingerprints are separate](docs/en/Canonical-design.md)
 - [Double-entry ledger and account categories](docs/en/Ledger.md)
 - [Journal calculation and balance projections](docs/en/Journal-projection.md)

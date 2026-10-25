@@ -1,5 +1,12 @@
 # وضعیت پیاده‌سازی
 
+## debit ماندگار CBS13 و regression تازهٔ SQL Server، ۲۰۲۶-۱۰-۲۵
+
+[اجرای debit و شواهد](Debit-execution.md) مسیر صریح handler/store/encoder و اتصال HTTP را ثبت می‌کند. برداشت دقیق موجودی موفق است؛ کسری وجه رد اصلی را بدون history commit می‌کند، حتی اگر credit بعدی وجه کافی فراهم کند. replay پیش از سیاست فعلی است و تعارض مبلغ/حساب/نوع عملیات با ID سراسری اثر اضافه ندارد. تاریخچه، projectionها و پاسخ ماندگار موفقیت در تراکنش coordinator مشترک‌اند. انتقال unavailable مانده و CBS14 آگاهانه خارج از این تغییر است.
+
+اجرای کامل profile آفلاین SQL Server با Java 21، تعداد ۳۵۱ تست مستقل و ۱۳۴ تست واقعی SQL Server را در ۳۱٫۲۳۵ ثانیه با صفر failure/error/skip گذراند. پوشش جدید شامل ۲۶ حالت مستقل و ۱۴ حالت دیتابیس debit است: timeout واقعی حساب مسدود، rollback پس از نوشتن، retry همان ID، reconciliation مستقل و بازسازی pool/context. regressionهای موجود credit و binding نام‌دار و Tuple در AccountStore هم گذشتند. شکست‌های startup/pre-login در راهنمای debit ثبت شده‌اند؛ restart همان کانتینر بدون تغییر image، volume، تنظیمات یا permission سلامت را برگرداند. پذیرش رسمی یادگیری از این اجرا نتیجه نمی‌شود. retry/recovery جامع، auth و gateهای عملیات ترکیبی باز هستند.
+
+
 ## مستندات Journal و آماده‌سازی debit، ۲۰۲۶-۱۰-۲۵
 
 برای `Journal`، سازنده و همهٔ helperهای projection، Javadoc اضافه شد. تست‌های قابل‌حمل تازه، projection برداشت ۱۰۰ ریال و برداشت کل موجودی ۵۰۰ ریال، رد موجودی نهایی منفی مشتری و تغییرنکردن snapshotهای ورودی را بررسی می‌کنند. `DebitAttempt` به‌عنوان record زمینهٔ اجرا اضافه و قالب `CreditAttempt` مرتب شد؛ handler، adapter ذخیره‌سازی یا اجرای HTTP مربوط به debit اضافه نشده است.

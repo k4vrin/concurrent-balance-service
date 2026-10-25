@@ -1,3 +1,5 @@
+> Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) is implemented alongside opt-in credit and authoritative balance lookup. Transfer remains unavailable until CBS14. Full verification passed 351 portable plus 134 real SQL Server tests, zero failures/errors/skips. Earlier pending/unavailable statements below are historical.
+
 # V1 ledger design
 
 [فارسی](../fa/Ledger.md) · [Accepted ADR-007](../adr/ADR-007-double-entry-ledger.en.md) · [Constraint review](Database-review.md) · [Debit and credit across account types](Debit-and-credit.md) · [Journal and projection walkthrough](Journal-projection.md)

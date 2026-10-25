@@ -1,6 +1,6 @@
 package dev.kavrin.balance.operation.infrastructure.configuration;
 
-import dev.kavrin.balance.operation.application.ExecutionPolicy;
+import dev.kavrin.balance.operation.application.policy.ExecutionPolicy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

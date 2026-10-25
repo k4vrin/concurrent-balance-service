@@ -1,3 +1,5 @@
+> Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) is implemented alongside opt-in credit and authoritative balance lookup. Transfer remains unavailable until CBS14. Full verification passed 351 portable plus 134 real SQL Server tests, zero failures/errors/skips. Earlier pending/unavailable statements below are historical.
+
 # Journal record and balance projection walkthrough
 
 [فارسی](../fa/Journal-projection.md) · [Ledger design](Ledger.md) · [Debit and credit](Debit-and-credit.md)

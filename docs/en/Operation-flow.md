@@ -1,3 +1,5 @@
+> Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) is implemented alongside opt-in credit and authoritative balance lookup. Transfer remains unavailable until CBS14. Full verification passed 351 portable plus 134 real SQL Server tests, zero failures/errors/skips. Earlier pending/unavailable statements below are historical.
+
 > Current persistence update: [CBS10 evidence](Persistence.md) now verifies JPA mappings, committed opening fixtures and the SQL Server balance route. Mutations remain unavailable. Earlier all-route-503 and schema-only statements below are historical.
 
 # Operation walkthrough: from JSON to HTTP response
@@ -56,7 +58,7 @@ Credit, debit and transfer share one planned transaction-ID namespace. Changing 
 
 ## 3. Deserialization: preserve what the caller actually sent
 
-[AmountRequest](../../src/main/java/dev/kavrin/balance/operation/web/AmountRequest.java) contains transactionId, amountRial and currency. [TransferRequest](../../src/main/java/dev/kavrin/balance/operation/web/TransferRequest.java) adds sourceAccountId and destinationAccountId. Both are immutable HTTP records, separate from application commands and persistence entities.
+[AmountRequest](../../src/main/java/dev/kavrin/balance/operation/web/request/AmountRequest.java) contains transactionId, amountRial and currency. [TransferRequest](../../src/main/java/dev/kavrin/balance/operation/web/request/TransferRequest.java) adds sourceAccountId and destinationAccountId. Both are immutable HTTP records, separate from application commands and persistence entities.
 
 `amountRial` names the unit: 100 means 100 rials directly, without multiplying by 100 or interpreting it as tomans. `currency` accompanies the amount into `Money`. The initial execution policy remains IRR. Recognizing another currency code in the parser does not enable that currency; review units and this API before enabling more currencies.
 
@@ -74,13 +76,13 @@ Jackson builds the DTO before Bean Validation examines it. That is why validatio
 | `"transactionId": 123` | StrictTextDeserializer rejects numeric-to-string conversion |
 | `"transactionId": "Tx-001"` | Text token accepted; TransactionId later validates its contents |
 
-[StrictAmountDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/StrictAmountDeserializer.java) requires `VALUE_NUMBER_INT` and calls `getLongValue()`. [StrictTextDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/StrictTextDeserializer.java) requires `VALUE_STRING` and preserves its contents. They check representation, not account existence, funds or currency admission.
+[StrictAmountDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/request/StrictAmountDeserializer.java) requires `VALUE_NUMBER_INT` and calls `getLongValue()`. [StrictTextDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/request/StrictTextDeserializer.java) requires `VALUE_STRING` and preserves its contents. They check representation, not account existence, funds or currency admission.
 
-[HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/HttpAdapterConfiguration.java) also configures the application JSON mapper to reject duplicate keys, unknown fields and trailing JSON values. For example, two amountRial keys cannot silently select different amounts. @Valid on the controller body activates the DTO constraints. Parsing and required-field failures produce 400 before `BalanceOperations` is called.
+[HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) also configures the application JSON mapper to reject duplicate keys, unknown fields and trailing JSON values. For example, two amountRial keys cannot silently select different amounts. @Valid on the controller body activates the DTO constraints. Parsing and required-field failures produce 400 before `BalanceOperations` is called.
 
 ## 4. Conversion: turn transport values into domain values
 
-[RequestValues](../../src/main/java/dev/kavrin/balance/operation/web/RequestValues.java) owns the HTTP-to-domain conversion helpers:
+[RequestValues](../../src/main/java/dev/kavrin/balance/operation/web/request/RequestValues.java) owns the HTTP-to-domain conversion helpers:
 
 | Helper | Job |
 | --- | --- |
@@ -91,7 +93,7 @@ Jackson builds the DTO before Bean Validation examines it. That is why validatio
 
 UUID shape checking precedes UUID parsing because shortened groups must not be accepted at this boundary. Hexadecimal case is accepted; account identity is the UUID value. Transaction IDs require 1–128 ASCII letters, digits, `.`, `_`, `:` or `-`. `Tx-001` and `tx-001` are distinct. Currency syntax must be recognized by `Currency.getInstance`, for example IRR; an unrecognized code fails here.
 
-[InvalidRequest](../../src/main/java/dev/kavrin/balance/operation/web/InvalidRequest.java) is a transport exception marker. Advice converts it to a sanitized 400. RequestValues does not wrap the application call, so an unexpected IllegalArgumentException from an application implementation is not automatically mislabeled as invalid client input.
+[InvalidRequest](../../src/main/java/dev/kavrin/balance/operation/web/request/InvalidRequest.java) is a transport exception marker. Advice converts it to a sanitized 400. RequestValues does not wrap the application call, so an unexpected IllegalArgumentException from an application implementation is not automatically mislabeled as invalid client input.
 
 The example becomes this application input; the snippet constructs values only:
 
@@ -110,13 +112,13 @@ Supporting value types: [TransactionId](../../src/main/java/dev/kavrin/balance/o
 
 ## 5. Commands: validate intent independently of HTTP
 
-[CreditCommand](../../src/main/java/dev/kavrin/balance/operation/application/CreditCommand.java), [DebitCommand](../../src/main/java/dev/kavrin/balance/operation/application/DebitCommand.java) and [TransferCommand](../../src/main/java/dev/kavrin/balance/operation/application/TransferCommand.java) are framework-free immutable application records. All require IDs and positive Money. Transfer additionally requires distinct AccountId values. Separate wrappers around the same UUID still describe the same account and fail the self-transfer check.
+[CreditCommand](../../src/main/java/dev/kavrin/balance/operation/application/command/CreditCommand.java), [DebitCommand](../../src/main/java/dev/kavrin/balance/operation/application/command/DebitCommand.java) and [TransferCommand](../../src/main/java/dev/kavrin/balance/operation/application/command/TransferCommand.java) are framework-free immutable application records. All require IDs and positive Money. Transfer additionally requires distinct AccountId values. Separate wrappers around the same UUID still describe the same account and fail the self-transfer check.
 
-[CommandValidation](../../src/main/java/dev/kavrin/balance/operation/application/CommandValidation.java) shares the non-null positive-amount rule. Domain Money itself permits zero and signed values because other domain calculations need them. A positive mutation is a command rule, not a universal Money rule.
+[CommandValidation](../../src/main/java/dev/kavrin/balance/operation/application/command/CommandValidation.java) shares the non-null positive-amount rule. Domain Money itself permits zero and signed values because other domain calculations need them. A positive mutation is a command rule, not a universal Money rule.
 
 DTO constraints protect the HTTP boundary; command constructors protect other Java callers too. Neither checks account existence, authorization, available funds or resulting balance overflow. Long.MAX_VALUE is representable input, not an approved business cap.
 
-[SupportedCurrencies](../../src/main/java/dev/kavrin/balance/operation/application/SupportedCurrencies.java) is an immutable supplied policy snapshot. It checks membership, with no hardcoded supported set in the commands. Its configuration/database loader and runtime application are pending. The future coordinator must resolve an existing outcome before applying current currency admission to a new operation. Disabling a currency must not change the recorded result of an identical retry.
+[SupportedCurrencies](../../src/main/java/dev/kavrin/balance/operation/application/policy/SupportedCurrencies.java) is an immutable supplied policy snapshot. It checks membership, with no hardcoded supported set in the commands. Its configuration/database loader and runtime application are pending. The future coordinator must resolve an existing outcome before applying current currency admission to a new operation. Disabling a currency must not change the recorded result of an identical retry.
 
 CBS06 now adds [CanonicalRequest, CanonicalFingerprint and FundingSelection](Canonical-request.md). They encode typed intent, preserve exact actor binding when present and separately bind retained funding metadata. These pure values are implemented; the controller does not call them yet and replay/storage remain planned.
 
@@ -192,7 +194,7 @@ This snippet constructs metadata only. It does not create the journal, execute t
 | `Rejected(TransactionId, OperationType, RejectionReason)` | Selected terminal business rejection to retain without monetary writes |
 | [OperationType](../../src/main/java/dev/kavrin/balance/operation/domain/OperationType.java) | CREDIT, DEBIT, TRANSFER and internal OPENING; OPENING has no public route |
 | [RejectionReason](../../src/main/java/dev/kavrin/balance/operation/domain/RejectionReason.java) | ACCOUNT_NOT_FOUND, INSUFFICIENT_FUNDS or BALANCE_OVERFLOW |
-| [MutationResult](../../src/main/java/dev/kavrin/balance/operation/application/MutationResult.java) | Pair the original outcome with its original currency for transport mapping |
+| [MutationResult](../../src/main/java/dev/kavrin/balance/operation/application/result/MutationResult.java) | Pair the original outcome with its original currency for transport mapping |
 
 Suppose the same transfer asks for 100 but A contains only 50. The future evaluator should select Rejected with INSUFFICIENT_FUNDS. Its transaction must commit the operation identity, canonical input and original rejection response, with no projection changes, journal or postings. A normal rejection return lets that record commit. Throwing a business exception from the financial callback could roll back the rejection record too.
 
@@ -200,14 +202,14 @@ By contrast, a technical exception must escape the financial attempt to trigger 
 
 ## 9. Sealed HTTP response bodies
 
-[OperationResponses](../../src/main/java/dev/kavrin/balance/operation/web/OperationResponses.java) exhaustively switches on the supplied domain outcome. It translates business meaning into HTTP representation:
+[OperationResponses](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponses.java) exhaustively switches on the supplied domain outcome. It translates business meaning into HTTP representation:
 
 ```text
 OperationOutcome.Success  → OperationResponse → HTTP 200
 OperationOutcome.Rejected → OperationProblem  → HTTP 404 or 409
 ```
 
-[OperationResponseBody](../../src/main/java/dev/kavrin/balance/operation/web/OperationResponseBody.java) is a different sealed family from OperationOutcome. Its permitted implementations are [OperationResponse](../../src/main/java/dev/kavrin/balance/operation/web/OperationResponse.java), an immutable success DTO, and [OperationProblem](../../src/main/java/dev/kavrin/balance/operation/web/OperationProblem.java), a final ProblemDetail subclass. Controller mutation methods therefore return `ResponseEntity<OperationResponseBody>` rather than a wildcard. ResponseEntity carries the status, headers and typed body.
+[OperationResponseBody](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponseBody.java) is a different sealed family from OperationOutcome. Its permitted implementations are [OperationResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponse.java), an immutable success DTO, and [OperationProblem](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationProblem.java), a final ProblemDetail subclass. Controller mutation methods therefore return `ResponseEntity<OperationResponseBody>` rather than a wildcard. ResponseEntity carries the status, headers and typed body.
 
 OperationProblem copies the standard problem and adds transaction metadata. Its standard fields and extensions serialize exactly like the original ProblemDetail, with extensions at the top level. No wrapper or JSON type discriminator is introduced. Exceptions handled by advice still have their own ProblemDetail path; the sealed family restricts normal mutation returns, not every possible server response.
 
@@ -242,9 +244,9 @@ These are contract examples, not responses from working financial handlers. Succ
 
 ## 10. Failure branches and replay
 
-[ApiProblems](../../src/main/java/dev/kavrin/balance/operation/web/ApiProblems.java) builds sanitized ProblemDetail values and maps terminal rejection reasons to statuses. [ApiExceptionHandler](../../src/main/java/dev/kavrin/balance/operation/web/ApiExceptionHandler.java) handles invalid transport values, framework failures and application exceptions. It is global because method/media negotiation may fail before controller selection.
+[ApiProblems](../../src/main/java/dev/kavrin/balance/operation/web/error/ApiProblems.java) builds sanitized ProblemDetail values and maps terminal rejection reasons to statuses. [ApiExceptionHandler](../../src/main/java/dev/kavrin/balance/operation/web/error/ApiExceptionHandler.java) handles invalid transport values, framework failures and application exceptions. It is global because method/media negotiation may fail before controller selection.
 
-[OperationFailure](../../src/main/java/dev/kavrin/balance/operation/application/OperationFailure.java) is separate from terminal domain rejections. Its reasons are ACCOUNT_NOT_FOUND for a missing balance lookup, TRANSACTION_ID_CONFLICT, UNSUPPORTED_CURRENCY and UNAVAILABLE. They do not themselves create retained terminal operation records.
+[OperationFailure](../../src/main/java/dev/kavrin/balance/operation/application/result/OperationFailure.java) is separate from terminal domain rejections. Its reasons are ACCOUNT_NOT_FOUND for a missing balance lookup, TRANSACTION_ID_CONFLICT, UNSUPPORTED_CURRENCY and UNAVAILABLE. They do not themselves create retained terminal operation records.
 
 | Branch for our example | HTTP result | Financial consequence |
 | --- | --- | --- |
@@ -266,7 +268,7 @@ A 503, 500 or lost response cannot establish that a future transaction failed to
 
 Credit and debit use AmountRequest because the customer account comes from the path. The server must later choose the funding counterpart; adding a counterpart field would currently fail unknown-property validation. They use their own CreditCommand/DebitCommand, allowing operation-type conflict checks to distinguish otherwise similar inputs.
 
-Balance lookup parses AccountId and calls `BalanceOperations.balance`, then maps Money into [BalanceResponse](../../src/main/java/dev/kavrin/balance/operation/web/BalanceResponse.java): accountId, balanceRial and currency. It does not use OperationOutcome, MutationResult or the sealed mutation response family. A missing account maps to 404 instead of zero. With a future committed projection A=900, a balance response would report 900; a replayed mutation acknowledgment still reports its original result, not a refreshed balance.
+Balance lookup parses AccountId and calls `BalanceOperations.balance`, then maps Money into [BalanceResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/BalanceResponse.java): accountId, balanceRial and currency. It does not use OperationOutcome, MutationResult or the sealed mutation response family. A missing account maps to 404 instead of zero. With a future committed projection A=900, a balance response would report 900; a replayed mutation acknowledgment still reports its original result, not a refreshed balance.
 
 ## 12. How to verify and continue
 

@@ -1,5 +1,23 @@
 # وضعیت پیاده‌سازی
 
+## خوانایی credit و نگاشت ذخیره‌سازی، ۲۰۲۶-۱۰-۲۵
+
+کلاس `CreditHandler` به گام‌های روشن replay، آماده‌سازی، اجرا و بازیابی، و ساخت journal و projection بازآرایی شد. `JpaCreditStore` اکنون SQL را با text block و پارامترهای نام‌دار می‌نویسد، ردیف replay را با نام ستون‌ها به record خصوصی و نوع‌دار نگاشت می‌کند و برای وضعیت completion از switch کامل استفاده می‌کند. مسیر credit Javadoc دارد و هر دو [راهنمای کلاس‌ها](Credit-class-walkthrough.md) به‌روز شدند. این بازآرایی schema، ترتیب قفل‌ها، مرز تراکنش و ترتیب نوشتن و flush را حفظ می‌کند.
+
+اجرای verify با Java 21 و Maven wrapper، با گزینهٔ مستند پوشهٔ Unix-domain socket در workspace، هر ۳۲۲ تست قابل‌حمل را بدون failure، error یا skip در 29.746 ثانیه گذراند؛ اجرای ساده به‌دلیل همان مشکل شناخته‌شدهٔ JDK ویندوز سه خطای smoke داشت. اجرای جداگانهٔ `SqlServerCreditIT` در آماده‌سازی fixture به‌دلیل نبود `SQLSERVER_INITIALIZER_TEST_URL` شکست خورد. هیچ مورد رگرسیون SQL Server واقعی برای این بازآرایی پاس نشده است؛ بررسی نگاشت native و binding پارامترها گام بعدی، پیش از کار روی debit و transfer، است. نتایج قبلی دیتابیس در ادامه شواهد تاریخی‌اند.
+
+## پوشش مستقل CreditHandler، ۲۰۲۶-۱۰-۲۵
+
+۱۶ مورد در `CreditHandlerTests` اضافه شد که بدون دیتابیس اجرا می‌شوند. handler، coordinator و محاسبات دامنه واقعی‌اند؛ رابط‌های ذخیره‌سازی و ساخت پاسخ mock هستند و یک transaction manager رویدادهای Spring را ثبت می‌کند. پوشش شامل موفقیت در سقف مانده، replay موفقیت و رد پیش از سیاست غیرفعال‌شدن ارز، تعارض یا خرابی replay، ارز پشتیبانی‌نشده برای درخواست تازه، سه رد نهایی، سرریز funding، خرابی در سه مرحلهٔ ذخیره‌سازی، خطای commit و بازیابی رزرو تکراری با نتیجهٔ قابل‌مشاهده یا بدون آن است. کد production و مجموعهٔ SQL Server تغییری نکردند. [گردش‌کار](Workflow.md) چرخه‌های مستقل و integration را توضیح می‌دهد.
+
+در ویندوز با Java 21.0.12.1، فرمان نهایی هر ۳۲۲ تست را بدون failure، error یا skip در 25.489 ثانیه گذراند:
+
+```powershell
+.\mvnw.cmd -o -B -ntp "-DargLine=-Djdk.net.unixdomain.tmpdir=D:/Projects/concurrent-balance-service/target" verify
+```
+
+تلاش نخست در sandbox اجازهٔ نوشتن قفل cache Maven را نداشت. نخستین اجرای مجموعه، دو انتظار نادرست در تست‌های تازه دربارهٔ علامت ماندهٔ funding با ماهیت بدهکار را آشکار کرد؛ هر دو اصلاح شدند. اجرای بعدی ۱۶ تست تازه را گذراند، اما سه تست smoke موجود به‌دلیل خطای اتصال محلی Unix-domain socket در JDK، هنگام ساخت context خطا دادند. انتخاب IPv4 مشکل را حل نکرد؛ تعیین پوشهٔ socket در workspace ابتدا سه تست smoke و سپس بررسی کامل را موفق کرد. هیچ تستی از اجرا حذف نشد. تست‌های integration مربوط به SQL Server برای این تغییر تست و مستندات اجرا نشدند. این شواهد، تصمیم‌های لایهٔ کاربرد و مدیریت چرخهٔ تراکنش Spring را بررسی می‌کنند؛ قفل، دوام یا rollback دیتابیس را ثابت نمی‌کنند. محدودیت‌های قبلی SQL Server در بخش‌های بعدی همچنان بازند.
+
 ## assembly مربوط به smoke و وضعیت بررسی، ۲۰۲۶-۱۰-۲۵
 
 همهٔ شرط‌های `@Profile("!smoke")` از production حذف شدند. `HttpSmokeConfiguration` مستقل در source تست فقط مرز HTTP را import می‌کند. تست حتی با execution فعال، نبودن beanهای مالی و persistence را بررسی می‌کند. تست coordinator و سیاست هم رفتار عادی dependency و property را مستقل از profile آزمایشی بررسی می‌کنند. [راهنمای کلاس‌ها](Credit-class-walkthrough.md) مسئولیت کلاس‌ها، funding، هویت و جریان موفقیت، خطا و replay را توضیح می‌دهد.

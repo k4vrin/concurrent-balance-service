@@ -16,8 +16,10 @@ import dev.kavrin.balance.operation.application.StoredResponse;
 import dev.kavrin.balance.operation.domain.OperationOutcome;
 import dev.kavrin.balance.operation.domain.OperationType;
 import dev.kavrin.balance.operation.domain.RejectionReason;
+import dev.kavrin.balance.operation.domain.TransactionId;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import jakarta.persistence.Tuple;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Currency;
@@ -30,9 +32,51 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+/**
+ * SQL Server implementation of the credit persistence port. Native writes retain explicit
+ * reservation/completion predicates and ordering; managed accounts supply balance projections.
+ * Named SQL parameters and a typed replay row keep positional database details out of the flow.
+ */
 @Repository
 @ConditionalOnProperty(prefix = "balance.execution", name = "enabled", havingValue = "true")
 public class JpaCreditStore implements CreditStore {
+    private static final int QUERY_TIMEOUT_MILLIS = 2000;
+    private static final String TRANSACTION_ID_CONSTRAINT = "uq_operations_transaction_id";
+    private static final String FIND_OPERATION = """
+            SELECT canonical_format_version, canonical_request, operation_type, currency, state,
+                   rejection_reason, response_format_version, http_status, response_content_type, response_body
+            FROM dbo.operations
+            WHERE transaction_id = :transactionId
+            """;
+    private static final String RESERVE_OPERATION = """
+            INSERT dbo.operations (
+                operation_id, transaction_id, operation_type, destination_account_id, amount, currency,
+                canonical_format_version, canonical_request, canonical_fingerprint, execution_policy_version,
+                funding_account_id, funding_policy_version, funded_fingerprint, state
+            ) VALUES (
+                CAST(:operationId AS uniqueidentifier), :transactionId, 'CREDIT',
+                CAST(:accountId AS uniqueidentifier), :amount, :currency,
+                :canonicalVersion, :canonicalRequest, :canonicalFingerprint, :executionPolicyVersion,
+                CAST(:fundingAccountId AS uniqueidentifier), :fundingPolicyVersion, :fundedFingerprint, 'PENDING'
+            )
+            """;
+    private static final String INSERT_JOURNAL = """
+            INSERT dbo.journals (journal_id, operation_id, currency)
+            VALUES (CAST(:journalId AS uniqueidentifier), CAST(:operationId AS uniqueidentifier), :currency)
+            """;
+    private static final String INSERT_POSTING = """
+            INSERT dbo.postings (journal_id, line_number, account_id, currency, side, amount)
+            VALUES (CAST(:journalId AS uniqueidentifier), :lineNumber,
+                    CAST(:accountId AS uniqueidentifier), :currency, :side, :amount)
+            """;
+    private static final String COMPLETE_OPERATION = """
+            UPDATE dbo.operations
+            SET state = :state, rejection_reason = CAST(:rejectionReason AS varchar(64)),
+                completed_at = SYSUTCDATETIME(), response_format_version = :responseVersion,
+                http_status = :httpStatus, response_content_type = :contentType, response_body = :body
+            WHERE operation_id = CAST(:operationId AS uniqueidentifier) AND state = 'PENDING'
+            """;
+
     private final EntityManager entities;
     private final AccountStore accounts;
 
@@ -44,26 +88,19 @@ public class JpaCreditStore implements CreditStore {
     @Override
     public Optional<MutationResult> replay(CreditCommand command, CanonicalFingerprint canonical) {
         requireTransaction();
-        var rows = query("SELECT canonical_format_version,canonical_request,operation_type,currency,state,rejection_reason,"
-                + "response_format_version,http_status,response_content_type,response_body FROM dbo.operations WHERE transaction_id=?")
-                .setParameter(1, command.transactionId().value()).getResultList();
-        if (rows.isEmpty()) { return Optional.empty(); }
-        var row = (Object[]) rows.getFirst();
-        if (((Number) row[0]).intValue() != canonical.version()) {
-            throw new IllegalStateException("Unsupported stored canonical version");
-        }
-        if (!Arrays.equals((byte[]) row[1], canonical.bytes())) {
-            throw new OperationFailure(OperationFailure.Reason.TRANSACTION_ID_CONFLICT);
-        }
-        var type = OperationType.valueOf((String) row[2]);
-        OperationOutcome outcome = switch ((String) row[4]) {
-            case "SUCCEEDED" -> new OperationOutcome.Success(command.transactionId(), type);
-            case "REJECTED" -> new OperationOutcome.Rejected(command.transactionId(), type, RejectionReason.valueOf((String) row[5]));
-            default -> throw new IllegalStateException("Committed operation has no terminal outcome");
-        };
-        var response = new StoredResponse(((Number) row[6]).intValue(), ((Number) row[7]).intValue(),
-                (String) row[8], (byte[]) row[9]);
-        return Optional.of(new MutationResult(outcome, Currency.getInstance((String) row[3]), Optional.of(response)));
+        return findStoredOperation(command.transactionId()).map(stored -> {
+            // ADR-010: compare full caller intent before decoding the retained outcome/response.
+            stored.requireMatching(canonical);
+            return stored.toResult(command.transactionId());
+        });
+    }
+
+    /** Maps native column labels at one boundary; SQL and driver types still require SQL Server verification. */
+    private Optional<StoredOperation> findStoredOperation(TransactionId transactionId) {
+        List<?> rows = entities.createNativeQuery(FIND_OPERATION, Tuple.class)
+                .setHint("jakarta.persistence.query.timeout", QUERY_TIMEOUT_MILLIS)
+                .setParameter("transactionId", transactionId.value()).getResultList();
+        return rows.isEmpty() ? Optional.empty() : Optional.of(StoredOperation.from(Tuple.class.cast(rows.getFirst())));
     }
 
     @Override
@@ -72,24 +109,23 @@ public class JpaCreditStore implements CreditStore {
         var command = attempt.command();
         var canonical = attempt.canonical().fingerprint();
         try {
-            query("INSERT dbo.operations (operation_id,transaction_id,operation_type,destination_account_id,amount,currency,"
-                    + "canonical_format_version,canonical_request,canonical_fingerprint,execution_policy_version,funding_account_id,"
-                    + "funding_policy_version,funded_fingerprint,state) VALUES (CAST(? AS uniqueidentifier),?,'CREDIT',"
-                    + "CAST(? AS uniqueidentifier),?,?,?,?,?,?,CAST(? AS uniqueidentifier),?,?,'PENDING')")
-                    .setParameter(1, attempt.operationId().toString()).setParameter(2, command.transactionId().value())
-                    .setParameter(3, command.accountId().value().toString()).setParameter(4, command.amount().amount())
-                    .setParameter(5, command.amount().currency().getCurrencyCode()).setParameter(6, canonical.version())
-                    .setParameter(7, canonical.bytes()).setParameter(8, HexFormat.of().parseHex(canonical.sha256()))
-                    .setParameter(9, attempt.policy().version()).setParameter(10, attempt.funding().counterpartAccountId().value().toString())
-                    .setParameter(11, attempt.funding().policyVersion())
-                    .setParameter(12, HexFormat.of().parseHex(attempt.canonical().fundedFingerprint(attempt.funding()).sha256()))
+            query(RESERVE_OPERATION)
+                    .setParameter("operationId", attempt.operationId().toString())
+                    .setParameter("transactionId", command.transactionId().value())
+                    .setParameter("accountId", command.accountId().value().toString())
+                    .setParameter("amount", command.amount().amount())
+                    .setParameter("currency", command.amount().currency().getCurrencyCode())
+                    .setParameter("canonicalVersion", canonical.version())
+                    .setParameter("canonicalRequest", canonical.bytes())
+                    .setParameter("canonicalFingerprint", HexFormat.of().parseHex(canonical.sha256()))
+                    .setParameter("executionPolicyVersion", attempt.policy().version())
+                    .setParameter("fundingAccountId", attempt.funding().counterpartAccountId().value().toString())
+                    .setParameter("fundingPolicyVersion", attempt.funding().policyVersion())
+                    .setParameter("fundedFingerprint", HexFormat.of().parseHex(attempt.canonical().fundedFingerprint(attempt.funding()).sha256()))
                     .executeUpdate();
         } catch (RuntimeException failure) {
-            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-                if (cause instanceof SQLException sql && (sql.getErrorCode() == 2627 || sql.getErrorCode() == 2601)
-                        && sql.getMessage().contains("uq_operations_transaction_id")) {
-                    throw new DuplicateOperation(failure);
-                }
+            if (isTransactionIdConflict(failure)) {
+                throw new DuplicateOperation(failure);
             }
             throw failure;
         }
@@ -104,15 +140,17 @@ public class JpaCreditStore implements CreditStore {
     @Override
     public void appendJournal(CreditAttempt attempt, Journal journal) {
         requireTransaction();
-        query("INSERT dbo.journals (journal_id,operation_id,currency) VALUES (CAST(? AS uniqueidentifier),CAST(? AS uniqueidentifier),?)")
-                .setParameter(1, attempt.journalId().toString()).setParameter(2, attempt.operationId().toString())
-                .setParameter(3, attempt.command().amount().currency().getCurrencyCode()).executeUpdate();
+        query(INSERT_JOURNAL)
+                .setParameter("journalId", attempt.journalId().toString())
+                .setParameter("operationId", attempt.operationId().toString())
+                .setParameter("currency", attempt.command().amount().currency().getCurrencyCode()).executeUpdate();
         int line = 1;
         for (var posting : journal.postings()) {
-            query("INSERT dbo.postings (journal_id,line_number,account_id,currency,side,amount) VALUES (CAST(? AS uniqueidentifier),?,CAST(? AS uniqueidentifier),?,?,?)")
-                    .setParameter(1, attempt.journalId().toString()).setParameter(2, line++)
-                    .setParameter(3, posting.accountId().value().toString()).setParameter(4, posting.amount().currency().getCurrencyCode())
-                    .setParameter(5, posting.side().name()).setParameter(6, posting.amount().amount()).executeUpdate();
+            query(INSERT_POSTING)
+                    .setParameter("journalId", attempt.journalId().toString()).setParameter("lineNumber", line++)
+                    .setParameter("accountId", posting.accountId().value().toString())
+                    .setParameter("currency", posting.amount().currency().getCurrencyCode())
+                    .setParameter("side", posting.side().name()).setParameter("amount", posting.amount().amount()).executeUpdate();
         }
     }
 
@@ -126,18 +164,73 @@ public class JpaCreditStore implements CreditStore {
     @Override
     public void complete(CreditAttempt attempt, MutationResult result, StoredResponse response) {
         requireTransaction();
-        boolean rejected = result.outcome() instanceof OperationOutcome.Rejected;
-        var reason = rejected ? ((OperationOutcome.Rejected) result.outcome()).reason().name() : null;
-        int updated = query("UPDATE dbo.operations SET state=?,rejection_reason=CAST(? AS varchar(64)),completed_at=SYSUTCDATETIME(),response_format_version=?,"
-                + "http_status=?,response_content_type=?,response_body=? WHERE operation_id=CAST(? AS uniqueidentifier) AND state='PENDING'")
-                .setParameter(1, rejected ? "REJECTED" : "SUCCEEDED").setParameter(2, reason).setParameter(3, response.version())
-                .setParameter(4, response.status()).setParameter(5, response.contentType()).setParameter(6, response.body())
-                .setParameter(7, attempt.operationId().toString()).executeUpdate();
+        var completion = CompletionState.from(result.outcome());
+        int updated = query(COMPLETE_OPERATION)
+                .setParameter("state", completion.state()).setParameter("rejectionReason", completion.rejectionReason())
+                .setParameter("responseVersion", response.version()).setParameter("httpStatus", response.status())
+                .setParameter("contentType", response.contentType()).setParameter("body", response.body())
+                .setParameter("operationId", attempt.operationId().toString()).executeUpdate();
         if (updated != 1) { throw new IllegalStateException("Only a reserved operation can complete once"); }
     }
 
     private Query query(String sql) {
-        return entities.createNativeQuery(sql).setHint("jakarta.persistence.query.timeout", 2000);
+        return entities.createNativeQuery(sql).setHint("jakarta.persistence.query.timeout", QUERY_TIMEOUT_MILLIS);
+    }
+
+    /** Only the named request-identity constraint permits duplicate recovery; other integrity failures propagate. */
+    private static boolean isTransactionIdConflict(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sql && (sql.getErrorCode() == 2627 || sql.getErrorCode() == 2601)
+                    && sql.getMessage() != null && sql.getMessage().contains(TRANSACTION_ID_CONSTRAINT)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Converts the sealed outcome into the two database completion fields without a downcast. */
+    private record CompletionState(String state, String rejectionReason) {
+        static CompletionState from(OperationOutcome outcome) {
+            return switch (outcome) {
+                case OperationOutcome.Success success -> new CompletionState("SUCCEEDED", null);
+                case OperationOutcome.Rejected rejected -> new CompletionState("REJECTED", rejected.reason().name());
+            };
+        }
+    }
+
+    /** Raw persisted fields stay local until canonical identity and terminal outcome have been checked. */
+    private record StoredOperation(int canonicalVersion, byte[] canonicalRequest, String operationType,
+            String currency, String state, String rejectionReason, Number responseVersion, Number httpStatus,
+            String contentType, byte[] responseBody) {
+        static StoredOperation from(Tuple row) {
+            return new StoredOperation(
+                    row.get("canonical_format_version", Number.class).intValue(),
+                    row.get("canonical_request", byte[].class), row.get("operation_type", String.class),
+                    row.get("currency", String.class), row.get("state", String.class),
+                    row.get("rejection_reason", String.class), row.get("response_format_version", Number.class),
+                    row.get("http_status", Number.class), row.get("response_content_type", String.class),
+                    row.get("response_body", byte[].class));
+        }
+
+        void requireMatching(CanonicalFingerprint canonical) {
+            if (canonicalVersion != canonical.version()) {
+                throw new IllegalStateException("Unsupported stored canonical version");
+            }
+            if (!Arrays.equals(canonicalRequest, canonical.bytes())) {
+                throw new OperationFailure(OperationFailure.Reason.TRANSACTION_ID_CONFLICT);
+            }
+        }
+
+        MutationResult toResult(TransactionId transactionId) {
+            var type = OperationType.valueOf(operationType);
+            OperationOutcome outcome = switch (state) {
+                case "SUCCEEDED" -> new OperationOutcome.Success(transactionId, type);
+                case "REJECTED" -> new OperationOutcome.Rejected(transactionId, type, RejectionReason.valueOf(rejectionReason));
+                default -> throw new IllegalStateException("Committed operation has no terminal outcome");
+            };
+            var response = new StoredResponse(responseVersion.intValue(), httpStatus.intValue(), contentType, responseBody);
+            return new MutationResult(outcome, Currency.getInstance(currency), Optional.of(response));
+        }
     }
 
     private void requireTransaction() {

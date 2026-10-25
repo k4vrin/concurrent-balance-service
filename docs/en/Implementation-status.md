@@ -1,5 +1,23 @@
 # Implementation status
 
+## Credit readability and persistence mapping, 2026-10-25
+
+Refactored `CreditHandler` into explicit replay, preparation, execution/recovery and journal/projection helpers. `JpaCreditStore` now uses SQL text blocks, named parameters, a private typed replay row mapped by column labels and an exhaustive completion mapping. Added Javadoc across the credit path and updated both [class walkthroughs](Credit-class-walkthrough.md). Schema, lock ordering, transaction boundaries and write/flush order are preserved by the refactor.
+
+Java 21 wrapper verify passed 322 portable tests with zero failures/errors/skips in 29.746 seconds using the documented workspace-local Unix-domain socket option; plain verify had three smoke errors from that known Windows JDK issue. The targeted `SqlServerCreditIT` attempt failed in fixture setup because `SQLSERVER_INITIALIZER_TEST_URL` was missing. No real SQL Server regression case passed for this refactor; native mapping/binding verification is the next gate before debit and transfer work. Earlier database results below remain historical evidence.
+
+## Portable credit-handler coverage, 2026-10-25
+
+Added 16 database-free `CreditHandlerTests` cases using the real handler/coordinator and domain calculations, mocked storage/encoding interfaces and a recording Spring transaction manager. Coverage includes success at the balance cap, retained success/rejection before disabled-currency policy, replay conflict/corruption, new unsupported currency, three terminal rejections, funding overflow, three storage failure stages, commit failure and duplicate-reservation recovery with/without a visible result. Production code and the SQL Server suite are unchanged. The [workflow](Workflow.md) documents the separate portable and integration loops.
+
+On Windows with Java 21.0.12.1, the final command passed 322 tests with zero failures/errors/skips in 25.489 seconds:
+
+```powershell
+.\mvnw.cmd -o -B -ntp "-DargLine=-Djdk.net.unixdomain.tmpdir=D:/Projects/concurrent-balance-service/target" verify
+```
+
+The first sandbox attempt could not write Maven cache locks. The first executable suite exposed two incorrect new test expectations about debit-normal funding signs; these were corrected. The subsequent run passed the 16 new tests but had three existing smoke-context errors from the JDK's local Unix-domain socket connection. Selecting IPv4 did not resolve that error; a workspace-local socket directory did, first in the three smoke tests and then in full verification. No tests were excluded. SQL Server integration tests were not run for this test/documentation change. This evidence verifies application decisions and Spring lifecycle handling, not database locks, durability or rollback; the prior SQL Server limitations below remain open.
+
 ## Smoke assembly and current verification, 2026-10-25
 
 Removed all production `@Profile("!smoke")` exclusions. A standalone `HttpSmokeConfiguration` in test sources imports only the HTTP boundary; the test checks that financial/persistence beans are absent even with execution enabled. Production coordinator and policy tests now verify normal dependency/property behavior independently of the test profile. The [class walkthrough](Credit-class-walkthrough.md) explains all participating classes, funding, identity and success/failure/replay flows.

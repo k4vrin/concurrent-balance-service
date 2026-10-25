@@ -40,6 +40,28 @@ Required CI evolves by phase: Java 21 wrapper build/tests at P0; HTTP contract, 
 
 Before merge: required CI green, invariant tests pass, no secrets/OTP values in artifacts, and both language documents updated. Performance PRs include matched baseline and after results, actual plans where relevant, and a correctness regression run. Documentation-only PRs need link/content checks, not unnecessary infrastructure startup.
 
+## Development without a database
+
+Use Java 21 and the Maven wrapper for the everyday portable loop:
+
+```powershell
+.\mvnw.cmd verify
+```
+
+This runs domain, application, HTTP slice and isolated smoke tests without SQL Server or Docker. On other platforms use `./mvnw verify`. `CreditHandlerTests` constructs the real handler and coordinator with a recording Spring transaction manager, mocks `CreditStore` and `CreditResponseEncoder`, and uses real account, journal and projection calculations. Response serialization is covered separately by encoder and HTTP tests. No production assembly change or database-free runtime is introduced.
+
+For the Windows JDK loopback error `Unable to establish loopback connection` / `Invalid argument: connect`, the current environment passed with `-DargLine=-Djdk.net.unixdomain.tmpdir=D:/Projects/concurrent-balance-service/target`. Use an absolute workspace-local directory for your checkout; this is a test-JVM option, not application configuration. See [verification evidence](Implementation-status.md).
+
+Put exhaustive validation and decision combinations in portable tests. Mock application/storage interfaces at their boundaries; do not simulate JPA internals or database locking. Handler tests cover success, replay before changed policy, conflicts, terminal rejection, arithmetic overflow, storage/commit failures and recovery after a duplicate reservation. The recording manager verifies Spring transaction lifecycle decisions, not durable storage or actual rollback. Mocked replay assumes the adapter supplies the retained result; real identity matching and races still require SQL Server.
+
+Run the separate integration suite when a configured SQL Server test environment is available:
+
+```powershell
+.\mvnw.cmd -Psqlserver-it verify
+```
+
+Follow [Schema.md](Schema.md) for the explicit environment and identity prerequisites. Keep migration/permission/constraint tests, persistence mappings, representative HTTP-to-database flows, atomic journal/projection/outcome commits, rollback and concurrency/failure evidence in that suite. Selecting this profile requires its infrastructure; do not silently skip unavailable tests. A portable pass allows development to continue but leaves database acceptance pending. Normal application startup still requires configured SQL Server. An H2 database or in-memory fake does not establish SQL Server behavior.
+
 ## Documentation ownership
 
 Repository documents now own the implementation plan and implemented behavior. The vault index points here and retains the historical discussion; avoid two independently edited canonical specifications. The original challenge remains the source for company requirements.

@@ -8,7 +8,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Currency;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,14 +106,4 @@ public class AccountStore implements BalanceReader {
         }
     }
 
-    /** Keeps JPQL column aliases and types at the persistence boundary instead of using array positions. */
-    private record BalanceProjection(long amount, String currency) {
-        static BalanceProjection from(Tuple row) {
-            return new BalanceProjection(row.get("balance", Long.class), row.get("currency", String.class));
-        }
-
-        Money toMoney() {
-            return new Money(amount, Currency.getInstance(currency));
-        }
-    }
 }

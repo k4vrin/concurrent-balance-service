@@ -1,5 +1,30 @@
 # وضعیت پیاده‌سازی
 
+## اتصال مستقیم کنترلر به handlerها، ۲۰۲۶-۱۰-۲۶
+
+interface موسوم به `BalanceOperations`، پیاده‌سازی `HandlerBalanceOperations` و factory به نام `stagedOperations` حذف شدند. `BalanceController` چهار handler را با پارامترهای Optional در سازنده می‌گیرد و متد `handle` هرکدام را مستقیم صدا می‌زند. Optional بیانگر نبود عمدی bean است: execution غیرفعال، استعلام موجودی را نگه می‌دارد و mutationها 503 می‌دهند؛ assembly مستقل از زیرساخت smoke هم برای همهٔ routeهای بدون handler همان 503 را می‌دهد. `HttpAdapterConfiguration` فقط parsing سخت‌گیرانهٔ JSON را تنظیم می‌کند. ObjectProvider یا سرویس forwarding جایگزین نداریم. مالکیت تراکنش در handler/coordinator مانده و خطای تراکنش خواندن موجودی همان نگاشت unavailable را دارد.
+
+اجرای کامل Java 21 با `./mvnw -o -B -ntp -Psqlserver-it verify`، تعداد **۳۸۸ تست قابل‌حمل و ۱۵۴ تست واقعی SQL Server** را با صفر failure/error/skip در **37.050 ثانیه** گذراند. سه بررسی تازه، استعلام موجودی بدون handlerهای mutation، همهٔ routeهای mutation غیرفعال و نگاشت خطای تراکنش موجودی را می‌سنجند. تست‌های controller خود handlerها را mock می‌کنند. اجرای متمرکز web/response/smoke هر ۶۰ حالت را گذراند؛ اسکن syntax tree کامپایلر همچنان صفر نوع داخلی، محلی یا anonymous پیدا می‌کند. regression واقعی HTTP تا دیتابیس برای credit، debit، transfer و موجودی موفق بود. CBS15 و پذیرش مستقل یادگیری باز مانده‌اند. این checkpoint انتشار، تغییرات کامل انتقال، نوع‌های مستقل و اتصال مستقیم handlerها را ثبت می‌کند.
+
+
+## نوع‌های مستقل پیاده‌سازی و regression، ۲۰۲۶-۱۰-۲۶
+
+تمام سورس‌های Java تولید و تست مرور شدند و هر ۲۳ تعریف نوع داخلی، محلی یا anonymous که اسکن syntax tree کامپایلر پیدا کرد، حذف شدند. `LockedAccount` یک snapshot مشترک application است؛ `BalanceProjection`، `StoredOperation` و `OperationCompletion` نوع‌های مستقل persistence با دسترسی package-private هستند. `OperationSuccess`، `OperationRejected`، `OperationFailureReason` و `FundingProperties` هرکدام فایل خود را دارند. `HandlerBalanceOperations` جای dispatch ناشناس HTTP را گرفته است؛ recordهای حساب و افتتاحیه، datasource تست و transaction manager ثبت‌کنندهٔ مشترک هم مستقل شده‌اند. دستورالعمل مخزن اکنون استفاده از نوع‌های داخلی، محلی و anonymous را حتی در helperهای تست منع می‌کند.
+
+اجرای کامل Java 21 با `./mvnw -o -B -ntp -Psqlserver-it verify`، تعداد **۳۸۵ تست قابل‌حمل و ۱۵۴ تست واقعی SQL Server** را با صفر failure/error/skip در **39.067 ثانیه** گذراند؛ مجموع XMLهای تازه و نتیجهٔ صفر اسکن syntax tree بررسی شدند. مالکیت تراکنش، قفل‌ها، ترتیب رزرو و نوشتن، schema، کلیدهای تنظیمات و قرارداد پاسخ HTTP حفظ شده‌اند. این نتیجه، شاهد regression سورس بازآرایی‌شده و تازه‌تر از اجرای قبلی CBS14 است. CBS15 و پذیرش مستقل یادگیری باز هستند.
+
+در log ارسالی، URL اتصال همان `${DB_URL}` حل‌نشده بود. پردازش اجرا به `DB_URL`، `DB_USERNAME` و `DB_PASSWORD` نیاز دارد؛ Spring Boot فایل env محلی ignored را خودکار بارگذاری نمی‌کند و اجرای جداگانهٔ JVM هم تنظیمات Compose را به ارث نمی‌برد. [راهنمای راه‌اندازی](Docker.md) روش رفع خطا را توضیح می‌دهد. دیتابیس جایگزین، credential یا dialect اجباری اضافه نشده است. تغییرات همچنان محلی و بدون commit هستند.
+
+
+## انتقال اتمیک CBS14 و regression کامل SQL Server، ۲۰۲۶-۱۰-۲۶
+
+[اجرای انتقال و شواهد](Transfer-execution.md) مسیر تازهٔ handler/store/encoder و اتصال route موجود HTTP را ثبت می‌کند. هر دو حساب مشتری با ترتیب UUID مشترک برنامه قفل می‌شوند. موفقیت، یک journal متوازن، دو posting، هر دو projection و پاسخ اصلی را با هم commit می‌کند؛ انتقال حساب یا metadata تأمین ندارد. retry یکسان پیش از سیاست فعلی، بایت‌های اصلی را replay می‌کند. نبود حساب، کسری وجه و عبور از سقف، تصمیم ماندگار بدون history دارند. انتقال به خود پیش از رزرو رد می‌شود.
+
+اجرای کامل Java 21 با `./mvnw -o -B -ntp -Psqlserver-it verify`، تعداد **۳۸۵ تست قابل‌حمل و ۱۵۴ تست واقعی SQL Server** را با صفر failure/error/skip در **36.105 ثانیه** گذراند. ۳۴ تست قابل‌حمل تازه تصمیم‌ها، چرخهٔ handler و اعتبارسنجی و encoding پاسخ را می‌سنجند. ۲۰ تست واقعی تازه شامل موفقیت و replay روی HTTP، حفظ مجموع و reconciliation، نبود هرکدام از حساب‌ها، مرز دقیق سقف، محافظ overflow مقصد، conflict، بازسازی context/pool، timeout قفل و rollback پس از history، موجودی فقط مبدأ، هر دو موجودی و outcome همراه retry همان ID هستند. تست محافظ overflow، snapshot دامنه را تزریق می‌کند و history واقعی نزدیک BIGINT ندارد. شکست startup/pre-login و بازیابی با restart کانتینر بدون تغییر در راهنما ثبت شده‌اند.
+
+هر چهار مسیر HTTP اکنون پیاده‌سازی دارند، اما retry/backoff عمومی، بازیابی commit نامعلوم و معیارهای گستردهٔ رقابت و عملیات ترکیبی باز هستند. کار مهندسی بعدی CBS15 است؛ پذیرش مستقل یادگیری تغییر نکرده است. تغییرات فعلاً محلی و بدون commit هستند. بخش‌های قبلی دامنهٔ تاریخی خود را دارند.
+
+
 ## debit ماندگار CBS13 و regression تازهٔ SQL Server، ۲۰۲۶-۱۰-۲۵
 
 [اجرای debit و شواهد](Debit-execution.md) مسیر صریح handler/store/encoder و اتصال HTTP را ثبت می‌کند. برداشت دقیق موجودی موفق است؛ کسری وجه رد اصلی را بدون history commit می‌کند، حتی اگر credit بعدی وجه کافی فراهم کند. replay پیش از سیاست فعلی است و تعارض مبلغ/حساب/نوع عملیات با ID سراسری اثر اضافه ندارد. تاریخچه، projectionها و پاسخ ماندگار موفقیت در تراکنش coordinator مشترک‌اند. انتقال unavailable مانده و CBS14 آگاهانه خارج از این تغییر است.

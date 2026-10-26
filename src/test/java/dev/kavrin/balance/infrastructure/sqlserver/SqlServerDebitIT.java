@@ -1,6 +1,7 @@
 package dev.kavrin.balance.infrastructure.sqlserver;
 
 import dev.kavrin.balance.ConcurrentBalanceServiceApplication;
+import dev.kavrin.balance.account.application.LockedAccount;
 import dev.kavrin.balance.account.domain.Account;
 import dev.kavrin.balance.account.domain.AccountCategory;
 import dev.kavrin.balance.account.domain.AccountId;
@@ -10,13 +11,12 @@ import dev.kavrin.balance.operation.application.command.DebitCommand;
 import dev.kavrin.balance.operation.application.credit.CreditHandler;
 import dev.kavrin.balance.operation.application.debit.DebitHandler;
 import dev.kavrin.balance.operation.application.debit.DebitResponseEncoder;
-import dev.kavrin.balance.operation.application.debit.DebitStore;
 import dev.kavrin.balance.operation.application.execution.OperationCoordinator;
 import dev.kavrin.balance.operation.application.policy.AmountLimits;
 import dev.kavrin.balance.operation.application.policy.ExecutionPolicy;
-import dev.kavrin.balance.operation.application.policy.FundingSelection;
 import dev.kavrin.balance.operation.application.policy.SupportedCurrencies;
 import dev.kavrin.balance.operation.application.result.OperationFailure;
+import dev.kavrin.balance.operation.application.result.OperationFailureReason;
 import dev.kavrin.balance.operation.domain.TransactionId;
 import dev.kavrin.balance.operation.infrastructure.persistence.JpaDebitStore;
 import java.net.URI;
@@ -144,7 +144,7 @@ class SqlServerDebitIT {
             case "amount" -> assertThat(post(new DebitCommand(original.transactionId(), customer, new Money(41, IRR))).statusCode()).isEqualTo(409);
             case "account" -> assertThat(post(new DebitCommand(original.transactionId(), customer(), original.amount())).statusCode()).isEqualTo(409);
             case "operation" -> assertThatThrownBy(() -> credits.handle(new CreditCommand(original.transactionId(), customer, original.amount())))
-                    .isInstanceOfSatisfying(OperationFailure.class, failure -> assertThat(failure.reason()).isEqualTo(OperationFailure.Reason.TRANSACTION_ID_CONFLICT));
+                    .isInstanceOfSatisfying(OperationFailure.class, failure -> assertThat(failure.reason()).isEqualTo(OperationFailureReason.TRANSACTION_ID_CONFLICT));
             default -> throw new AssertionError(changed);
         }
         assertCounts(original, 1, 1, 2);
@@ -267,9 +267,9 @@ class SqlServerDebitIT {
         long fundingBefore = balance(FUNDING);
         // Inject a domain snapshot only; never commit an unreconciled financial fixture.
         doAnswer(call -> {
-            var actual = (Map<AccountId, DebitStore.LockedAccount>) call.callRealMethod();
+            var actual = (Map<AccountId, LockedAccount>) call.callRealMethod();
             var result = new HashMap<>(actual);
-            result.put(FUNDING, new DebitStore.LockedAccount(
+            result.put(FUNDING, new LockedAccount(
                     new Account(FUNDING, AccountCategory.FUNDING_CLEARING, new Money(Long.MIN_VALUE, IRR)), true));
             return Map.copyOf(result);
         }).when(store).lockAccounts(any());

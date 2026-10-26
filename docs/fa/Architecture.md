@@ -1,3 +1,5 @@
+> به‌روزرسانی CBS14، ۲۰۲۶-۱۰-۲۶: [انتقال اتمیک](Transfer-execution.md) کنار credit، debit و استعلام موجودی مرجع پیاده شده است. regression کامل، ۳۸۵ تست قابل‌حمل و ۱۵۴ تست واقعی SQL Server، شامل هر ۲۰ تست انتقال را با صفر failure/error/skip گذراند. معیارهای retry، رقابت گسترده‌تر و پذیرش مستقل یادگیری باز هستند. گفته‌های قبلی دربارهٔ unavailable بودن مسیرها در ادامه تاریخی‌اند.
+
 > به‌روزرسانی CBS13، ۲۰۲۶-۱۰-۲۵: [debit ماندگار](Debit-execution.md) و credit با فعال‌سازی صریح، با ۳۵۱ تست مستقل و ۱۳۴ تست SQL Server و صفر failure/error/skip تأیید شده‌اند. انتقال تا CBS14 unavailable می‌ماند. گفته‌های قبلی دربارهٔ وضعیت اجرا در ادامه دامنهٔ تاریخی خود را دارند.
 
 # معماری پذیرفته‌شدهٔ برنامه
@@ -8,6 +10,10 @@
 
 مالک پروژه در ۲۰۲۶-۱۰-۲۳ معماری و مثال‌های این سند را پذیرفت. packageها، مسئولیت‌ها و جهت وابستگی طرح مبنا هستند؛ نام کلاس‌های آینده مثال است و نباید برای آن‌ها لایهٔ خالی تولید کنیم. فعلاً bootstrap، اسکلت بدون پیاده‌سازی BalanceService، Money با محاسبات تست‌شده، مدل تغییرناپذیر Account/AccountId و سیاست علامت موجودی AccountCategory وجود دارند. persistence، endpoint مالی و کنترل خودکار مرز ماژول‌ها پیاده نشده‌اند.
 
+## نوع‌های مستقل پیاده‌سازی
+
+هر نوع فایل جداگانه دارد؛ helperهای تست هم همین قاعده را رعایت می‌کنند. interface بستهٔ `OperationOutcome` نوع‌های مستقل `OperationSuccess` و `OperationRejected` را مجاز می‌داند؛ خطاهای غیرنهایی از `OperationFailureReason` استفاده می‌کنند. هر سه پورت mutation از snapshot مشترک `account.application.LockedAccount` استفاده می‌کنند. adapterهای persistence، نوع‌های package-private مشترک `StoredOperation` و `OperationCompletion` دارند؛ query حساب هم با `BalanceProjection` مستقل نگاشت می‌شود. تنظیمات از record جداگانهٔ `FundingProperties` استفاده می‌کند. `BalanceController` چهار handler را با constructor injection می‌گیرد و مستقیم صدا می‌زند. پارامترهای Optional، رفتار execution غیرفعال و smoke مستقل از زیرساخت را حفظ می‌کنند؛ `HttpAdapterConfiguration` فقط parsing مربوط به JSON را تنظیم می‌کند.
+
 ## ساختار فعلی packageهای operation
 
 در پوشه‌های تخت قبلی، پیدا کردن کد parsing درخواست، نگاشت پاسخ و اجرای credit سخت بود. مثلاً `StrictAmountDeserializer` به DTOهای درخواست مربوط است، اما `CreditStore` بخشی از use case اعتباردهی است. ساختار فعلی این مسئولیت‌ها را داخل همان feature عملیات گروه‌بندی می‌کند.
@@ -16,13 +22,14 @@
 | --- | --- |
 | `web` | `BalanceController`، نقطهٔ ورود چهار مسیر HTTP |
 | `web.request` | DTOهای درخواست، deserializerهای سخت‌گیرانه و تبدیل فیلدهای HTTP |
-| `web.response` | DTOهای پاسخ، خانوادهٔ sealed بدنه، نگاشت نتیجه و تولید JSON ماندگار credit/debit |
+| `web.response` | DTOهای پاسخ، خانوادهٔ sealed بدنه، نگاشت نتیجه و تولید JSON ماندگار credit/debit/transfer |
 | `web.error` | advice سراسری خطا و ساخت problem detail |
 | `web.configuration` | تنظیم JSON سخت‌گیرانه و اتصال مرحله‌ای سرویس‌ها |
-| `application` | مرز عمومی `BalanceOperations` و اسکلت اولیهٔ `BalanceService` |
+| `application` | اسکلت اولیهٔ `BalanceService`؛ handlerهای use case در packageهای خود هستند |
 | `application.command` | قصد credit/debit/transfer و اعتبارسنجی ساختاری command |
 | `application.credit` | handler، اطلاعات attempt، پورت ذخیره‌سازی و پورت تولید پاسخ credit |
 | `application.debit` | handler، اطلاعات attempt، پورت ذخیره‌سازی و پورت تولید پاسخ debit |
+| `application.transfer` | handler انتقال اتمیک، اطلاعات attempt، پورت ذخیره‌سازی و پورت تولید پاسخ |
 | `application.identity` | قصد canonical درخواست و fingerprint نسخه‌دار |
 | `application.policy` | سیاست ارز و سقف مبلغ، انتخاب ماندگار حساب تأمین و اعتبارسنجی شناسهٔ سیاست |
 | `application.execution` | مالکیت تراکنش و سیگنال عملیات تکراری |

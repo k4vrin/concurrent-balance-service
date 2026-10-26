@@ -2,7 +2,7 @@
 
 [فارسی](../fa/Execution-policy.md) · [Amount decisions](Amount-limits.md) · [Coordinator](Operation-coordinator.md) · [Persistence contract](CBS09-contract.md)
 
-CBS11 has two framework-free application types for financial-attempt inputs and an optional typed Spring configuration adapter. The value types do not access SQL Server, reserve transaction IDs or execute credit. The [durable credit slice](Credit-execution.md) now consumes these inputs when enabled; debit and transfer remain unavailable. The accepted initial deployment remains IRR with both caps at 10000000000000 rials; generic policy types do not hardcode that deployment choice.
+CBS11 has two framework-free application types for financial-attempt inputs and an optional typed Spring configuration adapter. The value types do not access SQL Server, reserve transaction IDs or execute credit. The [durable credit slice](Credit-execution.md) now consumes these inputs when enabled; [debit](Debit-execution.md) and [transfer](Transfer-execution.md) also consume the snapshot when enabled. Transfer retains execution-policy evidence without selecting a funding leg. The accepted initial deployment remains IRR with both caps at 10000000000000 rials; generic policy types do not hardcode that deployment choice.
 
 ## Keep policy inputs together
 

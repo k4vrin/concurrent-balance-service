@@ -1,3 +1,5 @@
+> Current CBS14 update, 2026-10-26: [Atomic transfer](Transfer-execution.md) is implemented alongside credit, debit and authoritative balance lookup. Full regression passed 385 portable plus 154 real SQL Server tests, zero failures/errors/skips, including all 20 transfer cases. Core retry, broader concurrency and learner-acceptance gates remain open. Earlier availability statements below are historical.
+
 > Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) and opt-in credit are verified with 351 portable and 134 SQL Server tests, zero failures/errors/skips. Transfer remains unavailable until CBS14. Earlier implementation-status statements below retain their historical scope.
 
 # Accepted application architecture
@@ -8,6 +10,10 @@
 
 Accepted by the project owner on 2026-10-23. This records the architecture and examples requested in the discussion. Package names, responsibilities and dependency direction are the accepted blueprint; the listed future class names are illustrative targets, not an instruction to generate empty layers. Current implementation consists of the bootstrap, unimplemented BalanceService scaffold, tested Money value/arithmetic and immutable Account/AccountId with AccountCategory balance-sign policy. Persistence, financial endpoints and modular-boundary enforcement remain unimplemented.
 
+## Top-level implementation types
+
+Each type has its own file, including test helpers. The sealed `OperationOutcome` permits top-level `OperationSuccess` and `OperationRejected`; nonterminal exceptions use `OperationFailureReason`. The three mutation ports use the shared `account.application.LockedAccount` snapshot. The persistence adapters share package-private `StoredOperation` and `OperationCompletion`, while account queries map through package-private `BalanceProjection`. The configuration binds the separate `FundingProperties` record. `BalanceController` receives the four use-case handlers through constructor injection and calls them directly. Optional handler parameters preserve disabled-execution and infrastructure-free smoke behavior; `HttpAdapterConfiguration` configures only JSON parsing.
+
 ## Current operation packages
 
 The original flat folders made request parsing, response mapping and credit execution difficult to browse. For example, `StrictAmountDeserializer` belongs with request DTOs, while `CreditStore` belongs with the credit use case. The implementation now groups those responsibilities under the existing operation feature.
@@ -16,13 +22,14 @@ The original flat folders made request parsing, response mapping and credit exec
 | --- | --- |
 | `web` | `BalanceController`, the entry point for the four HTTP routes |
 | `web.request` | Request DTOs, strict JSON deserializers and HTTP field conversion |
-| `web.response` | Response DTOs, the sealed body family, outcome mapping and retained credit/debit JSON encoding |
+| `web.response` | Response DTOs, the sealed body family, outcome mapping and retained credit/debit/transfer JSON encoding |
 | `web.error` | Global exception advice and problem detail construction |
 | `web.configuration` | Strict JSON configuration and staged application wiring |
-| `application` | `BalanceOperations` public boundary and the original `BalanceService` scaffold |
+| `application` | Original `BalanceService` bootstrap scaffold; use-case handlers live in their own packages |
 | `application.command` | Credit/debit/transfer intent and structural command validation |
 | `application.credit` | Credit handler, attempt context, store port and response encoder port |
 | `application.debit` | Debit handler, attempt context, store port and response encoder port |
+| `application.transfer` | Atomic transfer handler, attempt context, store port and response encoder port |
 | `application.identity` | Canonical caller intent and versioned fingerprint encoding |
 | `application.policy` | Currency and amount policy, retained funding selection and policy identity validation |
 | `application.execution` | Transaction ownership and duplicate-operation signal |

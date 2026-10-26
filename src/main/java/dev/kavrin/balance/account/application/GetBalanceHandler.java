@@ -3,6 +3,7 @@ package dev.kavrin.balance.account.application;
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.money.Money;
 import dev.kavrin.balance.operation.application.result.OperationFailure;
+import dev.kavrin.balance.operation.application.result.OperationFailureReason;
 import jakarta.persistence.PersistenceException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
@@ -19,9 +20,9 @@ public class GetBalanceHandler {
     public Money handle(AccountId id) {
         try {
             return balances.findBalance(id).orElseThrow(() ->
-                    new OperationFailure(OperationFailure.Reason.ACCOUNT_NOT_FOUND));
+                    new OperationFailure(OperationFailureReason.ACCOUNT_NOT_FOUND));
         } catch (DataAccessException | PersistenceException unavailable) {
-            throw new OperationFailure(OperationFailure.Reason.UNAVAILABLE);
+            throw new OperationFailure(OperationFailureReason.UNAVAILABLE);
         }
     }
 }

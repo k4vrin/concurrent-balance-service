@@ -105,3 +105,7 @@ digest، معماری host/daemon، build/edition دقیق سرور، compatibil
 ## harness خودکار CBS08
 
 [راهنمای تست SQL Server](SQL-server-tests.md) اکنون profile نوع Failsafe با نام sqlserver-it، متغیرهای تست، fixture موقت و محافظ‌های خطا را توضیح می‌دهد. probe مستقل CBS07 برای عیب‌یابی مفید می‌ماند و harness خودکار نیست.
+
+## نبودن تنظیمات اتصال در محیط اجرا
+
+اگر startup پیام `SQLServerDriver claims to not accept jdbcUrl, ${DB_URL}` می‌دهد، پردازش برنامه مقدار `DB_URL` را دریافت نکرده است. خطای بعدی dialect در Hibernate پیامد همان URL نامعتبر است. متغیرهای `DB_URL`، `DB_USERNAME` و `DB_PASSWORD` را در محیط پردازشی که Spring Boot را اجرا می‌کند تنظیم کنید؛ برای اجرای IDE، این مقادیر باید در run configuration همان اجرا باشند. فایل ignored به نام `.env.sqlserver` منبع محلی این مقادیر است و Spring Boot آن را خودکار نمی‌خواند. گزینهٔ `--env-file` در Docker Compose هم فقط برای Compose است و به JVM جداگانه منتقل نمی‌شود. credential را داخل JDBC URL نگذارید و برای پوشاندن خطا، H2 یا dialect دستی اضافه نکنید. startup عادی همچنان SQL Server تنظیم‌شده و schema اعمال‌شده می‌خواهد.

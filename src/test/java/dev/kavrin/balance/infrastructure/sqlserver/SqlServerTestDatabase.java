@@ -4,9 +4,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
+import javax.sql.DataSource;
 
 /** Explicit test-only JDBC boundary; never inherit the application's database credentials. */
 final class SqlServerTestDatabase {
@@ -29,31 +32,21 @@ final class SqlServerTestDatabase {
     }
 
     static SqlServerTestDatabase fromEnvironment(String prefix) {
-        var environment = new java.util.HashMap<>(System.getenv());
+        var environment = new HashMap<>(System.getenv());
         for (var part : new String[] {"URL", "USERNAME", "PASSWORD"}) {
             environment.put("SQLSERVER_TEST_" + part, required(environment, prefix + "_" + part));
         }
         return configured(environment, System.getProperties());
     }
 
-    javax.sql.DataSource dataSource() {
-        return new org.springframework.jdbc.datasource.AbstractDataSource() {
-            @Override
-            public Connection getConnection() throws SQLException {
-                return openConnection();
-            }
-
-            @Override
-            public Connection getConnection(String username, String password) throws SQLException {
-                throw new SQLException("Use the explicitly configured test identity");
-            }
-        };
+    DataSource dataSource() {
+        return new SqlServerTestDataSource(this);
     }
 
     static SqlServerTestDatabase configured(Map<String, String> environment, Properties properties) {
         for (var suffix : new String[] {"active", "include", "default"}) {
             rejectSmoke(properties.getProperty("spring.profiles." + suffix, ""));
-            rejectSmoke(environment.getOrDefault("SPRING_PROFILES_" + suffix.toUpperCase(java.util.Locale.ROOT), ""));
+            rejectSmoke(environment.getOrDefault("SPRING_PROFILES_" + suffix.toUpperCase(Locale.ROOT), ""));
         }
         var url = required(environment, "SQLSERVER_TEST_URL");
         if (!url.startsWith("jdbc:sqlserver://")) {

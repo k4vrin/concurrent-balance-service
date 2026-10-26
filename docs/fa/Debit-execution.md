@@ -4,7 +4,7 @@
 
 ## دامنه و فعال‌سازی
 
-credit مربوط به CBS11–12 و debit مربوط به CBS13 پیاده و regression-test شده‌اند. انتقال اتمیک CBS14 خارج از این تغییر است و مسیر HTTP آن همچنان fallback عدم دسترسی دارد. پذیرش رسمی یادگیری از این شواهد پیاده‌سازی جداست.
+credit مربوط به CBS11–12 و debit مربوط به CBS13 پیاده و regression-test شده‌اند. انتقال اتمیک CBS14 اکنون در slice جداگانه پیاده شده است؛ [اجرای انتقال](Transfer-execution.md) را ببینید. پذیرش رسمی یادگیری از این شواهد پیاده‌سازی جداست.
 
 هر دو عملیات تأمین‌شده به `balance.execution.enabled=true` و سیاست معتبر با حساب تأمین برای هر ارز پشتیبانی‌شده نیاز دارند. همان identity محدود runtime و schema بدون تغییر V1 استفاده می‌شود. [تنظیم سیاست](Execution-policy.md) و [راه‌اندازی SQL Server](Schema.md) را ببینید. در اجرای غیرفعال پیش‌فرض و assembly مخصوص smoke، mutationها همچنان 503 برمی‌گردانند.
 
@@ -38,7 +38,7 @@ handler پیش از ارزیابی سیاست فعلی، قصد canonical را �
 | [JpaDebitStore](../../src/main/java/dev/kavrin/balance/operation/infrastructure/persistence/JpaDebitStore.java) | SQL نام‌دار، رزرو حساب مبدأ، mapping مربوط به replay، نوشتن تاریخچه و projection و تکمیل |
 | [DebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/application/debit/DebitResponseEncoder.java) | تولید و بررسی پاسخ ماندگار |
 | [JsonDebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/web/response/JsonDebitResponseEncoder.java) | encoding با Jackson و instance URI مخصوص debit در problem response |
-| [HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) | اتصال debit به handler فعال و حفظ fallback انتقال |
+| [HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) | اتصال هر mutation به handler فعال آن |
 
 مطابق راهنمای ثبت‌شده، credit و debit فعلاً sliceهای صریح باقی می‌مانند. مالکیت تراکنش، قفل حساب، هویت canonical و نگاشت نتیجهٔ HTTP مشترک‌اند. پس از تثبیت رفتار هر دو، می‌توان مکانیزم‌های یکسان codec/persistence را در refactor متمرکز جدا کرد؛ مسیر debit هیچ‌گاه SQL رزرو مخصوص credit را صدا نمی‌زند.
 
@@ -56,6 +56,6 @@ fixtureها فقط حساب صفر را با initializer می‌سازند و م
 
 ## مرزهای باقی‌مانده
 
-اجرای SQL Server 2022 CU22 با emulation روی ARM64 همچنان از طرف Microsoft پشتیبانی نمی‌شود و تست محلی آمادگی production را ثابت نمی‌کند. retry/backoff عمومی، recovery جامع commit نامطمئن، gateهای ترکیبی چند instance، authentication/مالکیت و انتقال CBS14 باز هستند. خطای checked arithmetic تأمین فعلاً یک شکست فنی/داخلی است و rollback می‌شود؛ تکمیل طبقه‌بندی عمومی خطا در CBS15 ادعا نشده است.
+اجرای SQL Server 2022 CU22 با emulation روی ARM64 همچنان از طرف Microsoft پشتیبانی نمی‌شود و تست محلی آمادگی production را ثابت نمی‌کند. retry/backoff عمومی، recovery جامع commit نامطمئن، gateهای ترکیبی چند instance، authentication/مالکیت باز هستند. خطای checked arithmetic تأمین فعلاً یک شکست فنی/داخلی است و rollback می‌شود؛ تکمیل طبقه‌بندی عمومی خطا در CBS15 ادعا نشده است.
 
 README عمومی همچنان قرارداد نسخهٔ اولِ نهایی را توضیح می‌دهد. رفتار فعلی در [وضعیت پیاده‌سازی](Implementation-status.md) آمده است. برای اجرای دوبارهٔ suite، هر سه identity محدود تست را مطابق [Schema.md](Schema.md) صریح تنظیم کنید؛ secret را در property خط فرمان Maven قرار ندهید.

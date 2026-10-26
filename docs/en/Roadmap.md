@@ -1,3 +1,5 @@
+> Current CBS14 update, 2026-10-26: [Atomic transfer](Transfer-execution.md) is implemented alongside credit, debit and authoritative balance lookup. Full regression passed 385 portable plus 154 real SQL Server tests, zero failures/errors/skips, including all 20 transfer cases. Core retry, broader concurrency and learner-acceptance gates remain open. Earlier availability statements below are historical.
+
 > Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) is implemented alongside opt-in credit and authoritative balance lookup. Transfer remains unavailable until CBS14. Full verification passed 351 portable plus 134 real SQL Server tests, zero failures/errors/skips. Earlier pending/unavailable statements below are historical.
 
 > Current credit checkpoint, 2026-10-24: [Durable credit](Credit-execution.md) and the first replay/conflict slice are implemented with 305 portable and 120 SQL Server tests passing. Debit/transfer and broader retry/failure/mixed-operation acceptance remain open. Historical CBS08–10 descriptions below do not describe the entire current suite.

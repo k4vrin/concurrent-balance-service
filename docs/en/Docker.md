@@ -105,3 +105,7 @@ The environment can also run on an explicitly selected x86-64 Docker host. Reche
 ## CBS08 automated harness
 
 The [SQL Server test guide](SQL-server-tests.md) now documents the sqlserver-it Failsafe profile, dedicated test variables, temporary fixtures and failure guards. The standalone CBS07 probe remains useful for diagnosis; it is not the automated harness.
+
+## Missing database environment
+
+If startup reports `SQLServerDriver claims to not accept jdbcUrl, ${DB_URL}`, the application process did not receive `DB_URL`. The later Hibernate dialect error is a consequence of the missing URL. Configure `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` in the process that launches Spring Boot, including the IDE run configuration when launching there. The ignored `.env.sqlserver` file is a local source of values; Spring Boot does not automatically load it. Docker Compose's `--env-file` applies to Compose, not a separately launched JVM. Do not put credentials in the JDBC URL, add an H2 fallback or set a dialect to conceal this error. Normal startup still requires the configured SQL Server database and applied schema.

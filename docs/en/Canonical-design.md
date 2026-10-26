@@ -167,7 +167,7 @@ Use A=`00000000-0000-0000-0000-000000000001`, B ending in 2 and C ending in 3. T
 6. The planned successful transaction commits its journal, postings, A=900, B=400 and original outcome/response together. Only confirmed completion crosses into HTTP success mapping.
 7. If the response disappears after commit, retry Tx-001 with the same command. The planned replay adds no postings and performs no new funds decision.
 
-Steps 1–4 exist as separate implemented components, but the controller currently stops at the unavailable BalanceOperations fallback. Steps 5–7 are planned. Transfers do not use FundingSelection because their two effective accounts are already explicit. fundedFingerprint on a transfer throws locally.
+The controller now calls the durable handlers directly; credit, debit and transfer execute when the policy is enabled. Their execution guides record current persistence/replay evidence. Transfers do not use FundingSelection because their two effective accounts are already explicit. fundedFingerprint on a transfer throws locally.
 
 ## 10. Worked credit when the funding policy changes
 

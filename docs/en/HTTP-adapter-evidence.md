@@ -1,3 +1,5 @@
+> Wiring update, 2026-10-26: the controller now calls its constructor-injected use-case handlers directly. The forwarding interface, implementation and staged bean were removed. Disabled mutations and smoke retain 503 behavior; normal balance reads remain available. Earlier façade descriptions below are historical.
+
 # CBS23 HTTP adapter evidence
 
 [فارسی](../fa/HTTP-adapter-evidence.md) · [Contract](API-v1.md) · [Roadmap](Roadmap.md)

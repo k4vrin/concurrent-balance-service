@@ -8,8 +8,8 @@ Follow the [operation walkthrough](Operation-flow.md) for a complete request-to-
 
 | Variant | Fields | Meaning |
 | --- | --- | --- |
-| `OperationOutcome.Success` | TransactionId, OperationType | The attempt selected success; it may be exposed only after confirmed commit |
-| `OperationOutcome.Rejected` | TransactionId, OperationType, RejectionReason | A terminal business rejection to commit without monetary writes |
+| `OperationSuccess` | TransactionId, OperationType | The attempt selected success; it may be exposed only after confirmed commit |
+| `OperationRejected` | TransactionId, OperationType, RejectionReason | A terminal business rejection to commit without monetary writes |
 
 OperationType currently contains CREDIT, DEBIT, TRANSFER and internal OPENING. OPENING supports the accepted journal-backed initialization design; the enum does not implement an opening handler or add a public endpoint. Required fields reject null. Success has no rejection reason; Rejected cannot be constructed without one. Sealing the interface permits exhaustive Java 21 switch handling and prevents arbitrary outcome variants.
 
@@ -18,7 +18,7 @@ OperationType currently contains CREDIT, DEBIT, TRANSFER and internal OPENING. O
 A structurally valid debit requests 100 rials when only 50 are available. After resolving identity and checking funds under the future locking protocol, evaluation can return:
 
 ```java
-OperationOutcome outcome = new OperationOutcome.Rejected(
+OperationOutcome outcome = new OperationRejected(
         new TransactionId("debit-001"),
         OperationType.DEBIT,
         RejectionReason.INSUFFICIENT_FUNDS
@@ -32,7 +32,7 @@ This object stores requested identity, not a reference to an Account entity. A r
 ## Example: success acknowledgment
 
 ```java
-OperationOutcome outcome = new OperationOutcome.Success(
+OperationOutcome outcome = new OperationSuccess(
         new TransactionId("transfer-001"),
         OperationType.TRANSFER
 );

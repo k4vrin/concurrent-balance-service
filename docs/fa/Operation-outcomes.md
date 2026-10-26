@@ -8,8 +8,8 @@
 
 | نوع | فیلدها | معنا |
 | --- | --- | --- |
-| `OperationOutcome.Success` | TransactionId و OperationType | تلاش نتیجهٔ موفق را انتخاب کرده؛ انتشار آن فقط پس از تأیید commit مجاز است |
-| `OperationOutcome.Rejected` | TransactionId و OperationType و RejectionReason | رد نهایی کسب‌وکار که باید بدون نوشتن مالی commit شود |
+| `OperationSuccess` | TransactionId و OperationType | تلاش نتیجهٔ موفق را انتخاب کرده؛ انتشار آن فقط پس از تأیید commit مجاز است |
+| `OperationRejected` | TransactionId و OperationType و RejectionReason | رد نهایی کسب‌وکار که باید بدون نوشتن مالی commit شود |
 
 OperationType فعلاً CREDIT، DEBIT، TRANSFER و OPENING داخلی را دارد. OPENING برای طراحی پذیرفته‌شدهٔ افتتاحیهٔ سنددار است؛ enum به‌تنهایی handler افتتاحیه پیاده نمی‌کند یا endpoint عمومی اضافه نمی‌کند. فیلدهای لازم null را رد می‌کنند. Success دلیل رد ندارد و Rejected بدون دلیل ساخته نمی‌شود. sealed بودن امکان switch کامل در Java 21 را می‌دهد و نوع نتیجهٔ دلخواه تازه را محدود می‌کند.
 
@@ -18,7 +18,7 @@ OperationType فعلاً CREDIT، DEBIT، TRANSFER و OPENING داخلی را د
 یک debit با ساختار معتبر ۱۰۰ ریال می‌خواهد ولی فقط ۵۰ موجود است. پس از تعیین هویت و بررسی موجودی با پروتکل قفل آینده، ارزیابی می‌تواند این مقدار را برگرداند:
 
 ```java
-OperationOutcome outcome = new OperationOutcome.Rejected(
+OperationOutcome outcome = new OperationRejected(
         new TransactionId("debit-001"),
         OperationType.DEBIT,
         RejectionReason.INSUFFICIENT_FUNDS
@@ -32,7 +32,7 @@ OperationOutcome outcome = new OperationOutcome.Rejected(
 ## مثال تأیید موفقیت
 
 ```java
-OperationOutcome outcome = new OperationOutcome.Success(
+OperationOutcome outcome = new OperationSuccess(
         new TransactionId("transfer-001"),
         OperationType.TRANSFER
 );

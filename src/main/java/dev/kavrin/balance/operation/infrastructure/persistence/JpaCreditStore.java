@@ -1,5 +1,6 @@
 package dev.kavrin.balance.operation.infrastructure.persistence;
 
+import dev.kavrin.balance.account.application.LockedAccount;
 import dev.kavrin.balance.account.domain.Account;
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.account.infrastructure.persistence.AccountEntity;
@@ -11,18 +12,12 @@ import dev.kavrin.balance.operation.application.credit.CreditStore;
 import dev.kavrin.balance.operation.application.execution.DuplicateOperation;
 import dev.kavrin.balance.operation.application.identity.CanonicalFingerprint;
 import dev.kavrin.balance.operation.application.result.MutationResult;
-import dev.kavrin.balance.operation.application.result.OperationFailure;
 import dev.kavrin.balance.operation.application.result.StoredResponse;
-import dev.kavrin.balance.operation.domain.OperationOutcome;
-import dev.kavrin.balance.operation.domain.OperationType;
-import dev.kavrin.balance.operation.domain.RejectionReason;
 import dev.kavrin.balance.operation.domain.TransactionId;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.persistence.Tuple;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Currency;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -164,7 +159,7 @@ public class JpaCreditStore implements CreditStore {
     @Override
     public void complete(CreditAttempt attempt, MutationResult result, StoredResponse response) {
         requireTransaction();
-        var completion = CompletionState.from(result.outcome());
+        var completion = OperationCompletion.from(result.outcome());
         int updated = query(COMPLETE_OPERATION)
                 .setParameter("state", completion.state()).setParameter("rejectionReason", completion.rejectionReason())
                 .setParameter("responseVersion", response.version()).setParameter("httpStatus", response.status())
@@ -186,51 +181,6 @@ public class JpaCreditStore implements CreditStore {
             }
         }
         return false;
-    }
-
-    /** Converts the sealed outcome into the two database completion fields without a downcast. */
-    private record CompletionState(String state, String rejectionReason) {
-        static CompletionState from(OperationOutcome outcome) {
-            return switch (outcome) {
-                case OperationOutcome.Success success -> new CompletionState("SUCCEEDED", null);
-                case OperationOutcome.Rejected rejected -> new CompletionState("REJECTED", rejected.reason().name());
-            };
-        }
-    }
-
-    /** Raw persisted fields stay local until canonical identity and terminal outcome have been checked. */
-    private record StoredOperation(int canonicalVersion, byte[] canonicalRequest, String operationType,
-            String currency, String state, String rejectionReason, Number responseVersion, Number httpStatus,
-            String contentType, byte[] responseBody) {
-        static StoredOperation from(Tuple row) {
-            return new StoredOperation(
-                    row.get("canonical_format_version", Number.class).intValue(),
-                    row.get("canonical_request", byte[].class), row.get("operation_type", String.class),
-                    row.get("currency", String.class), row.get("state", String.class),
-                    row.get("rejection_reason", String.class), row.get("response_format_version", Number.class),
-                    row.get("http_status", Number.class), row.get("response_content_type", String.class),
-                    row.get("response_body", byte[].class));
-        }
-
-        void requireMatching(CanonicalFingerprint canonical) {
-            if (canonicalVersion != canonical.version()) {
-                throw new IllegalStateException("Unsupported stored canonical version");
-            }
-            if (!Arrays.equals(canonicalRequest, canonical.bytes())) {
-                throw new OperationFailure(OperationFailure.Reason.TRANSACTION_ID_CONFLICT);
-            }
-        }
-
-        MutationResult toResult(TransactionId transactionId) {
-            var type = OperationType.valueOf(operationType);
-            OperationOutcome outcome = switch (state) {
-                case "SUCCEEDED" -> new OperationOutcome.Success(transactionId, type);
-                case "REJECTED" -> new OperationOutcome.Rejected(transactionId, type, RejectionReason.valueOf(rejectionReason));
-                default -> throw new IllegalStateException("Committed operation has no terminal outcome");
-            };
-            var response = new StoredResponse(responseVersion.intValue(), httpStatus.intValue(), contentType, responseBody);
-            return new MutationResult(outcome, Currency.getInstance(currency), Optional.of(response));
-        }
     }
 
     private void requireTransaction() {

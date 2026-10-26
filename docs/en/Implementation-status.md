@@ -1,5 +1,30 @@
 # Implementation status
 
+## Direct controller-to-handler wiring, 2026-10-26
+
+Removed `BalanceOperations`, `HandlerBalanceOperations` and the `stagedOperations` factory. `BalanceController` now constructor-injects the four use-case handlers through Optional parameters and calls their `handle` methods directly. Optionality represents intentionally absent beans: disabled execution keeps balance lookup and returns 503 for mutations; the infrastructure-free smoke assembly returns 503 for all unwired routes. `HttpAdapterConfiguration` only configures strict JSON parsing. There is no ObjectProvider or replacement forwarding service. Transaction ownership remains in the handlers/coordinator, and balance transaction failures retain their unavailable HTTP mapping.
+
+Full Java 21 `./mvnw -o -B -ntp -Psqlserver-it verify` passed **388 portable + 154 real SQL Server tests**, zero failures/errors/skips, **37.050 seconds**. Three new portable checks cover balance lookup with mutation handlers absent, all disabled mutation routes, and balance transaction failure mapping. Controller tests mock the actual handlers. The focused web/response/smoke run passed 60 cases; the compiler syntax-tree scan still finds zero nested/local/anonymous types. HTTP-to-database credit, debit, transfer and balance regressions passed. CBS15 and learner acceptance remain open. This publication checkpoint includes the complete transfer, top-level-type and direct-handler changes.
+
+
+## Top-level implementation types and regression, 2026-10-26
+
+Reviewed every production/test Java source and removed all 23 member/local/anonymous type declarations found by the Java compiler syntax-tree scan. `LockedAccount` is a shared application snapshot; `BalanceProjection`, `StoredOperation` and `OperationCompletion` are top-level package-private persistence types. `OperationSuccess`/`OperationRejected`, `OperationFailureReason` and `FundingProperties` have their own files. `HandlerBalanceOperations` replaces anonymous HTTP dispatch; test opening/account records, datasource and the shared recording transaction manager are also top-level. The repository instructions now prohibit nested/local/anonymous types, including test helpers.
+
+Full Java 21 `./mvnw -o -B -ntp -Psqlserver-it verify` passed **385 portable + 154 real SQL Server tests**, zero failures/errors/skips, **39.067 seconds**; fresh XML totals and the zero-result syntax-tree scan were checked. SQL transaction ownership, locks, reservation/write order, schema, configuration keys and HTTP response contracts are preserved. This supersedes the earlier CBS14 run as the current refactored-tree regression evidence. CBS15 and learner acceptance remain open.
+
+The supplied startup log had an unresolved `${DB_URL}` datasource URL. The process needs `DB_URL`, `DB_USERNAME` and `DB_PASSWORD`; the ignored local env file is not automatically loaded by Spring Boot or inherited from a Compose invocation. The [setup troubleshooting section](Docker.md#missing-database-environment) explains the fix. No fallback database, credentials or forced Hibernate dialect were added. Changes remain local and uncommitted.
+
+
+## CBS14 atomic transfer and full SQL Server regression, 2026-10-26
+
+[Transfer execution and evidence](Transfer-execution.md) records the new handler/store/encoder slice and existing HTTP route wiring. Both customer accounts lock in the shared application UUID order. Success commits one balanced journal, two postings, both projections and the original response together; transfers have no funding leg or funding metadata. Matching retries replay original bytes before current policy. Missing accounts, insufficient funds and cap violations retain their decisions without history. Self-transfer fails before reservation.
+
+Full Java 21 `./mvnw -o -B -ntp -Psqlserver-it verify` passed **385 portable plus 154 real SQL Server tests**, zero failures/errors/skips, **36.105 seconds**. The 34 new portable cases cover handler decisions/lifecycle and response validation/encoding; 20 new real cases cover HTTP success/replay, conservation/reconciliation, both missing accounts, exact cap, recipient overflow guard, conflicts, context/pool recreation, lock timeout and rollback after history, source-only balance, both balances and outcome writes with same-ID retry. The overflow guard uses an injected domain snapshot, not committed near-BIGINT history. Startup/pre-login failure and unchanged-container restart recovery are recorded in the guide.
+
+All four HTTP paths are now implemented, but general retry/backoff, uncertain-commit recovery and broad mixed/concurrent-operation gates remain open. Next engineering task is CBS15; formal learner acceptance remains unchanged. Work is local and uncommitted. Earlier sections retain their historical scope.
+
+
 ## CBS13 durable debit and fresh SQL Server regression, 2026-10-25
 
 [Debit execution and evidence](Debit-execution.md) records the explicit debit handler/store/encoder slice and HTTP wiring. Exact funds succeed; insufficient funds commits its original rejection without history, even when a later credit makes funds sufficient. Replay precedes current policy, and global-ID payload/account/type conflicts add no effects. All successful history/projections/retained response share the coordinator's transaction. Transfer remains unavailable and CBS14 is deliberately excluded.

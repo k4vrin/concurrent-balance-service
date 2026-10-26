@@ -29,7 +29,7 @@ UUID به uniqueidentifier، ارز صریحاً به nchar(3)، متن Unicode 
 
 ## مسیر خواندن
 
-controller باریک موجود، AccountId را parse می‌کند، BalanceOperations.balance را می‌خواند و BalanceResponse می‌دهد. composition اکنون query را به GetBalanceHandler می‌سپارد و mutation همچنان unavailable می‌ماند. query فقط balance و currency را از AccountEntity انتخاب می‌کند. Account قابل‌نوشتن، journal، posting یا پاسخ operation بارگذاری نمی‌کند و هویت عملیات نمی‌سازد. timeout query دو ثانیه و تراکنش read-only پنج ثانیه است. context مستقل از زیرساخت با smoke همچنان persistence را کنار می‌گذارد و composition آن unavailable است.
+controller باریک موجود، AccountId را parse می‌کند، GetBalanceHandler.handle را می‌خواند و BalanceResponse می‌دهد. composition اکنون query را به GetBalanceHandler می‌سپارد و mutation همچنان unavailable می‌ماند. query فقط balance و currency را از AccountEntity انتخاب می‌کند. Account قابل‌نوشتن، journal، posting یا پاسخ operation بارگذاری نمی‌کند و هویت عملیات نمی‌سازد. timeout query دو ثانیه و تراکنش read-only پنج ثانیه است. context مستقل از زیرساخت با smoke همچنان persistence را کنار می‌گذارد و composition آن unavailable است.
 
 در تنظیم محلی با RCSI غیرفعال، خواندن projection تغییرکرده ولی commit‌نشده منتظر می‌ماند و آن را نشان نمی‌دهد. تست تغییر موقت را در تراکنش اول نگه می‌دارد، HTTP GET واقعی را از اتصال دیگر می‌فرستد، پس از timeout پاسخ 503 می‌بیند و بعد از rollback موجودی صفر می‌خواند. این شاهد تنظیم تست‌شده است و ادعای همگانیِ خواندن بدون قفل نیست.
 

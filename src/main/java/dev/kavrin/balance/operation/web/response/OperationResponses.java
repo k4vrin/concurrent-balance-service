@@ -1,7 +1,8 @@
 package dev.kavrin.balance.operation.web.response;
 
 import dev.kavrin.balance.operation.application.result.MutationResult;
-import dev.kavrin.balance.operation.domain.OperationOutcome;
+import dev.kavrin.balance.operation.domain.OperationRejected;
+import dev.kavrin.balance.operation.domain.OperationSuccess;
 import dev.kavrin.balance.operation.domain.OperationType;
 import dev.kavrin.balance.operation.web.error.ApiProblems;
 import java.nio.charset.StandardCharsets;
@@ -41,10 +42,10 @@ public final class OperationResponses {
         }
         // The application boundary must supply a committed result, including on replay.
         return switch (result.outcome()) {
-            case OperationOutcome.Success success -> ResponseEntity.ok(new OperationResponse(
+            case OperationSuccess success -> ResponseEntity.ok(new OperationResponse(
                     success.transactionId().value(), success.operationType(),
                     result.currency().getCurrencyCode(), "SUCCEEDED"));
-            case OperationOutcome.Rejected rejected -> {
+            case OperationRejected rejected -> {
                 var problem = new OperationProblem(ApiProblems.rejection(rejected.reason()));
                 problem.setProperty("transactionId", rejected.transactionId().value());
                 problem.setProperty("operationType", rejected.operationType());

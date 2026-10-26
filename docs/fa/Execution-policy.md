@@ -2,7 +2,7 @@
 
 [English](../en/Execution-policy.md) · [تصمیم سقف مبلغ](Amount-limits.md) · [Coordinator](Operation-coordinator.md) · [قرارداد persistence](CBS09-contract.md)
 
-در CBS11 دو نوع application مستقل از framework برای ورودی تلاش مالی و یک adapter اختیاری تنظیمات typed در Spring داریم. value typeها به SQL Server وصل نمی‌شوند، transaction ID رزرو نمی‌کنند و credit اجرا نمی‌کنند. [slice ماندگار credit](Credit-execution.md) اکنون در حالت فعال از این ورودی‌ها استفاده می‌کند؛ debit و transfer هنوز unavailable هستند. سیاست اولیهٔ پذیرفته‌شده IRR با سقف 10000000000000 ریال برای هر دو محدودیت است؛ نوع عمومی سیاست این انتخاب deployment را hardcode نمی‌کند.
+در CBS11 دو نوع application مستقل از framework برای ورودی تلاش مالی و یک adapter اختیاری تنظیمات typed در Spring داریم. value typeها به SQL Server وصل نمی‌شوند، transaction ID رزرو نمی‌کنند و credit اجرا نمی‌کنند. [slice ماندگار credit](Credit-execution.md) اکنون در حالت فعال از این ورودی‌ها استفاده می‌کند؛ [debit](Debit-execution.md) و [transfer](Transfer-execution.md) هم در حالت فعال از snapshot استفاده می‌کنند. انتقال شواهد سیاست اجرا را بدون انتخاب حساب funding نگه می‌دارد. سیاست اولیهٔ پذیرفته‌شده IRR با سقف 10000000000000 ریال برای هر دو محدودیت است؛ نوع عمومی سیاست این انتخاب deployment را hardcode نمی‌کند.
 
 ## نگه‌داشتن ورودی‌های سیاست کنار هم
 

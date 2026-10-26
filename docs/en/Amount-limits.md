@@ -1,3 +1,5 @@
+> CBS14 update, 2026-10-26: credit, debit and [transfer](Transfer-execution.md) now enforce the configured amount/cap policy and retain terminal rejections. The transfer recipient check avoids addition overflow by subtracting the amount from the cap first. Earlier planned/unimplemented descriptions below are historical.
+
 # V1 amount limits and replay
 
 Implementation update, 2026-10-24: [Execution-policy snapshots](Execution-policy.md) now provide portable inclusive cap predicates and immutable funding selections. Typed opt-in startup loading is also available; durable evaluation/rejection and HTTP integration remain pending.

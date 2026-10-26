@@ -6,11 +6,11 @@
 
 فرض کنید controller اعتباردهی خودش موجودی را بررسی کند، SQL اجرا کند، posting بسازد و JSON پاسخ را تولید کند. حالا یک batch import همان عملیات را لازم دارد. اگر منطق controller را کپی کنیم، دو نسخه از قواعد مالی خواهیم داشت. اگر batch مستقیماً controller را صدا بزند، به HTTP وابسته می‌شود، درحالی‌که اصلاً درخواست HTTP ندارد. حتی تست یک تصمیم ساده دربارهٔ سقف موجودی هم دیتابیس و وب‌سرور می‌خواهد.
 
-Hexagonal Architecture تصمیم‌های برنامه را از شیوهٔ دریافت درخواست و ذخیرهٔ نتیجه جدا می‌کند. در این پروژه use case اعتباردهی با `CreditStore` کار می‌کند و `JpaCreditStore` جزئیات SQL Server را انجام می‌دهد. درخواست HTTP هم از مسیر `BalanceController` و `BalanceOperations` وارد برنامه می‌شود. تست‌ها می‌توانند همین مرزها را با test double جایگزین کنند.
+Hexagonal Architecture تصمیم‌های برنامه را از شیوهٔ دریافت درخواست و ذخیرهٔ نتیجه جدا می‌کند. در این پروژه use case اعتباردهی با `CreditStore` کار می‌کند و `JpaCreditStore` جزئیات SQL Server را انجام می‌دهد. درخواست HTTP هم از مسیر `BalanceController` و فراخوانی مستقیم handlerهای use case وارد برنامه می‌شود. تست‌ها می‌توانند همین مرزها را با test double جایگزین کنند.
 
 در الگوی اصلی، برنامه داخل یک مرز قرار دارد. هر port قرارداد یک گفت‌وگوی مشخص با بیرون است و adapter جزئیات فنی آن گفت‌وگو را تبدیل می‌کند. شکل شش‌ضلعی به معنی الزام شش port یا شش لایه نیست. [مقالهٔ اصلی Cockburn](https://alistair.cockburn.us/hexagonal-architecture) تفاوت داخل و بیرون و اصطلاح‌های driving و driven را توضیح می‌دهد.
 
-این راهنما بر اساس سورس فعلی و packageهای مرتب‌شده نوشته شده است. credit و debit با تنظیم صریح فعال می‌شوند؛ transfer تا CBS14 در wiring مرحله‌ای unavailable می‌ماند. [debit ماندگار](Debit-execution.md) همین مدل مرزها را با handler، store و encoder مستقل دنبال می‌کند. حضور یک مسیر در نمودار، پیاده‌سازی مالی کامل آن را ثابت نمی‌کند. [وضعیت فعلی و شواهد](Implementation-status.md) مرجع پیشرفت اجراست.
+این راهنما بر اساس سورس فعلی و packageهای مرتب‌شده نوشته شده است. credit و debit با تنظیم صریح فعال می‌شوند؛ [transfer](Transfer-execution.md) هم در CBS14 با handler، store و encoder مستقل پیاده شده است. [debit ماندگار](Debit-execution.md) همین مدل مرزها را با handler، store و encoder مستقل دنبال می‌کند. حضور یک مسیر در نمودار، پیاده‌سازی مالی کامل آن را ثابت نمی‌کند. [وضعیت فعلی و شواهد](Implementation-status.md) مرجع پیشرفت اجراست.
 
 ## ۲. اصطلاح‌ها را دقیق بشناسیم
 
@@ -49,14 +49,14 @@ Dependency Injection روش ساخت و اتصال objectهاست. constructor �
 
 | Port | جهت | adapter یا caller واقعی | قرارداد |
 | --- | --- | --- | --- |
-| [BalanceOperations](../../src/main/java/dev/kavrin/balance/operation/application/BalanceOperations.java) | Inbound | [BalanceController](../../src/main/java/dev/kavrin/balance/operation/web/BalanceController.java) آن را صدا می‌زند | ورودی تایپ‌شدهٔ credit/debit/transfer و استعلام موجودی |
+| handlerهای use case | ورودی application | `BalanceController` هر handler را مستقیم صدا می‌زند | command تایپ‌شدهٔ credit/debit/transfer و استعلام موجودی |
 | [BalanceReader](../../src/main/java/dev/kavrin/balance/account/application/BalanceReader.java) | Outbound | [AccountStore](../../src/main/java/dev/kavrin/balance/account/infrastructure/persistence/AccountStore.java) آن را پیاده می‌کند | خواندن projection موجودی با امکان نبود حساب |
 | [CreditStore](../../src/main/java/dev/kavrin/balance/operation/application/credit/CreditStore.java) | Outbound | [JpaCreditStore](../../src/main/java/dev/kavrin/balance/operation/infrastructure/persistence/JpaCreditStore.java) آن را پیاده می‌کند | replay، رزرو، قفل، تاریخچه، projection و تکمیل نتیجه |
 | [CreditResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/application/credit/CreditResponseEncoder.java) | Outbound | [JsonCreditResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/web/response/JsonCreditResponseEncoder.java) آن را پیاده می‌کند | تولید و بررسی پاسخ ماندگار credit |
 | [DebitStore](../../src/main/java/dev/kavrin/balance/operation/application/debit/DebitStore.java) | Outbound | [JpaDebitStore](../../src/main/java/dev/kavrin/balance/operation/infrastructure/persistence/JpaDebitStore.java) آن را پیاده می‌کند | هویت ماندگار debit، state قفل‌شده برای بررسی وجه و persistence اتمیک |
 | [DebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/application/debit/DebitResponseEncoder.java) | Outbound | [JsonDebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/web/response/JsonDebitResponseEncoder.java) آن را پیاده می‌کند | تولید و بررسی پاسخ اصلی debit |
 
-adapter ورودی port را صدا می‌زند و لازم نیست آن را implement کند. اگر `BalanceController` خودش `BalanceOperations` را implement کند، نقطهٔ ورود transport با قرارداد application مخلوط می‌شود. در کد فعلی، bean ساخته‌شده در `HttpAdapterConfiguration.stagedOperations` این interface را به‌شکل anonymous پیاده می‌کند و به handlerهای موجود وصل می‌شود. fallback نبود handler هم همان‌جاست؛ انتقال تا CBS14 مرحله‌ای باقی می‌ماند.
+adapter ورودی HTTP می‌تواند handlerهای use case را مستقیم صدا بزند؛ مرز hexagonal به interface واسط صرفاً برای forwarding نیاز ندارد. `BalanceController`، کلاس‌های `CreditHandler`، `DebitHandler`، `TransferHandler` و `GetBalanceHandler` را با پارامترهای Optional در سازنده می‌گیرد، چون بعضی از آن‌ها در اجرای غیرفعال یا smoke عمداً وجود ندارند. نبود handler همان پاسخ unavailable را می‌دهد. مالکیت تراکنش در use case و coordinator می‌ماند.
 
 `BalanceService` قرارداد قدیمی bootstrap است و پیاده‌سازی مالی فعال دیگری نیست. `OperationCoordinator` یک مرز تراکنش concrete وابسته به Spring است، نه interface یک port. `AccountEntity` نگاشت persistence است، نه port. `Money` مقدار دامنه است، نه adapter. `ApiExceptionHandler` و `OperationResponses` بخش‌های مرز HTTP هستند و use case مالی جداگانه‌ای ایجاد نمی‌کنند.
 
@@ -72,9 +72,9 @@ public interface BalanceReader {
 
 `GetBalanceHandler` از این interface موجودی می‌خواهد. `AccountStore` query مربوط به projection را اجرا می‌کند و نتیجه را به `Money` تبدیل می‌کند. خروجی empty یعنی حساب وجود ندارد؛ موجودی صفر برای یک حساب موجود کاملاً معتبر است. شکست query نباید به empty یا صفر تبدیل شود؛ این یک خطای فنی است.
 
-controller شناسهٔ حساب را parse می‌کند، `BalanceOperations.balance` را صدا می‌زند و `BalanceResponse` می‌سازد. DTO مربوط به HTTP و `AccountEntity` وارد قرارداد `BalanceReader` نمی‌شوند. در نتیجه callerهای دیگر مجبور نیستند lifecycle مربوط به JPA یا serialization پاسخ HTTP را بشناسند.
+controller شناسهٔ حساب را parse می‌کند، `GetBalanceHandler.handle` را صدا می‌زند و `BalanceResponse` می‌سازد. DTO مربوط به HTTP و `AccountEntity` وارد قرارداد `BalanceReader` نمی‌شوند. در نتیجه callerهای دیگر مجبور نیستند lifecycle مربوط به JPA یا serialization پاسخ HTTP را بشناسند.
 
-قابلیت `AccountStore.lockAll()` جداست و عضو `BalanceReader` نیست. `JpaCreditStore` آن را مستقیم صدا می‌زند و entityهای مدیریت‌شده را به snapshotهای `CreditStore.LockedAccount` تبدیل می‌کند. این یک وابستگی concrete و آگاهانه بین adapterهای persistence است. قرارداد credit در application همچنان entity مربوط به JPA را برنمی‌گرداند.
+قابلیت `AccountStore.lockAll()` جداست و عضو `BalanceReader` نیست. `JpaCreditStore` آن را مستقیم صدا می‌زند و entityهای مدیریت‌شده را به snapshotهای `LockedAccount` تبدیل می‌کند. این یک وابستگی concrete و آگاهانه بین adapterهای persistence است. قرارداد credit در application همچنان entity مربوط به JPA را برنمی‌گرداند.
 
 ## ۶. یک مثال کامل credit
 
@@ -90,14 +90,12 @@ Content-Type: application/json
 ```mermaid
 sequenceDiagram
     participant HTTP as HTTP adapter
-    participant API as BalanceOperations wiring
     participant H as CreditHandler
     participant TX as OperationCoordinator
     participant S as CreditStore / JpaCreditStore
     participant D as Journal domain model
     participant E as CreditResponseEncoder
-    HTTP->>API: credit(command)
-    API->>H: handle(command)
+    HTTP->>H: handle(command)
     H->>TX: execute replay lookup
     TX->>S: replay(command, fingerprint)
     S-->>H: no retained result, after transaction ends

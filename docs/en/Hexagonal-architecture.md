@@ -6,11 +6,11 @@
 
 Imagine the credit endpoint checks account balances, executes SQL, creates postings and formats JSON inside one controller method. A batch import now needs the same credit behavior. Copying the controller logic creates two implementations of the money rules. Calling the controller from the batch job drags HTTP concerns into a workflow that has no HTTP request. Testing a balance-limit decision also requires a database and web server.
 
-Hexagonal architecture separates the application’s decisions from the mechanisms that deliver requests and store results. In this project, the credit use case talks to `CreditStore`, while `JpaCreditStore` supplies SQL Server persistence. HTTP reaches the application through `BalanceController` and `BalanceOperations`. The same separation lets tests exercise application decisions with test doubles.
+Hexagonal architecture separates the application’s decisions from the mechanisms that deliver requests and store results. In this project, the credit use case talks to `CreditStore`, while `JpaCreditStore` supplies SQL Server persistence. HTTP reaches the application through `BalanceController`, which invokes the use-case handlers directly. The same separation lets tests exercise application decisions with test doubles.
 
 The original pattern describes an application inside a boundary, with purposeful conversations represented by ports and technology translations supplied by adapters. The hexagon does not require six ports or six layers. [Cockburn’s original article](https://alistair.cockburn.us/hexagonal-architecture) explains that inside/outside distinction and the driving/driven terminology.
 
-This is a tutorial grounded in the current source, including the package reorganization. Credit and debit are opt-in; transfer still returns unavailable in the staged wiring until CBS14. [Durable debit](Debit-execution.md) extends the same boundary model with its own handler, store and response encoder. A diagram of a route does not establish that its financial implementation is complete. See [current evidence](Implementation-status.md).
+This is a tutorial grounded in the current source, including the package reorganization. Credit, debit and [transfer](Transfer-execution.md) are opt-in; CBS14 adds the transfer handler, store and encoder. [Durable debit](Debit-execution.md) extends the same boundary model with its own handler, store and response encoder. A diagram of a route does not establish that its financial implementation is complete. See [current evidence](Implementation-status.md).
 
 ## 2. The vocabulary
 
@@ -49,14 +49,14 @@ Dependency injection is the object-assembly mechanism. For example, the `CreditH
 
 | Port | Direction | Actual adapter / caller | Contract |
 | --- | --- | --- | --- |
-| [BalanceOperations](../../src/main/java/dev/kavrin/balance/operation/application/BalanceOperations.java) | Inbound | [BalanceController](../../src/main/java/dev/kavrin/balance/operation/web/BalanceController.java) calls it | Typed credit/debit/transfer and balance entry points |
+| Use-case handlers | Inbound application entry points | `BalanceController` calls each handler directly | Typed credit/debit/transfer commands and balance lookup |
 | [BalanceReader](../../src/main/java/dev/kavrin/balance/account/application/BalanceReader.java) | Outbound | [AccountStore](../../src/main/java/dev/kavrin/balance/account/infrastructure/persistence/AccountStore.java) implements it | Optional authoritative balance projection |
 | [CreditStore](../../src/main/java/dev/kavrin/balance/operation/application/credit/CreditStore.java) | Outbound | [JpaCreditStore](../../src/main/java/dev/kavrin/balance/operation/infrastructure/persistence/JpaCreditStore.java) implements it | Replay, reservation, locks, history, projections and completion |
 | [CreditResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/application/credit/CreditResponseEncoder.java) | Outbound | [JsonCreditResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/web/response/JsonCreditResponseEncoder.java) implements it | Encode and check the response retained with a credit outcome |
 | [DebitStore](../../src/main/java/dev/kavrin/balance/operation/application/debit/DebitStore.java) | Outbound | [JpaDebitStore](../../src/main/java/dev/kavrin/balance/operation/infrastructure/persistence/JpaDebitStore.java) implements it | Durable debit identity, locked funds check inputs and atomic persistence |
 | [DebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/application/debit/DebitResponseEncoder.java) | Outbound | [JsonDebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/web/response/JsonDebitResponseEncoder.java) implements it | Original debit response encoding and validation |
 
-An inbound adapter calls a port; it need not implement it. `BalanceController implements BalanceOperations` would mix the transport entry point with the application contract. The current `HttpAdapterConfiguration.stagedOperations` bean implements `BalanceOperations` anonymously and delegates to available handlers. It also provides unavailable fallbacks when a handler is absent; transfer remains staged until CBS14.
+An inbound HTTP adapter can call concrete use-case handlers directly; a forwarding interface is not required for hexagonal boundaries. `BalanceController` constructor-injects `CreditHandler`, `DebitHandler`, `TransferHandler` and `GetBalanceHandler` through Optional parameters because some are deliberately absent in disabled or smoke assembly. An absent route handler returns the existing unavailable response. Transaction ownership remains in the use case and coordinator.
 
 The original `BalanceService` is an unused bootstrap contract, not another active financial implementation. `OperationCoordinator` is a concrete Spring transaction boundary, not an interface port. `AccountEntity` is a persistence mapping, not a port. `Money` is a domain value, not an adapter. `ApiExceptionHandler` and `OperationResponses` are parts of the HTTP adapter boundary, not separate business use cases.
 
@@ -72,9 +72,9 @@ public interface BalanceReader {
 
 `GetBalanceHandler` requests a balance through this interface. `AccountStore` runs the projection query and maps the result to `Money`. Empty means the account does not exist; an amount of zero is a valid existing balance. Query failure must propagate as a technical failure, not become empty or zero.
 
-The controller parses the account ID, calls `BalanceOperations.balance`, and creates `BalanceResponse`. Neither the HTTP DTO nor `AccountEntity` crosses into the balance-reader contract. This prevents JPA lifecycle and HTTP serialization concerns from becoming requirements for every caller.
+The controller parses the account ID, calls `GetBalanceHandler.handle`, and creates `BalanceResponse`. Neither the HTTP DTO nor `AccountEntity` crosses into the balance-reader contract. This prevents JPA lifecycle and HTTP serialization concerns from becoming requirements for every caller.
 
-There is a separate adapter-level capability: `AccountStore.lockAll()`. It is not part of `BalanceReader`. `JpaCreditStore` calls it directly, and converts managed entities into `CreditStore.LockedAccount` snapshots. This is a deliberate concrete dependency between persistence adapters. The application credit contract still avoids JPA entities.
+There is a separate adapter-level capability: `AccountStore.lockAll()`. It is not part of `BalanceReader`. `JpaCreditStore` calls it directly, and converts managed entities into `LockedAccount` snapshots. This is a deliberate concrete dependency between persistence adapters. The application credit contract still avoids JPA entities.
 
 ## 6. A complete credit example
 
@@ -90,14 +90,12 @@ Content-Type: application/json
 ```mermaid
 sequenceDiagram
     participant HTTP as HTTP adapter
-    participant API as BalanceOperations wiring
     participant H as CreditHandler
     participant TX as OperationCoordinator
     participant S as CreditStore / JpaCreditStore
     participant D as Journal domain model
     participant E as CreditResponseEncoder
-    HTTP->>API: credit(command)
-    API->>H: handle(command)
+    HTTP->>H: handle(command)
     H->>TX: execute replay lookup
     TX->>S: replay(command, fingerprint)
     S-->>H: no retained result, after transaction ends

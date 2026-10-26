@@ -107,7 +107,7 @@ class SqlServerPersistenceIT {
     @Test
     void committedOpeningMapsAllEntitiesAndBalanceIsAuthoritativeThroughHttp() throws Exception {
         var pair = zeroAccounts();
-        var opened = opening().open(pair.customer(), pair.funding(), new Money(150000, Currency.getInstance("IRR")), OpeningFixture.FailurePoint.NONE);
+        var opened = opening().open(pair.customer(), pair.funding(), new Money(150000, Currency.getInstance("IRR")), OpeningFailurePoint.NONE);
         new TransactionTemplate(manager).executeWithoutResult(status -> {
             assertThat(entities.find(AccountEntity.class, pair.customer().value()).snapshot().balance().amount()).isEqualTo(150000);
             assertThat(entities.find(AccountEntity.class, pair.funding().value()).snapshot().balance().amount()).isEqualTo(150000);
@@ -149,8 +149,8 @@ class SqlServerPersistenceIT {
     }
 
     @ParameterizedTest
-    @EnumSource(value = OpeningFixture.FailurePoint.class, names = {"AFTER_JOURNAL", "AFTER_POSTINGS", "AFTER_PROJECTIONS"})
-    void injectedOpeningFailureRollsBackAllHistoryOutcomeAndProjections(OpeningFixture.FailurePoint failure) throws Exception {
+    @EnumSource(value = OpeningFailurePoint.class, names = {"AFTER_JOURNAL", "AFTER_POSTINGS", "AFTER_PROJECTIONS"})
+    void injectedOpeningFailureRollsBackAllHistoryOutcomeAndProjections(OpeningFailurePoint failure) throws Exception {
         var pair = zeroAccounts();
         assertThatThrownBy(() -> opening().open(pair.customer(), pair.funding(), new Money(100, Currency.getInstance("IRR")), failure))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("Injected opening failure");
@@ -183,7 +183,7 @@ class SqlServerPersistenceIT {
                         .isInstanceOf(InvalidDataAccessApiUsageException.class)
                         .hasRootCauseInstanceOf(IllegalStateException.class));
         new TransactionTemplate(manager).executeWithoutResult(status ->
-                assertThatThrownBy(() -> opening().open(pair.customer(), pair.funding(), new Money(100, Currency.getInstance("IRR")), OpeningFixture.FailurePoint.NONE))
+                assertThatThrownBy(() -> opening().open(pair.customer(), pair.funding(), new Money(100, Currency.getInstance("IRR")), OpeningFailurePoint.NONE))
                         .isInstanceOf(IllegalStateException.class).hasMessageContaining("own its transaction"));
     }
 
@@ -249,10 +249,8 @@ class SqlServerPersistenceIT {
         return HttpClient.newHttpClient().send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    private record Pair(AccountId customer, AccountId funding) { }
-
-    private Pair zeroAccounts() throws Exception {
-        var pair = new Pair(new AccountId(UUID.randomUUID()), new AccountId(UUID.randomUUID()));
+    private AccountPair zeroAccounts() throws Exception {
+        var pair = new AccountPair(new AccountId(UUID.randomUUID()), new AccountId(UUID.randomUUID()));
         try (var connection = SqlServerTestDatabase.fromEnvironment("SQLSERVER_INITIALIZER_TEST").openConnection();
                 var statement = connection.prepareStatement("INSERT dbo.accounts (account_id,category,currency) VALUES (CAST(? AS uniqueidentifier),?,N'IRR')")) {
             for (var id : List.of(pair.customer(), pair.funding())) {

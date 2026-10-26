@@ -29,7 +29,7 @@ These are readability changes to the adapter. The existing SQL Server tests cove
 
 ## Read path
 
-The existing thin controller parses AccountId, calls BalanceOperations.balance and returns BalanceResponse. Composition now delegates that query to GetBalanceHandler; mutation methods keep their unavailable implementation. The query selects only balance and currency from AccountEntity. It does not load a writable Account aggregate, journals, postings or operation responses and never creates operation identity. Query timeout is 2 seconds and the read-only transaction timeout is 5 seconds. The smoke-only portable context still excludes persistence and retains its unavailable composition.
+The existing thin controller parses AccountId, calls GetBalanceHandler.handle and returns BalanceResponse. Composition now delegates that query to GetBalanceHandler; mutation methods keep their unavailable implementation. The query selects only balance and currency from AccountEntity. It does not load a writable Account aggregate, journals, postings or operation responses and never creates operation identity. Query timeout is 2 seconds and the read-only transaction timeout is 5 seconds. The smoke-only portable context still excludes persistence and retains its unavailable composition.
 
 With the local RCSI-disabled configuration, a read encountering an uncommitted projection waits rather than exposing it. The integration test holds a temporary projection change in one transaction, sends an actual HTTP GET from another connection, observes 503 after query timeout, then rolls back and reads zero. This is evidence for the tested configuration, not a universal lock-free-read claim.
 

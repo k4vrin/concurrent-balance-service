@@ -35,7 +35,7 @@ flowchart TD
     B --> C[TransferRequest and Bean Validation]
     C --> D[BalanceController and RequestValues]
     D --> E[TransferCommand]
-    E --> F[BalanceOperations.transfer]
+    E --> F[TransferHandler.handle]
     F --> G[Current fallback: throw UNAVAILABLE]
     G --> H[ApiExceptionHandler]
     H --> I[503 ProblemDetail]
@@ -78,7 +78,7 @@ Jackson builds the DTO before Bean Validation examines it. That is why validatio
 
 [StrictAmountDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/request/StrictAmountDeserializer.java) requires `VALUE_NUMBER_INT` and calls `getLongValue()`. [StrictTextDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/request/StrictTextDeserializer.java) requires `VALUE_STRING` and preserves its contents. They check representation, not account existence, funds or currency admission.
 
-[HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) also configures the application JSON mapper to reject duplicate keys, unknown fields and trailing JSON values. For example, two amountRial keys cannot silently select different amounts. @Valid on the controller body activates the DTO constraints. Parsing and required-field failures produce 400 before `BalanceOperations` is called.
+[HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) also configures the application JSON mapper to reject duplicate keys, unknown fields and trailing JSON values. For example, two amountRial keys cannot silently select different amounts. @Valid on the controller body activates the DTO constraints. Parsing and required-field failures produce 400 before any handler is called.
 
 ## 4. Conversion: turn transport values into domain values
 
@@ -124,13 +124,9 @@ CBS06 now adds [CanonicalRequest, CanonicalFingerprint and FundingSelection](Can
 
 ## 6. Application boundary: where execution will live
 
-[BalanceOperations](../../src/main/java/dev/kavrin/balance/operation/application/BalanceOperations.java) exposes typed credit, debit, transfer and balance methods. The controller receives it through constructor injection. Mutation methods return MutationResult; balance returns Money.
+The controller constructor-injects `CreditHandler`, `DebitHandler`, `TransferHandler` and `GetBalanceHandler`, and calls the selected handler directly. Mutation handlers return `MutationResult`; the balance handler returns `Money`. There is no forwarding façade. The original `BalanceService` remains bootstrap scaffolding and is not registered for HTTP execution.
 
-[BalanceService](../../src/main/java/dev/kavrin/balance/operation/application/BalanceService.java) is the original string/long/void bootstrap interface. It remains in the source tree but is not the HTTP execution boundary and is not a registered financial implementation. BalanceOperations gives the adapter typed commands and explicit results without placing transaction logic in the controller.
-
-HttpAdapterConfiguration registers an unavailable BalanceOperations bean when another implementation is absent. Its methods throw `OperationFailure(UNAVAILABLE)`. The fallback is a wiring placeholder, not an in-memory financial service. The conditional bean will need replacement as durable slices arrive.
-
-The actual example therefore ends with this representative response, with JSON field order irrelevant:
+The constructor uses `Optional<Handler>` for deliberately absent beans. Disabled execution omits mutation handlers but retains SQL Server balance lookup. The test-only smoke assembly omits all four handlers. An absent handler yields the existing 503 response after request validation, without reserving identity or moving money. `HttpAdapterConfiguration` configures only strict JSON parsing. The following 503 example describes a missing handler, not an enabled transfer:
 
 ```http
 HTTP/1.1 503 Service Unavailable
@@ -178,7 +174,7 @@ All coordinator/database interactions in this diagram are planned. In a future c
 
 ```java
 var result = new MutationResult(
-        new OperationOutcome.Success(new TransactionId("Tx-001"), OperationType.TRANSFER),
+        new OperationSuccess(new TransactionId("Tx-001"), OperationType.TRANSFER),
         Currency.getInstance("IRR"));
 ```
 
@@ -205,8 +201,8 @@ By contrast, a technical exception must escape the financial attempt to trigger 
 [OperationResponses](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponses.java) exhaustively switches on the supplied domain outcome. It translates business meaning into HTTP representation:
 
 ```text
-OperationOutcome.Success  → OperationResponse → HTTP 200
-OperationOutcome.Rejected → OperationProblem  → HTTP 404 or 409
+OperationSuccess  → OperationResponse → HTTP 200
+OperationRejected → OperationProblem  → HTTP 404 or 409
 ```
 
 [OperationResponseBody](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponseBody.java) is a different sealed family from OperationOutcome. Its permitted implementations are [OperationResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponse.java), an immutable success DTO, and [OperationProblem](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationProblem.java), a final ProblemDetail subclass. Controller mutation methods therefore return `ResponseEntity<OperationResponseBody>` rather than a wildcard. ResponseEntity carries the status, headers and typed body.
@@ -268,11 +264,11 @@ A 503, 500 or lost response cannot establish that a future transaction failed to
 
 Credit and debit use AmountRequest because the customer account comes from the path. The server must later choose the funding counterpart; adding a counterpart field would currently fail unknown-property validation. They use their own CreditCommand/DebitCommand, allowing operation-type conflict checks to distinguish otherwise similar inputs.
 
-Balance lookup parses AccountId and calls `BalanceOperations.balance`, then maps Money into [BalanceResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/BalanceResponse.java): accountId, balanceRial and currency. It does not use OperationOutcome, MutationResult or the sealed mutation response family. A missing account maps to 404 instead of zero. With a future committed projection A=900, a balance response would report 900; a replayed mutation acknowledgment still reports its original result, not a refreshed balance.
+Balance lookup parses AccountId and calls `GetBalanceHandler.handle`, then maps Money into [BalanceResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/BalanceResponse.java): accountId, balanceRial and currency. It does not use OperationOutcome, MutationResult or the sealed mutation response family. A missing account maps to 404 instead of zero. With a future committed projection A=900, a balance response would report 900; a replayed mutation acknowledgment still reports its original result, not a refreshed balance.
 
 ## 12. How to verify and continue
 
-[BalanceControllerTests](../../src/test/java/dev/kavrin/balance/operation/web/BalanceControllerTests.java) uses MockMvc and mocked BalanceOperations to check commands, parsing, mapping, errors and serialization compatibility. Its transfer command uses the same Tx-001, account UUIDs and 100-rial amount as this guide. The insufficient-funds example here uses TRANSFER to keep one narrative; current parameterized rejection tests supply CREDIT and exercise the same mapper. [Application tests](../../src/test/java/dev/kavrin/balance/ConcurrentBalanceServiceApplicationTests.java) start an embedded HTTP server under the test-only smoke profile and verify all four fallback routes return 503.
+[BalanceControllerTests](../../src/test/java/dev/kavrin/balance/operation/web/BalanceControllerTests.java) uses MockMvc and mocked use-case handlers to check commands, parsing, mapping, errors and serialization compatibility. Its transfer command uses the same Tx-001, account UUIDs and 100-rial amount as this guide. The insufficient-funds example here uses TRANSFER to keep one narrative; current parameterized rejection tests supply CREDIT and exercise the same mapper. [Application tests](../../src/test/java/dev/kavrin/balance/ConcurrentBalanceServiceApplicationTests.java) start an embedded HTTP server under the test-only smoke profile and verify all four fallback routes return 503.
 
 With JAVA_HOME pointing to Java 21:
 

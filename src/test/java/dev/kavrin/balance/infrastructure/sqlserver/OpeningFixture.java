@@ -21,8 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** Test-only internal opening path. It never registers a public endpoint or a production write handler. */
 final class OpeningFixture {
-    enum FailurePoint { NONE, AFTER_JOURNAL, AFTER_POSTINGS, AFTER_PROJECTIONS }
-    record Opened(UUID operationId, UUID journalId, String transactionId, byte[] canonical) { }
+
     private final EntityManager entities;
     private final AccountStore accounts;
     private final TransactionTemplate transaction;
@@ -35,7 +34,7 @@ final class OpeningFixture {
         transaction.setTimeout(5);
     }
 
-    Opened open(AccountId customer, AccountId funding, Money amount, FailurePoint failure) {
+    OpenedOperation open(AccountId customer, AccountId funding, Money amount, OpeningFailurePoint failure) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("Opening fixture must own its transaction");
         }
@@ -45,7 +44,7 @@ final class OpeningFixture {
         }
         var canonical = CanonicalRequest.opening(customer, amount, Optional.empty());
         var selection = new FundingSelection(funding, "fixture-v1");
-        var result = new Opened(UUID.randomUUID(), UUID.randomUUID(), "opening-" + UUID.randomUUID(), canonical.fingerprint().bytes());
+        var result = new OpenedOperation(UUID.randomUUID(), UUID.randomUUID(), "opening-" + UUID.randomUUID(), canonical.fingerprint().bytes());
         return transaction.execute(status -> {
             // ADR-010: reserve before account locks; failure must roll back this identity too.
             reserve(result, customer, amount, canonical, selection);
@@ -63,7 +62,7 @@ final class OpeningFixture {
             entities.createNativeQuery("INSERT dbo.journals (journal_id,operation_id,currency) VALUES (CAST(? AS uniqueidentifier),CAST(? AS uniqueidentifier),?)")
                     .setParameter(1, result.journalId().toString()).setParameter(2, result.operationId().toString())
                     .setParameter(3, amount.currency().getCurrencyCode()).executeUpdate();
-            failAt(failure, FailurePoint.AFTER_JOURNAL);
+            failAt(failure, OpeningFailurePoint.AFTER_JOURNAL);
             int line = 1;
             for (var posting : journal.postings()) {
                 entities.createNativeQuery("INSERT dbo.postings (journal_id,line_number,account_id,currency,side,amount) VALUES (CAST(? AS uniqueidentifier),?,CAST(? AS uniqueidentifier),?,?,?)")
@@ -71,11 +70,11 @@ final class OpeningFixture {
                         .setParameter(3, posting.accountId().value().toString()).setParameter(4, amount.currency().getCurrencyCode())
                         .setParameter(5, posting.side().name()).setParameter(6, posting.amount().amount()).executeUpdate();
             }
-            failAt(failure, FailurePoint.AFTER_POSTINGS);
+            failAt(failure, OpeningFailurePoint.AFTER_POSTINGS);
             // ADR-007: all proposed snapshots were validated before any projection mutation.
             projections.forEach((id, proposed) -> locked.get(id).project(proposed));
             entities.flush();
-            failAt(failure, FailurePoint.AFTER_PROJECTIONS);
+            failAt(failure, OpeningFailurePoint.AFTER_PROJECTIONS);
             byte[] response = ("{\"transactionId\":\"" + result.transactionId()
                     + "\",\"operationType\":\"OPENING\",\"currency\":\"IRR\",\"status\":\"SUCCEEDED\"}").getBytes(StandardCharsets.UTF_8);
             entities.createNativeQuery("UPDATE dbo.operations SET state='SUCCEEDED',completed_at=SYSUTCDATETIME(),response_format_version=1,"
@@ -86,7 +85,7 @@ final class OpeningFixture {
         });
     }
 
-    private void reserve(Opened result, AccountId customer, Money amount, CanonicalRequest canonical, FundingSelection selection) {
+    private void reserve(OpenedOperation result, AccountId customer, Money amount, CanonicalRequest canonical, FundingSelection selection) {
         entities.createNativeQuery("INSERT dbo.operations (operation_id,transaction_id,operation_type,destination_account_id,amount,currency,"
                 + "canonical_format_version,canonical_request,canonical_fingerprint,execution_policy_version,funding_account_id,funding_policy_version,funded_fingerprint,state) "
                 + "VALUES (CAST(? AS uniqueidentifier),?,'OPENING',CAST(? AS uniqueidentifier),?,?,?,?,?,N'fixture-v1',CAST(? AS uniqueidentifier),?,?,'PENDING')")
@@ -98,7 +97,7 @@ final class OpeningFixture {
                 .setParameter(11, HexFormat.of().parseHex(canonical.fundedFingerprint(selection).sha256())).executeUpdate();
     }
 
-    private static void failAt(FailurePoint requested, FailurePoint current) {
+    private static void failAt(OpeningFailurePoint requested, OpeningFailurePoint current) {
         if (requested == current) { throw new IllegalStateException("Injected opening failure: " + current); }
     }
 }

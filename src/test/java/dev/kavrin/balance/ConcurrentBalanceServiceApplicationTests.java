@@ -5,6 +5,7 @@ import dev.kavrin.balance.account.infrastructure.persistence.AccountStore;
 import dev.kavrin.balance.operation.application.credit.CreditHandler;
 import dev.kavrin.balance.operation.application.debit.DebitHandler;
 import dev.kavrin.balance.operation.application.execution.OperationCoordinator;
+import dev.kavrin.balance.operation.application.transfer.TransferHandler;
 import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -35,7 +36,7 @@ class ConcurrentBalanceServiceApplicationTests {
 
     @Test
     void smokeAssemblyDoesNotLoadFinancialOrPersistenceComponents() {
-        for (var type : List.of(AccountStore.class, GetBalanceHandler.class, CreditHandler.class, DebitHandler.class,
+        for (var type : List.of(AccountStore.class, GetBalanceHandler.class, CreditHandler.class, DebitHandler.class, TransferHandler.class,
                 OperationCoordinator.class, PlatformTransactionManager.class, EntityManagerFactory.class)) {
             assertThat(context.getBeanNamesForType(type)).as(type.getSimpleName()).isEmpty();
         }

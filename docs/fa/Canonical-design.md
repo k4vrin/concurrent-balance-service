@@ -165,7 +165,7 @@ A را UUID با انتهای 1، B با انتهای 2 و C با انتهای 3
 6. موفقیت آینده journal، postingها، A=900، B=400 و نتیجه/پاسخ اصلی را با هم commit می‌کند. فقط پایان قطعی به نگاشت موفقیت HTTP می‌رسد.
 7. اگر پاسخ پس از commit گم شود، همان Tx-001 و command retry می‌شوند. replay آینده posting اضافه و تصمیم وجه تازه ندارد.
 
-اجزای مراحل ۱ تا ۴ جداگانه پیاده‌اند، اما controller فعلی در fallback عدم دسترسی BalanceOperations می‌ایستد. مراحل ۵ تا ۷ در برنامه‌اند. transfer به FundingSelection نیاز ندارد چون هر دو حساب مؤثر صریح‌اند. fundedFingerprint روی transfer محلی خطا می‌دهد.
+کنترلر اکنون handlerهای ماندگار را مستقیم صدا می‌زند؛ credit، debit و transfer با سیاست فعال اجرا می‌شوند. راهنماهای اجرای آن‌ها شواهد فعلی persistence و replay را ثبت می‌کنند. transfer به FundingSelection نیاز ندارد چون هر دو حساب مؤثر صریح‌اند. fundedFingerprint روی transfer محلی خطا می‌دهد.
 
 ## ۱۰. دنبال‌کردن credit با تغییر سیاست تأمین
 

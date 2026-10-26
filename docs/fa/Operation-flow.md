@@ -35,7 +35,7 @@ flowchart TD
     B --> C[TransferRequest and Bean Validation]
     C --> D[BalanceController and RequestValues]
     D --> E[TransferCommand]
-    E --> F[BalanceOperations.transfer]
+    E --> F[TransferHandler.handle]
     F --> G[Current fallback: throw UNAVAILABLE]
     G --> H[ApiExceptionHandler]
     H --> I[503 ProblemDetail]
@@ -78,7 +78,7 @@ Jackson پیش از Bean Validation مقدار DTO را می‌سازد. پس an
 
 [StrictAmountDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/request/StrictAmountDeserializer.java) ابتدا `VALUE_NUMBER_INT` را می‌خواهد و سپس `getLongValue()` را صدا می‌زند. [StrictTextDeserializer](../../src/main/java/dev/kavrin/balance/operation/web/request/StrictTextDeserializer.java) فقط `VALUE_STRING` را می‌پذیرد و محتوا را تغییر نمی‌دهد. این دو، نمایش ورودی را کنترل می‌کنند؛ وجود حساب، وجه و پذیرش ارز مسئولیتشان نیست.
 
-[HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) mapper JSON برنامه را هم برای رد کلید تکراری، فیلد ناشناخته و JSON اضافی پس از body تنظیم می‌کند. مثلاً دو کلید amountRial نمی‌توانند پنهانی یکی از دو مبلغ را انتخاب کنند. @Valid روی body کنترلر، constraintهای DTO را فعال می‌کند. خطای parse و فیلد اجباری پیش از فراخوانی BalanceOperations به 400 تبدیل می‌شود.
+[HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) mapper JSON برنامه را هم برای رد کلید تکراری، فیلد ناشناخته و JSON اضافی پس از body تنظیم می‌کند. مثلاً دو کلید amountRial نمی‌توانند پنهانی یکی از دو مبلغ را انتخاب کنند. @Valid روی body کنترلر، constraintهای DTO را فعال می‌کند. خطای parse و فیلد اجباری پیش از فراخوانی هر handler به 400 تبدیل می‌شود.
 
 ## ۴. تبدیل متن HTTP به مقدار دامنه
 
@@ -124,13 +124,9 @@ CBS06 اکنون [CanonicalRequest، CanonicalFingerprint و FundingSelection](C
 
 ## ۶. مرز برنامه و جای اجرای آینده
 
-[BalanceOperations](../../src/main/java/dev/kavrin/balance/operation/application/BalanceOperations.java) متدهای تایپ‌شدهٔ credit، debit، transfer و balance را ارائه می‌کند. controller آن را با constructor injection می‌گیرد. mutationها MutationResult و balance مقدار Money برمی‌گردانند.
+کنترلر، `CreditHandler`، `DebitHandler`، `TransferHandler` و `GetBalanceHandler` را در سازنده می‌گیرد و handler انتخاب‌شده را مستقیم صدا می‌زند. handlerهای mutation مقدار `MutationResult` و handler موجودی مقدار `Money` برمی‌گردانند. façade واسط نداریم. `BalanceService` اولیه اسکلت bootstrap است و برای اجرای HTTP ثبت نشده است.
 
-[BalanceService](../../src/main/java/dev/kavrin/balance/operation/application/BalanceService.java) interface اولیه با string/long/void است. هنوز در کد وجود دارد، اما مرز اجرای HTTP یا پیاده‌سازی ثبت‌شدهٔ مالی نیست. BalanceOperations اجازه می‌دهد command و نتیجه صریح باشند و منطق تراکنش وارد controller نشود.
-
-HttpAdapterConfiguration وقتی پیاده‌سازی دیگری وجود ندارد یک bean از BalanceOperations ثبت می‌کند که متدهایش `OperationFailure(UNAVAILABLE)` پرتاب می‌کنند. این fallback فقط اتصال موقت است؛ سرویس مالی درون حافظه نیست. برش‌های ماندگار آینده باید جایگزینش شوند.
-
-در نتیجه درخواست مثال امروز پاسخ نمایندهٔ زیر را می‌گیرد؛ ترتیب فیلدهای JSON اهمیتی ندارد:
+سازنده برای beanهایی که عمداً غایب‌اند از `Optional<Handler>` استفاده می‌کند. execution غیرفعال، handlerهای mutation را حذف می‌کند اما استعلام موجودی SQL Server را نگه می‌دارد. assembly فقط‌تست smoke هر چهار handler را کنار می‌گذارد. نبود handler پس از اعتبارسنجی درخواست همان پاسخ 503 را می‌دهد و هویت رزرو یا پول جابه‌جا نمی‌کند. `HttpAdapterConfiguration` فقط parsing سخت‌گیرانهٔ JSON را تنظیم می‌کند. مثال 503 زیر برای handler غایب است، نه انتقال فعال:
 
 ```http
 HTTP/1.1 503 Service Unavailable
@@ -178,7 +174,7 @@ sequenceDiagram
 
 ```java
 var result = new MutationResult(
-        new OperationOutcome.Success(new TransactionId("Tx-001"), OperationType.TRANSFER),
+        new OperationSuccess(new TransactionId("Tx-001"), OperationType.TRANSFER),
         Currency.getInstance("IRR"));
 ```
 
@@ -205,8 +201,8 @@ var result = new MutationResult(
 [OperationResponses](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponses.java) روی نتیجهٔ دامنه switch کامل می‌زند و معنای کسب‌وکار را به نمایش HTTP تبدیل می‌کند:
 
 ```text
-OperationOutcome.Success  → OperationResponse → HTTP 200
-OperationOutcome.Rejected → OperationProblem  → HTTP 404 or 409
+OperationSuccess  → OperationResponse → HTTP 200
+OperationRejected → OperationProblem  → HTTP 404 or 409
 ```
 
 [OperationResponseBody](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponseBody.java) خانوادهٔ بستهٔ دیگری غیر از OperationOutcome است. پیاده‌سازی‌های مجازش [OperationResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationResponse.java)، DTO تغییرناپذیر موفقیت، و [OperationProblem](../../src/main/java/dev/kavrin/balance/operation/web/response/OperationProblem.java)، کلاس final فرزند ProblemDetail، هستند. پس متدهای mutation در controller به‌جای wildcard، نوع `ResponseEntity<OperationResponseBody>` دارند. ResponseEntity وضعیت HTTP، header و body تایپ‌شده را حمل می‌کند.
@@ -268,11 +264,11 @@ retry مطابق در آینده باید همان پاسخ اصلی را بدو
 
 credit و debit از AmountRequest استفاده می‌کنند چون حساب مشتری در path است. سرور بعداً حساب مقابل تأمین را انتخاب می‌کند؛ افزودن فیلد counterpart اکنون به‌عنوان فیلد ناشناخته رد می‌شود. هر مسیر CreditCommand یا DebitCommand خودش را می‌سازد تا بررسی نوع عملیات بتواند ورودی‌های ظاهراً مشابه را هم از هم تشخیص دهد.
 
-balance ابتدا AccountId را parse می‌کند، سپس `BalanceOperations.balance` را صدا می‌زند و Money را به [BalanceResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/BalanceResponse.java) با accountId، balanceRial و currency تبدیل می‌کند. OperationOutcome، MutationResult و خانوادهٔ بستهٔ پاسخ mutation در این مسیر نیستند. حساب ناموجود 404 می‌گیرد، نه صفر. در آینده اگر projection commit‌شدهٔ A برابر ۹۰۰ باشد، استعلام ۹۰۰ می‌دهد؛ replay تأیید mutation همچنان نتیجهٔ اصلی را می‌دهد و موجودی تازه اضافه نمی‌کند.
+balance ابتدا AccountId را parse می‌کند، سپس `GetBalanceHandler.handle` را صدا می‌زند و Money را به [BalanceResponse](../../src/main/java/dev/kavrin/balance/operation/web/response/BalanceResponse.java) با accountId، balanceRial و currency تبدیل می‌کند. OperationOutcome، MutationResult و خانوادهٔ بستهٔ پاسخ mutation در این مسیر نیستند. حساب ناموجود 404 می‌گیرد، نه صفر. در آینده اگر projection commit‌شدهٔ A برابر ۹۰۰ باشد، استعلام ۹۰۰ می‌دهد؛ replay تأیید mutation همچنان نتیجهٔ اصلی را می‌دهد و موجودی تازه اضافه نمی‌کند.
 
 ## ۱۲. بررسی مثال و ادامهٔ مسیر
 
-[BalanceControllerTests](../../src/test/java/dev/kavrin/balance/operation/web/BalanceControllerTests.java) با MockMvc و BalanceOperations mock‌شده، command، parse، نگاشت، خطا و سازگاری serialize را بررسی می‌کند. command انتقال تست همان Tx-001، UUIDها و مبلغ ۱۰۰ ریال این راهنما را دارد. مثال کسری وجه اینجا برای حفظ روایت TRANSFER است؛ تست‌های parameterized فعلی برای همین mapper نتیجهٔ CREDIT می‌دهند. [تست برنامه](../../src/test/java/dev/kavrin/balance/ConcurrentBalanceServiceApplicationTests.java) سرور HTTP داخلی را با profile فقط‌تست smoke اجرا و 503 هر چهار fallback را بررسی می‌کند.
+[BalanceControllerTests](../../src/test/java/dev/kavrin/balance/operation/web/BalanceControllerTests.java) با MockMvc و handlerهای mock‌شده، command، parse، نگاشت، خطا و سازگاری serialize را بررسی می‌کند. command انتقال تست همان Tx-001، UUIDها و مبلغ ۱۰۰ ریال این راهنما را دارد. مثال کسری وجه اینجا برای حفظ روایت TRANSFER است؛ تست‌های parameterized فعلی برای همین mapper نتیجهٔ CREDIT می‌دهند. [تست برنامه](../../src/test/java/dev/kavrin/balance/ConcurrentBalanceServiceApplicationTests.java) سرور HTTP داخلی را با profile فقط‌تست smoke اجرا و 503 هر چهار fallback را بررسی می‌کند.
 
 با JAVA_HOME روی Java 21:
 

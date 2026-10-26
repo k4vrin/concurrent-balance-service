@@ -2,7 +2,8 @@ package dev.kavrin.balance.operation.web.response;
 
 import dev.kavrin.balance.operation.application.result.MutationResult;
 import dev.kavrin.balance.operation.application.result.StoredResponse;
-import dev.kavrin.balance.operation.domain.OperationOutcome;
+import dev.kavrin.balance.operation.domain.OperationRejected;
+import dev.kavrin.balance.operation.domain.OperationSuccess;
 import dev.kavrin.balance.operation.domain.OperationType;
 import dev.kavrin.balance.operation.domain.RejectionReason;
 import dev.kavrin.balance.operation.domain.TransactionId;
@@ -42,7 +43,7 @@ class JsonDebitResponseEncoderTests {
     @Test
     void malformedStoredJsonCannotBecomeAReplay() {
         var invalid = new StoredResponse(1, 200, "application/json", "not-json".getBytes(StandardCharsets.UTF_8));
-        var result = new MutationResult(new OperationOutcome.Success(id, OperationType.DEBIT), Currency.getInstance("IRR"), Optional.of(invalid));
+        var result = new MutationResult(new OperationSuccess(id, OperationType.DEBIT), Currency.getInstance("IRR"), Optional.of(invalid));
 
         assertThatThrownBy(() -> encoder.validate(result)).isInstanceOf(RuntimeException.class);
     }
@@ -51,7 +52,7 @@ class JsonDebitResponseEncoderTests {
     void failsClosedWhenTheRejectionReasonDisagrees() {
         var bytes = json.writeValueAsBytes(Map.of("transactionId", id.value(), "operationType", "DEBIT", "currency", "IRR",
                 "status", 409, "code", "ACCOUNT_NOT_FOUND"));
-        var result = new MutationResult(new OperationOutcome.Rejected(id, OperationType.DEBIT, RejectionReason.TRANSACTION_LIMIT_EXCEEDED),
+        var result = new MutationResult(new OperationRejected(id, OperationType.DEBIT, RejectionReason.TRANSACTION_LIMIT_EXCEEDED),
                 Currency.getInstance("IRR"), Optional.of(new StoredResponse(1, 409, "application/problem+json", bytes)));
 
         assertThatThrownBy(() -> encoder.validate(result)).isInstanceOf(IllegalStateException.class);
@@ -62,7 +63,7 @@ class JsonDebitResponseEncoderTests {
     }
 
     private MutationResult success(Map<String, String> body) {
-        return new MutationResult(new OperationOutcome.Success(id, OperationType.DEBIT), Currency.getInstance("IRR"),
+        return new MutationResult(new OperationSuccess(id, OperationType.DEBIT), Currency.getInstance("IRR"),
                 Optional.of(new StoredResponse(1, 200, "application/json", json.writeValueAsBytes(body))));
     }
 }

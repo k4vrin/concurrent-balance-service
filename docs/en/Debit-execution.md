@@ -4,7 +4,7 @@
 
 ## Scope and activation
 
-CBS11–12 credit and CBS13 debit are implemented and regression-tested. CBS14 atomic transfer is excluded from this increment and remains an unavailable HTTP fallback. Formal learner acceptance remains separate from this implementation evidence.
+CBS11–12 credit and CBS13 debit are implemented and regression-tested. CBS14 atomic transfer is now implemented in a separate slice; see [transfer execution](Transfer-execution.md). Formal learner acceptance remains separate from this implementation evidence.
 
 Both funded operations require `balance.execution.enabled=true` and a valid execution policy with a funding counterpart for each supported currency. They use the same restricted runtime database identity and unchanged V1 schema. See [policy configuration](Execution-policy.md) and [SQL Server setup](Schema.md). Default disabled execution and test-only smoke assembly still return 503 for mutations.
 
@@ -38,7 +38,7 @@ The same ID and intent replay the original bytes without subtracting again. A re
 | [JpaDebitStore](../../src/main/java/dev/kavrin/balance/operation/infrastructure/persistence/JpaDebitStore.java) | Named native SQL, source-account reservation, replay mapping, history/projection writes and completion |
 | [DebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/application/debit/DebitResponseEncoder.java) | Produce and validate the retained response |
 | [JsonDebitResponseEncoder](../../src/main/java/dev/kavrin/balance/operation/web/response/JsonDebitResponseEncoder.java) | Jackson encoding and debit-specific problem instance URI |
-| [HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) | Dispatch debit to the enabled handler while leaving transfer staged |
+| [HttpAdapterConfiguration](../../src/main/java/dev/kavrin/balance/operation/web/configuration/HttpAdapterConfiguration.java) | Dispatch each mutation to its enabled handler |
 
 Credit and debit deliberately remain explicit slices, following the recorded implementation guide. Shared transaction ownership, account locking, canonical identity and HTTP outcome mapping are reused. Identical codec/persistence mechanics can be extracted in a later focused refactor after both behaviors are established; the debit slice never calls credit-specific reservation SQL.
 
@@ -56,6 +56,6 @@ The first portable run exposed an incorrect debit posting-side mapping introduce
 
 ## Remaining boundaries
 
-SQL Server 2022 CU22 on this ARM64 emulation setup remains unsupported by Microsoft; passing local tests do not establish production readiness. General transient retry/backoff, comprehensive uncertain-commit recovery, multi-instance mixed-operation gates, authentication/ownership and CBS14 transfer remain open. Checked funding arithmetic currently propagates as a technical/internal failure and rolls back; CBS15’s broader error-classification work is not claimed complete.
+SQL Server 2022 CU22 on this ARM64 emulation setup remains unsupported by Microsoft; passing local tests do not establish production readiness. General transient retry/backoff, comprehensive uncertain-commit recovery, multi-instance mixed-operation gates, authentication/ownership remain open. Checked funding arithmetic currently propagates as a technical/internal failure and rolls back; CBS15’s broader error-classification work is not claimed complete.
 
 The public README continues to describe the intended finished first version. For current behavior, use [implementation status](Implementation-status.md). For repeating the full suite, supply all three explicit restricted test identities from [Schema.md](Schema.md); do not put secrets in Maven command-line properties.

@@ -1,5 +1,6 @@
 package dev.kavrin.balance.operation.application.credit;
 
+import dev.kavrin.balance.account.application.LockedAccount;
 import dev.kavrin.balance.account.domain.Account;
 import dev.kavrin.balance.account.domain.AccountCategory;
 import dev.kavrin.balance.account.domain.AccountId;
@@ -10,6 +11,7 @@ import dev.kavrin.balance.money.Money;
 import dev.kavrin.balance.operation.application.command.CreditCommand;
 import dev.kavrin.balance.operation.application.execution.DuplicateOperation;
 import dev.kavrin.balance.operation.application.execution.OperationCoordinator;
+import dev.kavrin.balance.operation.application.execution.RecordingTransactionManager;
 import dev.kavrin.balance.operation.application.identity.CanonicalFingerprint;
 import dev.kavrin.balance.operation.application.identity.CanonicalRequest;
 import dev.kavrin.balance.operation.application.policy.AmountLimits;
@@ -18,12 +20,14 @@ import dev.kavrin.balance.operation.application.policy.FundingSelection;
 import dev.kavrin.balance.operation.application.policy.SupportedCurrencies;
 import dev.kavrin.balance.operation.application.result.MutationResult;
 import dev.kavrin.balance.operation.application.result.OperationFailure;
+import dev.kavrin.balance.operation.application.result.OperationFailureReason;
 import dev.kavrin.balance.operation.application.result.StoredResponse;
 import dev.kavrin.balance.operation.domain.OperationOutcome;
+import dev.kavrin.balance.operation.domain.OperationRejected;
+import dev.kavrin.balance.operation.domain.OperationSuccess;
 import dev.kavrin.balance.operation.domain.OperationType;
 import dev.kavrin.balance.operation.domain.RejectionReason;
 import dev.kavrin.balance.operation.domain.TransactionId;
-import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +39,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionSystemException;
-import org.springframework.transaction.support.AbstractPlatformTransactionManager;
-import org.springframework.transaction.support.DefaultTransactionStatus;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,12 +67,12 @@ class CreditHandlerTests {
         when(encoder.encode(any(), any())).thenReturn(response);
         doAnswer(invocation -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
-            manager.events.add("complete");
+            manager.events().add("complete");
             return null;
         }).when(store).complete(any(), any(), any());
 
         var result = handler.handle(command);
-        manager.events.add("returned");
+        manager.events().add("returned");
 
         var attempt = org.mockito.ArgumentCaptor.forClass(CreditAttempt.class);
         var ordered = inOrder(store);
@@ -84,14 +85,14 @@ class CreditHandlerTests {
         ordered.verify(store).applyProjections(Map.of(
                 CUSTOMER, account(CUSTOMER, AccountCategory.CUSTOMER_LIABILITY, 200),
                 FUNDING, account(FUNDING, AccountCategory.FUNDING_CLEARING, 100)));
-        var outcome = new OperationOutcome.Success(command.transactionId(), OperationType.CREDIT);
+        var outcome = new OperationSuccess(command.transactionId(), OperationType.CREDIT);
         ordered.verify(store).complete(attempt.getValue(), new MutationResult(outcome, IRR), response);
         ordered.verifyNoMoreInteractions();
         assertThat(result).isEqualTo(new MutationResult(outcome, IRR, Optional.of(response)));
         assertThat(attempt.getValue().policy()).isSameAs(policy);
         assertThat(attempt.getValue().funding()).isEqualTo(policy.fundingFor(IRR));
         assertThat(attempt.getValue().canonical().fingerprint()).isEqualTo(fingerprint());
-        assertThat(manager.events).containsExactly("begin", "commit", "begin", "complete", "commit", "returned");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "complete", "commit", "returned");
     }
 
     @ParameterizedTest
@@ -106,19 +107,19 @@ class CreditHandlerTests {
         verify(encoder).validate(retained);
         verify(store).replay(command, fingerprint());
         verifyNoMoreInteractions(store, encoder);
-        assertThat(manager.events).containsExactly("begin", "commit");
+        assertThat(manager.events()).containsExactly("begin", "commit");
     }
 
     @Test
     void replayConflictEscapesWithoutReservation() {
-        var conflict = new OperationFailure(OperationFailure.Reason.TRANSACTION_ID_CONFLICT);
+        var conflict = new OperationFailure(OperationFailureReason.TRANSACTION_ID_CONFLICT);
         when(store.replay(command, fingerprint())).thenThrow(conflict);
 
         assertThatThrownBy(() -> handler.handle(command)).isSameAs(conflict);
 
         verify(store).replay(command, fingerprint());
         verifyNoMoreInteractions(store);
-        assertThat(manager.events).containsExactly("begin", "rollback");
+        assertThat(manager.events()).containsExactly("begin", "rollback");
     }
 
     @Test
@@ -132,7 +133,7 @@ class CreditHandlerTests {
 
         verify(store).replay(command, fingerprint());
         verifyNoMoreInteractions(store);
-        assertThat(manager.events).containsExactly("begin", "rollback");
+        assertThat(manager.events()).containsExactly("begin", "rollback");
     }
 
     @Test
@@ -140,7 +141,7 @@ class CreditHandlerTests {
         var disabled = new ExecutionPolicy("disabled", new SupportedCurrencies(Set.of()), policy.limits(), Map.of());
 
         assertThatThrownBy(() -> handler(disabled).handle(command)).isInstanceOfSatisfying(OperationFailure.class,
-                failure -> assertThat(failure.reason()).isEqualTo(OperationFailure.Reason.UNSUPPORTED_CURRENCY));
+                failure -> assertThat(failure.reason()).isEqualTo(OperationFailureReason.UNSUPPORTED_CURRENCY));
 
         verify(store).replay(command, fingerprint());
         verifyNoMoreInteractions(store);
@@ -162,7 +163,7 @@ class CreditHandlerTests {
 
         var result = handler(selectedPolicy).handle(command);
 
-        var rejected = new OperationOutcome.Rejected(command.transactionId(), OperationType.CREDIT, reason);
+        var rejected = new OperationRejected(command.transactionId(), OperationType.CREDIT, reason);
         assertThat(result).isEqualTo(new MutationResult(rejected, IRR, Optional.of(rejectionResponse)));
         verify(store).complete(any(), eq(new MutationResult(rejected, IRR)), eq(rejectionResponse));
         verify(store, never()).appendJournal(any(), any());
@@ -170,7 +171,7 @@ class CreditHandlerTests {
         if (reason == RejectionReason.TRANSACTION_LIMIT_EXCEEDED) {
             verify(store, never()).lockAccounts(anyList());
         }
-        assertThat(manager.events).containsExactly("begin", "commit", "begin", "commit");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit");
     }
 
     @Test
@@ -182,7 +183,7 @@ class CreditHandlerTests {
         verify(store, never()).appendJournal(any(), any());
         verify(store, never()).applyProjections(any());
         verify(store, never()).complete(any(), any(), any());
-        assertThat(manager.events).containsExactly("begin", "commit", "begin", "rollback");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "rollback");
     }
 
     @ParameterizedTest
@@ -201,28 +202,28 @@ class CreditHandlerTests {
         }
 
         assertThatThrownBy(() -> handler.handle(command)).isInstanceOfSatisfying(OperationFailure.class, unavailable -> {
-            assertThat(unavailable.reason()).isEqualTo(OperationFailure.Reason.UNAVAILABLE);
+            assertThat(unavailable.reason()).isEqualTo(OperationFailureReason.UNAVAILABLE);
             assertThat(unavailable.getCause()).isSameAs(failure);
         });
 
         if (!stage.equals("completion")) { verify(store, never()).complete(any(), any(), any()); }
         if (stage.equals("journal")) { verify(store, never()).applyProjections(any()); }
-        assertThat(manager.events).containsExactly("begin", "commit", "begin", "rollback");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "rollback");
     }
 
     @Test
     void commitFailureDoesNotAcknowledgeThePreparedSuccess() {
         when(store.lockAccounts(anyList())).thenReturn(accounts(0, 0));
         when(encoder.encode(any(), any())).thenReturn(response);
-        manager.failCommit = 2;
+        manager.failCommitOn(2);
 
         assertThatThrownBy(() -> handler.handle(command)).isInstanceOfSatisfying(OperationFailure.class, failure -> {
-            assertThat(failure.reason()).isEqualTo(OperationFailure.Reason.UNAVAILABLE);
+            assertThat(failure.reason()).isEqualTo(OperationFailureReason.UNAVAILABLE);
             assertThat(failure.getCause()).isInstanceOf(TransactionSystemException.class);
         });
 
         verify(store).complete(any(), any(), eq(response));
-        assertThat(manager.events).containsExactly("begin", "commit", "begin", "commit");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit");
     }
 
     @ParameterizedTest
@@ -238,7 +239,7 @@ class CreditHandlerTests {
             verify(encoder).validate(retained);
         } else {
             assertThatThrownBy(() -> handler.handle(command)).isInstanceOfSatisfying(OperationFailure.class,
-                    failure -> assertThat(failure.reason()).isEqualTo(OperationFailure.Reason.UNAVAILABLE));
+                    failure -> assertThat(failure.reason()).isEqualTo(OperationFailureReason.UNAVAILABLE));
         }
 
         var ordered = inOrder(store);
@@ -246,7 +247,7 @@ class CreditHandlerTests {
         ordered.verify(store).reserve(any());
         ordered.verify(store).replay(command, fingerprint());
         ordered.verifyNoMoreInteractions();
-        assertThat(manager.events).containsExactly("begin", "commit", "begin", "rollback", "begin", "commit");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "rollback", "begin", "commit");
     }
 
     private CreditHandler handler(ExecutionPolicy selectedPolicy) {
@@ -258,40 +259,19 @@ class CreditHandlerTests {
     }
 
     private MutationResult retained(boolean success) {
-        OperationOutcome outcome = success ? new OperationOutcome.Success(command.transactionId(), OperationType.CREDIT)
-                : new OperationOutcome.Rejected(command.transactionId(), OperationType.CREDIT, RejectionReason.BALANCE_LIMIT_EXCEEDED);
+        OperationOutcome outcome = success ? new OperationSuccess(command.transactionId(), OperationType.CREDIT)
+                : new OperationRejected(command.transactionId(), OperationType.CREDIT, RejectionReason.BALANCE_LIMIT_EXCEEDED);
         var stored = success ? response : new StoredResponse(1, 409, "application/problem+json", new byte[] {2});
         return new MutationResult(outcome, IRR, Optional.of(stored));
     }
 
-    private Map<AccountId, CreditStore.LockedAccount> accounts(long customerBalance, long fundingBalance) {
-        return Map.of(CUSTOMER, new CreditStore.LockedAccount(account(CUSTOMER, AccountCategory.CUSTOMER_LIABILITY, customerBalance), true),
-                FUNDING, new CreditStore.LockedAccount(account(FUNDING, AccountCategory.FUNDING_CLEARING, fundingBalance), true));
+    private Map<AccountId, LockedAccount> accounts(long customerBalance, long fundingBalance) {
+        return Map.of(CUSTOMER, new LockedAccount(account(CUSTOMER, AccountCategory.CUSTOMER_LIABILITY, customerBalance), true),
+                FUNDING, new LockedAccount(account(FUNDING, AccountCategory.FUNDING_CLEARING, fundingBalance), true));
     }
 
     private Account account(AccountId id, AccountCategory category, long balance) {
         return new Account(id, category, new Money(balance, IRR));
     }
 
-    // Records Spring lifecycle decisions only; mocked storage has no database commit, rollback or locks.
-    private static final class RecordingTransactionManager extends AbstractPlatformTransactionManager {
-        private final List<String> events = new ArrayList<>();
-        private int commits;
-        private int failCommit;
-
-        @Override
-        protected Object doGetTransaction() { return new Object(); }
-
-        @Override
-        protected void doBegin(Object transaction, TransactionDefinition definition) { events.add("begin"); }
-
-        @Override
-        protected void doCommit(DefaultTransactionStatus status) {
-            events.add("commit");
-            if (++commits == failCommit) { throw new TransactionSystemException("commit outcome uncertain"); }
-        }
-
-        @Override
-        protected void doRollback(DefaultTransactionStatus status) { events.add("rollback"); }
-    }
 }

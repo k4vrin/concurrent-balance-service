@@ -4,7 +4,8 @@ import dev.kavrin.balance.operation.application.command.DebitCommand;
 import dev.kavrin.balance.operation.application.debit.DebitResponseEncoder;
 import dev.kavrin.balance.operation.application.result.MutationResult;
 import dev.kavrin.balance.operation.application.result.StoredResponse;
-import dev.kavrin.balance.operation.domain.OperationOutcome;
+import dev.kavrin.balance.operation.domain.OperationRejected;
+import dev.kavrin.balance.operation.domain.OperationSuccess;
 import java.net.URI;
 import java.util.Map;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,7 @@ public final class JsonDebitResponseEncoder implements DebitResponseEncoder {
             problem.setInstance(URI.create("/api/v1/accounts/" + command.accountId().value() + "/debits"));
         }
         return new StoredResponse(1, response.getStatusCode().value(),
-                result.outcome() instanceof OperationOutcome.Success ? "application/json" : "application/problem+json",
+                result.outcome() instanceof OperationSuccess ? "application/json" : "application/problem+json",
                 json.writeValueAsBytes(response.getBody()));
     }
 
@@ -31,13 +32,13 @@ public final class JsonDebitResponseEncoder implements DebitResponseEncoder {
     public void validate(MutationResult result) {
         var response = result.storedResponse().orElseThrow();
         Map<?, ?> body = json.readValue(response.body(), Map.class);
-        boolean success = result.outcome() instanceof OperationOutcome.Success;
+        boolean success = result.outcome() instanceof OperationSuccess;
         if (!result.outcome().transactionId().value().equals(body.get("transactionId"))
                 || !result.outcome().operationType().name().equals(body.get("operationType"))
                 || !result.currency().getCurrencyCode().equals(body.get("currency"))
                 || success && (response.status() != 200 || !"SUCCEEDED".equals(body.get("status")))
                 || !success && (response.status() < 400
-                || !((OperationOutcome.Rejected) result.outcome()).reason().name().equals(body.get("code"))
+                || !((OperationRejected) result.outcome()).reason().name().equals(body.get("code"))
                 || !(body.get("status") instanceof Number status) || status.intValue() != response.status())) {
             throw new IllegalStateException("Stored response does not match the retained outcome");
         }

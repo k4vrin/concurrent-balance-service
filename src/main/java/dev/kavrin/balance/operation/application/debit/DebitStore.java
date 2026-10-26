@@ -1,5 +1,6 @@
 package dev.kavrin.balance.operation.application.debit;
 
+import dev.kavrin.balance.account.application.LockedAccount;
 import dev.kavrin.balance.account.domain.Account;
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.ledger.domain.Journal;
@@ -20,13 +21,6 @@ import java.util.Optional;
  * (ADR-007 and ADR-010); a terminal rejection completes without monetary writes.
  */
 public interface DebitStore {
-    /**
-     * Account state read while holding the transaction's participant lock.
-     *
-     * @param snapshot domain state used for participant checks and projection calculations
-     * @param active whether the stored account is enabled for execution
-     */
-    record LockedAccount(Account snapshot, boolean active) { }
 
     /**
      * Looks up a completed request by transaction ID and compares its canonical intent.

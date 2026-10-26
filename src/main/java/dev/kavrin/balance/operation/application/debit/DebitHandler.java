@@ -1,5 +1,6 @@
 package dev.kavrin.balance.operation.application.debit;
 
+import dev.kavrin.balance.account.application.LockedAccount;
 import dev.kavrin.balance.account.domain.Account;
 import dev.kavrin.balance.account.domain.AccountCategory;
 import dev.kavrin.balance.account.domain.AccountId;
@@ -14,7 +15,10 @@ import dev.kavrin.balance.operation.application.identity.CanonicalRequest;
 import dev.kavrin.balance.operation.application.policy.ExecutionPolicy;
 import dev.kavrin.balance.operation.application.result.MutationResult;
 import dev.kavrin.balance.operation.application.result.OperationFailure;
+import dev.kavrin.balance.operation.application.result.OperationFailureReason;
 import dev.kavrin.balance.operation.domain.OperationOutcome;
+import dev.kavrin.balance.operation.domain.OperationRejected;
+import dev.kavrin.balance.operation.domain.OperationSuccess;
 import dev.kavrin.balance.operation.domain.OperationType;
 import dev.kavrin.balance.operation.domain.RejectionReason;
 import java.util.List;
@@ -75,7 +79,7 @@ public final class DebitHandler {
         try {
             return process(command);
         } catch (DataAccessException | TransactionException unavailable) {
-            throw new OperationFailure(OperationFailure.Reason.UNAVAILABLE, unavailable);
+            throw new OperationFailure(OperationFailureReason.UNAVAILABLE, unavailable);
         }
     }
 
@@ -105,7 +109,7 @@ public final class DebitHandler {
      */
     private DebitAttempt prepareAttempt(DebitCommand command, CanonicalRequest canonical) {
         if (!policy.supportedCurrencies().currencies().contains(command.amount().currency())) {
-            throw new OperationFailure(OperationFailure.Reason.UNSUPPORTED_CURRENCY);
+            throw new OperationFailure(OperationFailureReason.UNSUPPORTED_CURRENCY);
         }
         var funding = policy.fundingFor(command.amount().currency());
         if (funding.counterpartAccountId().equals(command.accountId())) {
@@ -126,7 +130,7 @@ public final class DebitHandler {
         } catch (DuplicateOperation duplicate) {
             // The failed reservation has left its transaction before committed-result recovery.
             return coordinator.execute(() -> recover(attempt.command(), attempt.canonical().fingerprint()))
-                    .orElseThrow(() -> new OperationFailure(OperationFailure.Reason.UNAVAILABLE));
+                    .orElseThrow(() -> new OperationFailure(OperationFailureReason.UNAVAILABLE));
         }
     }
 
@@ -177,7 +181,7 @@ public final class DebitHandler {
         // ADR-007: validate every projection before any history/projection mutation; completion shares this transaction.
         store.appendJournal(attempt, journal);
         store.applyProjections(projections);
-        return complete(attempt, new OperationOutcome.Success(command.transactionId(), OperationType.DEBIT));
+        return complete(attempt, new OperationSuccess(command.transactionId(), OperationType.DEBIT));
     }
 
     /**
@@ -200,7 +204,7 @@ public final class DebitHandler {
      * @param locked participant state protected by the owning transaction
      * @return validated proposed balances for all journal participants
      */
-    private Map<AccountId, Account> calculateProjections(Journal journal, Map<AccountId, DebitStore.LockedAccount> locked) {
+    private Map<AccountId, Account> calculateProjections(Journal journal, Map<AccountId, LockedAccount> locked) {
         var snapshots = locked.entrySet().stream().collect(Collectors.toMap(
                 Map.Entry::getKey, entry -> entry.getValue().snapshot()));
         return journal.projectBalances(snapshots);
@@ -215,7 +219,7 @@ public final class DebitHandler {
      * @param command debit supplying the expected currency
      * @throws IllegalStateException if the participant is missing, inactive or incompatible
      */
-    private void requireParticipant(DebitStore.LockedAccount account, AccountCategory category, DebitCommand command) {
+    private void requireParticipant(LockedAccount account, AccountCategory category, DebitCommand command) {
         if (account == null || !account.active() || account.snapshot().category() != category
                 || !account.snapshot().balance().currency().equals(command.amount().currency())) {
             throw new IllegalStateException("Debit participant is unavailable or incompatible");
@@ -231,7 +235,7 @@ public final class DebitHandler {
      */
     private MutationResult reject(DebitAttempt attempt, RejectionReason reason) {
         // ADR-010: terminal rejection commits only its original outcome; no journal or projection writes.
-        return complete(attempt, new OperationOutcome.Rejected(attempt.command().transactionId(), OperationType.DEBIT, reason));
+        return complete(attempt, new OperationRejected(attempt.command().transactionId(), OperationType.DEBIT, reason));
     }
 
     /**

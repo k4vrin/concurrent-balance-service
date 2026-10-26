@@ -1,6 +1,7 @@
 package dev.kavrin.balance.infrastructure.sqlserver;
 
 import dev.kavrin.balance.ConcurrentBalanceServiceApplication;
+import dev.kavrin.balance.account.application.LockedAccount;
 import dev.kavrin.balance.account.domain.Account;
 import dev.kavrin.balance.account.domain.AccountCategory;
 import dev.kavrin.balance.account.domain.AccountId;
@@ -8,13 +9,13 @@ import dev.kavrin.balance.money.Money;
 import dev.kavrin.balance.operation.application.command.CreditCommand;
 import dev.kavrin.balance.operation.application.credit.CreditHandler;
 import dev.kavrin.balance.operation.application.credit.CreditResponseEncoder;
-import dev.kavrin.balance.operation.application.credit.CreditStore;
 import dev.kavrin.balance.operation.application.execution.OperationCoordinator;
 import dev.kavrin.balance.operation.application.policy.AmountLimits;
 import dev.kavrin.balance.operation.application.policy.ExecutionPolicy;
 import dev.kavrin.balance.operation.application.policy.FundingSelection;
 import dev.kavrin.balance.operation.application.policy.SupportedCurrencies;
 import dev.kavrin.balance.operation.application.result.OperationFailure;
+import dev.kavrin.balance.operation.application.result.OperationFailureReason;
 import dev.kavrin.balance.operation.domain.TransactionId;
 import dev.kavrin.balance.operation.infrastructure.persistence.JpaCreditStore;
 import java.net.URI;
@@ -252,7 +253,7 @@ class SqlServerCreditIT {
 
         assertThatThrownBy(() -> handler.handle(command)).isInstanceOf(OperationFailure.class)
                 .hasRootCauseMessage("injected")
-                .satisfies(failure -> assertThat(((OperationFailure) failure).reason()).isEqualTo(OperationFailure.Reason.UNAVAILABLE));
+                .satisfies(failure -> assertThat(((OperationFailure) failure).reason()).isEqualTo(OperationFailureReason.UNAVAILABLE));
 
         assertCounts(command, 0, 0, 0);
         assertThat(balance(command.accountId())).isZero();
@@ -266,9 +267,9 @@ class SqlServerCreditIT {
         long fundingBefore = balance(FUNDING);
         // Inject only the locked domain snapshot; never commit an unreconciled setup balance.
         doAnswer(call -> {
-            var actual = (Map<AccountId, CreditStore.LockedAccount>) call.callRealMethod();
+            var actual = (Map<AccountId, LockedAccount>) call.callRealMethod();
             var result = new HashMap<>(actual);
-            result.put(FUNDING, new CreditStore.LockedAccount(new Account(FUNDING, AccountCategory.FUNDING_CLEARING,
+            result.put(FUNDING, new LockedAccount(new Account(FUNDING, AccountCategory.FUNDING_CLEARING,
                     new Money(Long.MAX_VALUE, IRR)), true));
             return Map.copyOf(result);
         }).when(store).lockAccounts(any());

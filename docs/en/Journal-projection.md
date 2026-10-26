@@ -1,3 +1,5 @@
+> CBS14 update, 2026-10-26: [Atomic transfer](Transfer-execution.md) now uses the existing journal calculation to commit source/destination projections and retained outcomes together. Domain calculation and the examples below are unchanged; the transfer guide records the new database evidence.
+
 > Current CBS13 update, 2026-10-25: [Durable debit](Debit-execution.md) is implemented alongside opt-in credit and authoritative balance lookup. Transfer remains unavailable until CBS14. Full verification passed 351 portable plus 134 real SQL Server tests, zero failures/errors/skips. Earlier pending/unavailable statements below are historical.
 
 # Journal record and balance projection walkthrough

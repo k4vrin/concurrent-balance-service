@@ -8,7 +8,7 @@ Full Java 21 Maven `-Psqlserver-it verify` passed **421 portable + 212 real SQL 
 
 The default acceptance entry point then passed the separate packaged-JAR scenario: **7 terminal operations, 6 successes, 1 rejection, 6 journals and 12 postings**; customer balances **725/775**, funding **1500**. Actual process restart, real lock-timeout rollback and same-ID retry passed. The measured artifact SHA-256 was `54c6816d6da294ef477e4a8bfa95c77290e2f95686e20312f65c95870686d730`. The report records the parent source HEAD and a dirty tree because this acceptance preceded publication of the final test/documentation changes.
 
-The selected core implementation and automated engineering acceptance are complete. configured for pushes and pull requests; remote run status must be checked for the published commit. Independent learner acceptance is not inferred, and authentication/ownership, performance and optional integrations remain later scope.
+The selected core implementation and automated engineering acceptance are complete. [Linux CI](https://github.com/k4vrin/concurrent-balance-service/actions/runs/40886355156) also passed both jobs at clean commit `7b4d505`, including the full real SQL Server/package acceptance entry point. Independent learner acceptance is not inferred, and authentication/ownership, performance and optional integrations remain later scope.
 
 
 The final compiler audit covers **163 Java types with zero missing class-level Javadocs**. Whole-project private Javadoc generation passed doclint without warnings/errors; the source scan found **zero nested/local/anonymous types in 161 source files**.

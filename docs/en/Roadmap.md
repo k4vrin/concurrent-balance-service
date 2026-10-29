@@ -18,7 +18,7 @@
 
 # Incremental roadmap
 
-Status: proposed implementation plan, 2026-10-20. [فارسی](../fa/Roadmap.md) · [Index](../../README.md)
+Status: the selected CBS20/G1 core is complete as of 2026-10-29; see [current acceptance evidence](Core-acceptance.md). The dated plans and checkpoints below preserve their original historical scope. Optional later phases remain deferred. [فارسی](../fa/Roadmap.md) · [Index](../../README.md)
 
 ## Sequence and release gates
 

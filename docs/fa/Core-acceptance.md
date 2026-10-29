@@ -50,7 +50,7 @@ checker مستقل JDBC دقیقاً هفت عملیات نهایی می‌خو�
 | بازیابی خطای موقت و نامعلوم | حالت‌های واقعی 1205/1222، faultهای مرزی کنترل‌شدهٔ CBS19 و rollback/retry واقعی process قفل‌شده. |
 | bootstrap/بررسی قابل‌تکرار | راهنمای Docker/schema pin‌شده و دستور واحد بالا. |
 | Javadoc همهٔ typeها و ساختار source | پوشش DocTrees، doclint کل پروژه و صفر type تودرتو/local/anonymous. |
-| CI | بررسی قابل‌حمل و job تازهٔ SQL Server موقت/پذیرش artifact؛ برای push و pull request تنظیم شده است؛ وضعیت اجرای remote باید برای commit منتشرشده بررسی شود. |
+| CI | بررسی قابل‌حمل و job تازهٔ SQL Server موقت/پذیرش artifact؛ [اجرای Linux شمارهٔ 40886355156](https://github.com/k4vrin/concurrent-balance-service/actions/runs/40886355156) هر دو job را روی `7b4d505` گذراند؛ شامل bootstrap تمیز و سناریوی process بسته‌بندی‌شده. |
 | پذیرش مستقل یادگیری | به اجرای خود یادگیرنده نیاز دارد؛ از پیاده‌سازی کمکی نتیجه نمی‌شود. |
 
 ## نتیجهٔ سنجیده‌شده و محدودیت‌ها
@@ -62,3 +62,5 @@ checker مستقل JDBC دقیقاً هفت عملیات نهایی می‌خو�
 زمان بالا SLO تولیدی یا benchmark توان عملیاتی نیست. fixtureهای race بین contextها یک JVM دارند؛ faultهای تأیید/visibility/پاسخ در CBS19 صریحاً تزریق می‌شوند و قطع فیزیکی شبکه نیستند. سناریوی مستقل artifact از JVM جدا، timeout واقعی قفل و restart process استفاده می‌کند. این محدودهٔ شواهد جزئی از تحویل هسته است.
 
 ممیزی نهایی کامپایلر، **۱۶۳ type جاوا را با صفر JavaDoc کلاسیِ مفقود** پوشش می‌دهد. تولید JavaDoc کل پروژه، شامل اعضای private، doclint را بدون warning/error گذراند؛ اسکن **۱۶۱ فایل source، صفر type تو‌در‌تو/local/anonymous** یافت.
+
+CI لینوکس مستقلاً روی commit تمیز `7b4d505` موفق شد (`buildSkipped=false` و `workingTreeDirty=false`): [اجرای 40886355156](https://github.com/k4vrin/concurrent-balance-service/actions/runs/40886355156). سناریوی artifact همان تعداد operation/history و موجودی‌ها را تأیید کرد، rollback واقعی و restart را گذراند و summary بدون secret را نگه داشت. SHA-256 artifact در CI برابر `2713e30c6080ef383a1ad5891d66f4e4c66f90c094f19e7290d0eb1c31f9327a` بود.

@@ -21,7 +21,7 @@ Use Java 21, Python 3 and Docker. The SQL Server image remains pinned in Compose
 python3 scripts/verify-core.py --env-file .env.sqlserver
 ```
 
-Without `--env-file`, explicitly export all three `SQLSERVER_TEST_*`, `SQLSERVER_MIGRATION_TEST_*` and `SQLSERVER_INITIALIZER_TEST_*` URL/username/password triplets. Actual JDBC connections must report `cbs_test`, Microsoft SQL Server and restricted identities before fixtures are inserted. The script does not use production/runtime settings as fallback. `--offline` selects a populated Maven cache; `--skip-build` runs only the artifact scenario after a separately verified build and records that fact in the report. The automation is validated on this macOS host; the configured CI uses Linux. Windows users retain the documented Maven/PowerShell test path until this separate harness is measured there.
+Without `--env-file`, explicitly export all three `SQLSERVER_TEST_*`, `SQLSERVER_MIGRATION_TEST_*` and `SQLSERVER_INITIALIZER_TEST_*` URL/username/password triplets. Actual JDBC connections must report `cbs_test`, Microsoft SQL Server and restricted identities before fixtures are inserted. The script does not use production/runtime settings as fallback. `--offline` selects a populated Maven cache; `--skip-build` runs only the artifact scenario after a separately verified build and records that fact in the report. The automation is validated on this macOS host and on the Linux GitHub runner. Windows users retain the documented Maven/PowerShell test path until this separate harness is measured there.
 
 ## What the entry point proves
 
@@ -50,7 +50,7 @@ Generated evidence lives in ignored `target/core-acceptance/`: Maven log, first/
 | Transient and uncertain failure recovery | Real 1205/1222 cases, CBS19 controlled boundary faults and actual blocked-process rollback/retry. |
 | Reproducible bootstrap/verification | Existing pinned Docker/schema runbook plus the entry point above. |
 | Complete type Javadoc and source structure | Compiler DocTrees coverage, whole-project doclint, zero nested/local/anonymous source types. |
-| CI | Portable verification plus the new disposable SQL Server/package acceptance job; configured for pushes and pull requests; remote run status must be checked for the published commit. |
+| CI | Portable verification plus the new disposable SQL Server/package acceptance job; [Linux run 40886355156](https://github.com/k4vrin/concurrent-balance-service/actions/runs/40886355156) passed both jobs at `7b4d505`, including clean bootstrap and the packaged-process scenario. |
 | Independent learner acceptance | Requires the learner's own demonstration; not inferred from assisted implementation. |
 
 ## Measured result and remaining limits
@@ -62,3 +62,5 @@ Full Java 21 Maven `-Psqlserver-it verify` passed **421 portable + 212 real SQL 
 The default acceptance entry point then passed the separate packaged-JAR scenario: **7 terminal operations, 6 successes, 1 rejection, 6 journals and 12 postings**; customer balances **725/775**, funding **1500**. Actual process restart, real lock-timeout rollback and same-ID retry passed. The measured artifact SHA-256 was `54c6816d6da294ef477e4a8bfa95c77290e2f95686e20312f65c95870686d730`. The report records the parent source HEAD and a dirty tree because this acceptance preceded publication of the final test/documentation changes.
 
 No timing above is a production SLO or throughput benchmark. Cross-context race fixtures share a JVM; CBS19 acknowledgement/visibility/response faults are explicitly injected rather than physical network partitions. The independent artifact scenario uses an actual separate application JVM, real lock timeout and process restart. These evidence boundaries remain part of the completed core deliverable.
+
+Linux CI independently passed at clean source commit `7b4d505` (`buildSkipped=false`, `workingTreeDirty=false`): [run 40886355156](https://github.com/k4vrin/concurrent-balance-service/actions/runs/40886355156). Its artifact scenario produced the same operation/history counts and balances, verified real rollback and restart, and retained a sanitized summary. CI artifact SHA-256: `2713e30c6080ef383a1ad5891d66f4e4c66f90c094f19e7290d0eb1c31f9327a`.

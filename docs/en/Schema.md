@@ -1,3 +1,5 @@
+> Current setup: follow [the complete HTTP walkthrough](HTTP-samples.md) for a fresh local API and runnable requests. The [CBS20 core](Core-acceptance.md) is complete; dated implementation statements below describe their original checkpoint.
+
 > Current persistence update: [CBS10 evidence](Persistence.md) now verifies JPA mappings, committed opening fixtures and the SQL Server balance route. Mutations remain unavailable. Earlier all-route-503 and schema-only statements below are historical.
 
 # CBS09 SQL Server schema and migration runbook

@@ -63,4 +63,4 @@ Java 21.0.11 Maven verify passed 150 tests with zero failures/errors/skips in 7.
 
 ## CBS23 boundary update, 2026-10-23
 
-The HTTP adapter and MutationResult outcome/currency envelope now exist. See [API contract](API-v1.md#cbs23-http-foundation-2026-10-23). The outcome examples above remain value construction only. Durable response storage, transaction coordination, SQL failure classification and real replay remain unimplemented. The 150-test result above is historical CBS05 evidence; current adapter evidence is recorded [separately](HTTP-adapter-evidence.md).
+The HTTP adapter and MutationResult outcome/currency envelope now exist. See [API contract](API-v1.md#successful-responses). The outcome examples above remain value construction only. Durable response storage, transaction coordination, SQL failure classification and real replay remain unimplemented. The 150-test result above is historical CBS05 evidence; current adapter evidence is recorded [separately](HTTP-adapter-evidence.md).

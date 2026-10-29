@@ -1,195 +1,115 @@
-> به‌روزرسانی اتصال، ۲۰۲۶-۱۰-۲۶: کنترلر اکنون handlerهای دریافت‌شده در سازنده را مستقیم صدا می‌زند. interface واسط، پیاده‌سازی آن و bean مرحله‌ای حذف شدند. mutation غیرفعال و smoke همان پاسخ 503 را دارند؛ استعلام موجودی عادی در دسترس می‌ماند. توضیحات قدیمی façade در ادامه تاریخی‌اند.
+# مرجع HTTP API نسخهٔ اول
 
-> به‌روزرسانی CBS14، ۲۰۲۶-۱۰-۲۶: [انتقال اتمیک](Transfer-execution.md) کنار credit، debit و استعلام موجودی مرجع پیاده شده است. regression کامل، ۳۸۵ تست قابل‌حمل و ۱۵۴ تست واقعی SQL Server، شامل هر ۲۰ تست انتقال را با صفر failure/error/skip گذراند. معیارهای retry، رقابت گسترده‌تر و پذیرش مستقل یادگیری باز هستند. گفته‌های قبلی دربارهٔ unavailable بودن مسیرها در ادامه تاریخی‌اند.
+[English](../en/API-v1.md) · [درخواست‌های اجرایی](../../http/balance-service.http) · [walkthrough محلی](HTTP-samples.md) · [پذیرش هسته](Core-acceptance.md)
 
-> به‌روزرسانی CBS13، ۲۰۲۶-۱۰-۲۵: [debit ماندگار](Debit-execution.md) کنار credit با فعال‌سازی صریح و استعلام موجودی مرجع پیاده شده است. انتقال تا CBS14 unavailable می‌ماند. اجرای کامل ۳۵۱ تست مستقل و ۱۳۴ تست واقعی SQL Server را با صفر failure/error/skip گذراند. گفته‌های قدیمی pending/unavailable در ادامه تاریخی‌اند.
+این صفحه قرارداد پیاده‌شدهٔ هستهٔ CBS20 است. با دیتابیس/schema آماده و `EXECUTION_POLICY_ENABLED=true`، هر چهار مسیر روی SQL Server اجرا می‌شوند. سرور به‌صورت پیش‌فرض روی `http://127.0.0.1:8080` گوش می‌دهد و اپراتور محلی مورداعتماد را فرض می‌کند؛ احراز هویت و مالکیت حساب محدودهٔ بعدی‌اند. endpoint عمومی ساخت حساب یا موجودی افتتاحیه نداریم.
 
-> به‌روزرسانی credit در CBS11–12، ۲۰۲۶-۱۰-۲۴: [credit ماندگار](Credit-execution.md) اکنون با فعال‌سازی صریح سیاست کار می‌کند. history/projection/outcome متوازن را commit و بایت موفقیت/رد اصلی را برمی‌گرداند؛ debit/transfer همان fallback با 503 هستند. وضعیت unavailable یا فقط adapter در بخش‌های قبلی شاهد تاریخی است.
+## مسیرها و body درخواست
 
-> به‌روزرسانی persistence: [شواهد CBS10](Persistence.md) اکنون نگاشت JPA، fixture افتتاحیهٔ committed و route موجودی SQL Server را تأیید می‌کند. mutation هنوز unavailable است. گفته‌های قبلی دربارهٔ 503 برای همهٔ routeها و شواهد فقط schema در ادامه تاریخی‌اند.
+درخواست POST به `Content-Type: application/json` نیاز دارد. موفقیت با `application/json` و problem با `application/problem+json` برمی‌گردد. برای بررسی هر دو مسیر از `Accept: application/json, application/problem+json` استفاده کنید.
 
-# قرارداد HTTP API نسخهٔ اول
-
-[English](../en/API-v1.md) · [نقشهٔ راه](Roadmap.md) · [نتیجهٔ کسب‌وکار و مرز commit](Operation-outcomes.md)
-
-برای مثال کامل از درخواست تا پاسخ و توضیح فایل‌ها، [راهنمای جریان عملیات](Operation-flow.md) را بخوانید.
-
-کاربر در ۲۰۲۶-۱۰-۲۲ انتخاب کرد که V1 هر چهار عملیات را با HTTP API، JSON و SQL Server ارائه کند. endpoint‌های زیر تا مرور CBS01/CBS23 پیشنهادی‌اند. adapter در CBS23 این مسیرها را با fallback عدم دسترسی عرضه می‌کند؛ اجرای مالی نداریم. بخش CBS23 در ادامه جزئیات را مشخص می‌کند.
-
-V1 در این سند اولین نسخهٔ کاربردی API است؛ نام migration موسوم به `V1` در Flyway یا tag گیت نیست.
-
-## مسیرهای V1
-
-| روش | مسیر | درخواست |
+| متد | مسیر | فیلدهای اجباری JSON |
 | --- | --- | --- |
-| POST | `/api/v1/accounts/{accountId}/credits` | `transactionId`, `amountRial`, `currency` |
-| POST | `/api/v1/accounts/{accountId}/debits` | `transactionId`, `amountRial`, `currency` |
-| POST | `/api/v1/transfers` | `transactionId`, `sourceAccountId`, `destinationAccountId`, `amountRial`, `currency` |
-| GET | `/api/v1/accounts/{accountId}/balance` | شناسهٔ حساب در مسیر |
+| POST | `/api/v1/accounts/{accountId}/credits` | `transactionId`، `amountRial`، `currency` |
+| POST | `/api/v1/accounts/{accountId}/debits` | `transactionId`، `amountRial`، `currency` |
+| POST | `/api/v1/transfers` | `transactionId`، `sourceAccountId`، `destinationAccountId`، `amountRial`، `currency` |
+| GET | `/api/v1/accounts/{accountId}/balance` | بدون body. |
 
-## مبلغ و هویت درخواست
+credit/debit حساب مشتری را در path می‌گیرند. سرور حساب funding را از تنظیمات انتخاب می‌کند و فراخواننده نمی‌تواند آن را تعیین کند. transfer میان دو حساب مشتری متمایز و بدون مسیر funding انجام می‌شود. حساب‌های درگیر باید موجود و فعال باشند و قواعد category/currency را رعایت کنند.
 
-### واحد مبلغ
+نمونهٔ credit پس از ساخت حساب:
 
-طبق تصمیم پذیرفته‌شده در ۲۰۲۶-۱۰-۲۲، فقط IRR با مبلغ ریال پذیرفته می‌شود. مثلاً مقدار 150000 در `amountRial` یعنی ۱۵۰٬۰۰۰ ریال؛ در ۱۰۰ ضرب نمی‌شود. هر واحد ذخیره‌شده دقیقاً یک ریال است.
+```http
+POST http://127.0.0.1:8080/api/v1/accounts/10000000-0000-4000-8000-000000000001/credits
+Content-Type: application/json
 
-مبلغ و موجودی در جاوا `long` و در SQL Server از نوع `BIGINT` خواهند بود. نام‌های پیشنهادی `amountRial` و `balanceRial` واحد را روشن می‌کنند.
-
-### اعتبارسنجی و محاسبه
-
-- مبلغ باید مثبت و در بازهٔ علامت‌دار `long` باشد.
-- ورودی کسری را پیش از ساخت رکورد عملیات رد کنید؛ حذف اعشار و گردکردن پنهان مجاز نیست.
-- تغییر projection موجودی باید با کنترل overflow انجام شود.
-- سقف تجاری مبلغ و موجودی هنوز در CBS01 مرور می‌شود.
-
-نرخ‌ها و محاسبات کسری آینده از `BigDecimal` استفاده می‌کنند. پیش از posting به سیاست صریح گردکردن نیاز دارند. این سیاست طراحی پذیرفته شده، اما هنوز پیاده نشده است.
-
-### شناسهٔ مشترک عملیات
-
-تمام mutation‌ها از فضای یکتای مشترک شناسهٔ تراکنش استفاده می‌کنند. نوع عملیات یا payload متفاوت با شناسهٔ قبلی باید conflict بدهد. خطای syntax شناسه را رزرو نمی‌کند. مقداردهی حساب‌ها برای توسعه و تست مستند می‌شود و جدا از این چهار endpoint است.
-
-## پاسخ و خطا
-
-| پاسخ | محتوای موردانتظار |
-| --- | --- |
-| mutation موفق | HTTP 200، شناسهٔ تراکنش، نوع عملیات، ارز و دادهٔ نتیجهٔ commit‌شده |
-| replay درخواست مطابق | همان پاسخ ذخیره‌شده، حتی اگر موجودی بعداً تغییر کرده باشد |
-| استعلام موجودی | موجودی commit‌شده و ارز |
-
-فیلدهای دقیق DTO، content type و مثال‌ها در CBS23، پیش از پیاده‌سازی endpoint‌ها، مشخص می‌شوند.
-
-پیشنهاد خطا، پاسخ یکسان `ProblemDetail` با فیلد پایدار `code` است:
-
-| وضعیت HTTP | کاربرد پیشنهادی |
-| --- | --- |
-| 400 | ورودی نامعتبر، شناسه یا مبلغ نادرست، ارز پشتیبانی‌نشده یا انتقال به خود |
-| 404 | حساب ناموجود |
-| 409 | محتوای متفاوت با شناسهٔ عملیات قبلی، کسری موجودی یا overflow |
-| 503 | عدم دسترسی موقت به زیرساخت یا پایان تلاش‌های مجدد موقت |
-
-کدهای نهایی و recovery مربوط به commit نامطمئن در CBS01/CBS03/CBS23 مرور می‌شوند. پاسخ 503 یا گم‌شدن پاسخ ثابت نمی‌کند که commit رخ نداده است. کلاینت باید با همان شناسهٔ تراکنش retry کند تا نتیجهٔ ماندگار را بگیرد. stack trace، رمز و SQL داخلی نباید وارد پاسخ شوند.
-
-## تحویل و پذیرش
-
-### مسئولیت controller و سرویس
-
-interface جاوای فعلی قرارداد داخلی bootstrap است و API عمومی ثابت یا خروجی V1 نیست. منطق تراکنش پشت controller‌های نازک، در package‌های feature-based و با constructor injection می‌ماند. نوع‌ها و امضاهای داخلی می‌توانند برای بیان نتیجه و خطای کسب‌وکار تغییر کنند.
-
-معنای چهار عملیات باید حفظ شود و تفاوت عمدی با امضاهای جاوای چالش مستند بماند. interface را صرفاً برای انتقال منطق تراکنش به controller حذف نکنید.
-
-### ترتیب تحویل
-
-1. در CBS23، بلافاصله پس از CBS05، قرارداد HTTP، اعتبارسنجی DTO، error mapping و تست متمرکز adapter اضافه می‌شوند.
-2. در CBS10–15، هر عملیات ماندگار یک مسیر کامل HTTP تا SQL Server می‌گیرد. پاسخ مالی موفقِ ساختگی، پیاده‌سازی پذیرفته‌شده نیست.
-
-تست concurrency سرویس و تست مستقیم SQL حفظ می‌شوند. HTTP integration test واقعی باید موجودی، mutation، replay، conflict، اعتبارسنجی و rollback را پوشش دهد. CBS20 هر چهار مسیر واقعی و راهنمای بازتولید با Docker و مثال درخواست و پاسخ را می‌خواهد.
-
-### مرز دسترسی
-
-V1 روی loopback فعلی و برای اپراتور محلی مورداعتماد است. JWT، مالکیت و نقش‌ها در CBS24–25/P3 و پیش از دسترسی اشتراکی یا خارجی اضافه می‌شوند. این نسخه سرویس امن مشتریان محسوب نمی‌شود.
-
-پس از افزودن امنیت، خطای احراز هویت 401 و خطای مجوز 403 است. مجوز فعلی باید پیش از replay بررسی شود.
-
-OTP در P4 باقی می‌ماند. پس از افزودن تأیید، مسیر مستقیم انتقال نباید آن را دور بزند. Redis، Kafka و CDC همچنان مراحل بعدی‌اند.
-
-## دامنهٔ پذیرفته‌شدهٔ گزینهٔ E در ۲۰۲۶-۱۰-۲۲
-
-[گزینهٔ E](Ledger.md) چهار endpoint عمومی را حفظ می‌کند. موفقیت باید journal متوازن، posting‌ها، projection‌ها و پاسخ ماندگار را با هم commit کند. رد درخواست journal ندارد و replay هم journal تازه نمی‌سازد.
-
-سرور حساب مقابل تأمین یا تسویه را برای `credit` و `debit` انتخاب می‌کند. افتتاحیهٔ غیرصفر داخلی است و endpoint تازه نمی‌خواهد. موجودی از projection هم‌زمان و commit‌شده خوانده می‌شود؛ DTO‌ها همچنان کار CBS23 هستند.
-
-## سیاست پذیرفته‌شدهٔ رد نهایی کسب‌وکار
-
-برای مثال، `debit-001` برداشت ۵۰ ریال از موجودی ۳۰ ریال را درخواست می‌کند و رد می‌شود. اگر یک `credit` جدا موجودی را به ۱۰۰ ریال برساند، retry همان `debit-001` باید همان رد قبلی را برگرداند. شناسهٔ تازه اجازهٔ بررسی تازهٔ موجودی را می‌دهد.
-
-کاربر این سیاست را در ۲۰۲۶-۱۰-۲۲ پذیرفت. درخواست معتبر و مجازِ ردشده به‌دلیل کسری موجودی، شناسه، fingerprint و پاسخ اصلی رد را در `operations` ذخیره می‌کند. موجودی تغییر نمی‌کند و journal یا posting ساخته نمی‌شود.
-
-این تصمیم کسب‌وکار بدون اثر پولی هم ماندگار است. همان شناسه با payload متفاوت conflict می‌گیرد و نتیجهٔ اصلی را جایگزین نمی‌کند.
-
-خطای ساختار یا دسترسی، هویت مالی رزرو نمی‌کند. خطای فنی پیش از commit هم رد نهایی ذخیره نمی‌کند. commit نامطمئن با همان شناسه بازیابی می‌شود.
-
-SQL Server مرجع V1 است و Redis بعداً cache پاسخ با database fallback خواهد بود. این سیاست، طراحی پذیرفته‌شده است؛ storage، قفل و HTTP error mapping هنوز مرور می‌خواهند و پیاده‌سازی ادعا نمی‌شود.
-
-[ماتریس نیازمندی و خطا](Requirements.md) حالت‌های مرورشده، شواهد پیشنهادی و سیاست‌های باز را ثبت می‌کند.
-
-## commandهای نوع‌دار مالی در CBS05، ۲۰۲۶-۱۰-۲۳
-
-ورودی‌های پیاده‌شدهٔ application عبارت‌اند از `CreditCommand(TransactionId, AccountId, Money)`، `DebitCommand(TransactionId, AccountId, Money)` و `TransferCommand(TransactionId, AccountId sourceAccountId, AccountId destinationAccountId, Money)`. این recordهای تغییرناپذیر در `operation.application` قرار دارند و از DTO مربوط به JSON و entity دیتابیس مستقل‌اند. شناسه‌ها و مبلغ باید غیرnull، مبلغ مثبت و ارز IRR باشد. برای انتقال، مقدار UUID دو حساب هم باید متفاوت باشد. helper داخلی CommandValidation قاعدهٔ مشترک مبلغ را نگه می‌دارد؛ پشتیبانی Money از صفر، عدد علامت‌دار و ارزهای دیگر تغییر نمی‌کند.
-
-مثال با فرض وجود sourceId و destinationId نوع‌دار:
-
-```java
-var command = new TransferCommand(
-        new TransactionId("transfer-001"), sourceId, destinationId,
-        new Money(100, Currency.getInstance("IRR")));
+{"transactionId":"demo-v1-credit-alice","amountRial":1000,"currency":"IRR"}
 ```
 
-ساخت command شناسه رزرو نمی‌کند و پول جابه‌جا نمی‌کند. adapter یا coordinator آینده باید آن را پیش از رزرو بسازد. فیلد غایب فعلاً NullPointerException می‌دهد؛ مبلغ نامثبت، ارز نامجاز و انتقال به همان حساب IllegalArgumentException می‌دهند. مقایسهٔ مقدار AccountId انتقال به خود را حتی با دو wrapper جدا تشخیص می‌دهد. BalanceService اولیه همچنان اسکلت متصل‌نشده است؛ این گام handler یا API مالی ثبت نمی‌کند. commandهای credit/debit فقط حساب مشتری را دارند؛ انتخاب حساب تأمین در مسیر اجرای آینده با سرور است.
-
-وجود حساب، مجوز، کفایت موجودی و سرریز projection نهایی در این سازنده‌ها بررسی نمی‌شوند. درخواست با ساختار معتبر و حساب غایب همچنان به مسیر رد نهایی پذیرفته‌شده نیاز دارد. مبلغ اعشاری، عدد بیرون از long و متن UUID نامعتبر باید در parser آیندهٔ HTTP رد شوند؛ Money مبتنی بر long نمی‌تواند همان ورودی JSON نامعتبر را نمایش دهد. Long.MAX_VALUE در مرز نمایش پذیرفته می‌شود؛ مقدار سقف کسب‌وکار و طبقه‌بندی آن در سیاست قابل‌تغییر و replay هنوز باز است و پیش از اجرای مالی باید مرور شود. بیشینهٔ نوع داده سقف کسب‌وکار نیست.
-
-Maven verify با Java 21.0.11 در ۸٫۷۳۶ ثانیه، ۱۲۸ تست را بدون failure، error یا skip گذراند. سیزده مورد تازه مرز مثبت قابل‌نمایش، مبلغ نامثبت، ارز نامجاز، فیلد غایب، انتقال به خود بر اساس مقدار UUID، حفظ جهت و شناسه و رزرو نشدن هنگام ساخت را می‌سنجند. شواهد SQL Server یا HTTP مالی نداریم. گام بعدی CBS05 نوع‌های صریح موفقیت و رد کسب‌وکار و مرز آن‌ها با خطای فنی، پیش از اتصال HTTP است. پذیرش کار هنوز باز می‌ماند.
-
-## اصلاح سیاست ارزهای پشتیبانی‌شده، ۲۰۲۶-۱۰-۲۳
-
-به درخواست کاربر، ارزهای مجاز دیگر داخل CommandValidation یا سازندهٔ commandها ثابت نیستند. `CommandValidation.requirePositiveAmount` فقط وجود و مثبت‌بودن مبلغ را بررسی می‌کند. CreditCommand، DebitCommand و TransferCommand ارز Money را برای سیاست جداگانهٔ `SupportedCurrencies(Set<Currency>)` حفظ می‌کنند. این تصمیم محدودیت قبلی IRR در سازنده‌ها را جایگزین می‌کند. سیاست استقرار اولیهٔ V1 همچنان IRR است؛ validator مبتنی بر مجموعه، تبدیل FX یا واحد ارزهای دیگر را تعریف نمی‌کند.
-
-SupportedCurrencies از مجموعهٔ ورودی کپی تغییرناپذیر می‌سازد و متد `requireSupported(Currency)` دارد. ارز مجاز از ورودی می‌آید و داخل کد اعتبارسنجی production ثابت نیست. مجموعه، عضو یا ارز null رد می‌شود؛ مجموعهٔ صریحاً خالی همهٔ ارزها را غیرفعال می‌کند. تغییر مجموعهٔ اصلی، snapshot قبلی سیاست را عوض نمی‌کند. در آینده تنظیمات یا adapter دیتابیس می‌تواند snapshot تازه بدهد؛ سیاست وارد payload دستور نمی‌شود و سازندهٔ value object هم دیتابیس نمی‌خواند. loader، جدول یا bean زمان اجرا هنوز پیاده نشده است.
-
-نمونهٔ اتصال با مجموعهٔ سیاست ورودی، پیش از اجرا:
-
-```java
-var policy = new SupportedCurrencies(currenciesFromConfiguration);
-policy.requireSupported(command.amount().currency());
-```
-
-coordinator آینده باید پیش از ارزیابی دوبارهٔ این سیاست قابل‌تغییر، نتیجهٔ نهایی موجود را پیدا کند. retry منطبق باید حتی پس از غیرفعال‌شدن ارز، نتیجهٔ اصلی را replay کند. برای عملیات تازه، پشتیبانی ارز با یک snapshot سازگار و پیش از رزرو بررسی می‌شود. قالب معتبر ارز با مجازبودن در سیاست فعلی فرق دارد. خرابی بارگذاری دیتابیس خطای فنی است؛ نباید آن را مجموعهٔ خالی یا تصمیم نهایی رد ارز تعبیر کرد. پروتکل بارگذاری و تازه‌سازی سیاست هنوز به طراحی و تست اتصال نیاز دارد.
-
-Maven verify با Java 21.0.11 در ۷٫۵۶۵ ثانیه، ۱۳۷ تست را بدون failure، error یا skip گذراند. نُه مورد سیاست، چند ارز مجاز، رد ارز بیرون از مجموعه، مجموعهٔ بدون IRR، مجموعهٔ خالی و null و snapshot تغییرناپذیر را می‌سنجند. سیزده تست command اکنون حفظ ارز را به‌جای رد ثابت ارز بررسی می‌کنند. HTTP، ترتیب replay و بارگذاری سیاست از دیتابیس هنوز پیاده نشده‌اند؛ این شواهد اعتبارسنجی مستقل از زیرساخت است.
-
-## پایهٔ HTTP در CBS23، ۲۰۲۶-۱۰-۲۳
-
-چهار مسیر بالا اکنون controller نازک، DTO و نگاشت `ProblemDetail` دارند. مرز تایپ‌شدهٔ `BalanceOperations` از interface اولیهٔ `BalanceService` جداست. تا اتصال handlerهای ماندگار در CBS10–15، پیاده‌سازی پیش‌فرض برای هر درخواست با ساختار معتبر، پاسخ 503 با `OPERATION_UNAVAILABLE` می‌دهد. این مسیر نه شناسه رزرو می‌کند و نه پول می‌خواند یا می‌نویسد. پاسخ موفق در تست فقط رفتار adapter را بررسی می‌کند. این بخش عبارت‌های قبلی دربارهٔ نبود adapter را به‌روز می‌کند؛ اجرای مالی همچنان پیاده نشده است.
-
-POST به `Content-Type: application/json` نیاز دارد. موفقیت `application/json` و خطا `application/problem+json` است. همهٔ فیلدهای جدول مسیرها اجباری‌اند. `transactionId` فقط از body می‌آید؛ string با ۱ تا ۱۲۸ حرف یا رقم ASCII و کاراکترهای `.`, `_`, `:`, `-` است. حروف بدون trim یا تغییر بزرگی حفظ می‌شوند. header جایگزین و شناسهٔ خودکار نداریم. UUID باید گروه‌بندی کامل داشته باشد؛ حروف هگز بزرگ یا کوچک معتبر است، گروه کوتاه معتبر نیست. انتقال به همان UUID حتی با نمایش متفاوت رد می‌شود.
-
-`amountRial` باید توکن عدد صحیح JSON، مثبت و در بازهٔ `long` باشد. مقدار اعشاری حتی `1.0`، نماد علمی، رشتهٔ عددی، boolean، null و مقدار خارج از بازه پیش از فراخوانی برنامه با 400 رد می‌شوند. `Long.MAX_VALUE` فقط از نظر نمایش پذیرفته می‌شود؛ سقف تجاری نیست. فیلد ناشناخته، کلید تکراری، JSON اضافه پس از body، فیلد حذف‌شده و JSON خراب هم 400 می‌گیرند. فیلد متنی عدد یا boolean را به string تبدیل نمی‌کند.
-
-ارز باید کد ISO بزرگ و دقیق موردشناخت `java.util.Currency` باشد. اعتبار syntax با مجوز ارز فرق دارد. coordinator آینده باید ابتدا هویت قبلی و replay را بررسی کند و بعد برای عملیات جدید `SupportedCurrencies` را اعمال کند. fallback سیاست ارز تنظیم‌شده را شبیه‌سازی نمی‌کند. استقرار اولیه همچنان فقط IRR است؛ شناخت USD در parser به معنای فعال‌شدن آن یا تعیین واحدش نیست. پیش از فعال‌کردن ارز دیگر باید قرارداد و واحد `amountRial` و `balanceRial` بازبینی شود. loader و مجموعهٔ ثابت ارز اضافه نشده‌اند.
-
-DTO موفقیت فقط `transactionId`، `operationType`، `currency` و `status` دارد و موجودی زنده یا شناسهٔ journal ندارد. نمونهٔ زیر خروجی قرارداد با test double است، نه اجرای مالی واقعی:
+نمونهٔ transfer:
 
 ```json
-{"transactionId":"Tx-001","operationType":"CREDIT","currency":"IRR","status":"SUCCEEDED"}
+{
+  "transactionId": "demo-v1-transfer",
+  "sourceAccountId": "10000000-0000-4000-8000-000000000001",
+  "destinationAccountId": "20000000-0000-4000-8000-000000000002",
+  "amountRial": 250,
+  "currency": "IRR"
+}
 ```
 
-DTO موجودی شامل `accountId`، `balanceRial` و `currency` است؛ مثلاً `{"accountId":"00000000-0000-0000-0000-000000000001","balanceRial":150000,"currency":"IRR"}`. در CBS10 باید از projection commit‌شده بیاید. حساب ناموجود به موجودی صفر تبدیل نمی‌شود.
+## قواعد parsing و مبلغ
 
-| HTTP | کد پایدار | مرز رفتار |
-| --- | --- | --- |
-| 400 | `INVALID_REQUEST` | syntax، فیلد اجباری، مبلغ، syntax ارز یا انتقال به خود؛ بدون فراخوانی برنامه |
-| 400 | `UNSUPPORTED_CURRENCY` | سیاست پذیرش عملیات جدید در coordinator آینده |
-| 404 | `ACCOUNT_NOT_FOUND` | استعلام حساب ناموجود یا رد commit‌شدهٔ mutation |
-| 409 | `TRANSACTION_ID_CONFLICT` | هویت قبلی با ورودی canonical متفاوت؛ بدون جایگزینی نتیجه |
-| 409 | `INSUFFICIENT_FUNDS`, `BALANCE_OVERFLOW` | رد نهایی commit‌شدهٔ mutation |
-| 503 | `OPERATION_UNAVAILABLE` | handler متصل نیست یا خرابی زیرساخت صریحاً طبقه‌بندی شده؛ وضعیت commit ممکن است نامعلوم باشد |
-| 500 | `INTERNAL_ERROR` | نقص غیرمنتظره؛ نتیجه نامعلوم است و به رد کسب‌وکار تبدیل نمی‌شود |
-| 405 / 406 / 415 | `METHOD_NOT_ALLOWED` / `NOT_ACCEPTABLE` / `UNSUPPORTED_MEDIA_TYPE` | مذاکرهٔ HTTP |
+- همهٔ فیلدهای جدول اجباری و non-null هستند. property ناشناخته، کلید تکراری، JSON اضافه پس از body و JSON خراب رد می‌شوند.
+- `transactionId` رشتهٔ JSON حساس به بزرگی حروف با طول ۱ تا ۱۲۸ است و فقط حروف ASCII، رقم و `.`, `_`, `:`, `-` را می‌پذیرد. trim، normalization، alias در header یا مقدار تولیدشدهٔ پیش‌فرض نداریم.
+- شناسهٔ حساب باید UUID با شکل کامل گروه‌ها باشد. بزرگی حروف hex هویت UUID را عوض نمی‌کند. گروه کوتاه نامعتبر است و transfer برای رد self-transfer مقدار UUID parse‌شده را مقایسه می‌کند.
+- `amountRial` باید token عدد صحیح مثبت JSON در محدودهٔ `long` باشد. صفر، منفی، `1.0`، نمایش نمایی، رشتهٔ عددی، boolean و overflow نامعتبرند. هر واحد یک ریال است و ضرب در ۱۰۰ یا گردکردن بی‌صدا نداریم.
+- `currency` باید کد ISO دقیق uppercase باشد که Java می‌شناسد. سیاست اجرای فعلی **فقط IRR** را می‌پذیرد. معتبر بودن syntax ارز دیگر، اجرای آن یا قرارداد واحد جدیدی را فعال نمی‌کند.
+- سقف پیش‌فرض هر تراکنش و موجودی نهایی مشتری **10000000000000 ریال** است. مبلغ مثبت قابل‌نمایشِ بالاتر از سقف، parsing را می‌گذراند و سپس رد کسب‌وکار ماندگار می‌گیرد. محاسبهٔ checked جداگانه از overflow جلوگیری می‌کند.
 
-نوع پیش‌فرض Problem برابر `about:blank` است که serializer فعلی آن را از JSON حذف می‌کند. پاسخ شامل `status`، `title` استاندارد، `detail` پاک‌سازی‌شده، `instance` مسیر درخواست و `code` است. رد mutation سه فیلد `transactionId`، `operationType` و `currency` را هم دارد. نمونهٔ رد بدهکارسازی که handler آن را پس از commit تحویل می‌دهد:
+شکست parsing/shape پیش از اجرای application، پاسخ 400 `INVALID_REQUEST` دارد و ID رزرو نمی‌کند. ارز خارج از سیاست برای عملیات تازه، 400 `UNSUPPORTED_CURRENCY` بدون operation ماندگار دارد. نتیجهٔ نهایی موجود پیش از سیاست پذیرش فعلی بررسی می‌شود تا تغییر سیاست، replay منطبق را تغییر ندهد.
+
+## پاسخ موفق
+
+mutation **فقط پس از commit تراکنش** پاسخ 200 می‌دهد. acknowledgement حداقلی دقیقاً این فیلدها را دارد و موجودی فعلی، journal ID یا جزئیات persistence را برنمی‌گرداند:
 
 ```json
-{"title":"Conflict","status":409,"detail":"Available funds are insufficient.","instance":"/api/v1/accounts/00000000-0000-0000-0000-000000000001/debits","code":"INSUFFICIENT_FUNDS","transactionId":"Tx-001","operationType":"DEBIT","currency":"IRR"}
+{"transactionId":"demo-v1-transfer","operationType":"TRANSFER","currency":"IRR","status":"SUCCEEDED"}
 ```
 
-`MutationResult` نتیجهٔ اصلی را کنار ارز نگه می‌دارد. برنامه فقط پس از commit قطعی اجازهٔ تحویلش را دارد. پاسخ serializeشدهٔ اصلی، از جمله `instance` خطا، باید برای replay حفظ شود؛ ارز نباید از سیاست تغییریافتهٔ retry استخراج شود. mapper برای نتیجه و مسیر یکسان خروجی یکسان می‌دهد؛ این شاهد replay ماندگار نیست. رد کسب‌وکار به‌صورت مقدار برمی‌گردد تا exception باعث rollback رکورد رد نشود. `OperationFailure` خطای غیرنهایی conflict، سیاست پذیرش، عدم دسترسی و حساب ناموجود در استعلام را تفکیک می‌کند.
+استعلام موجودی، projection مرجع commit‌شده را می‌دهد:
 
-طبقه‌بندی SQL exception، retry کل تراکنش و بازیابی commit نامعلوم در CBS03–04/CBS11–19 باقی می‌ماند. پاسخ 503 یا 500 و گم‌شدن پاسخ ثابت نمی‌کند که commit رخ نداده است؛ بازیابی mutation باید با همان شناسه باشد.
+```json
+{"accountId":"10000000-0000-4000-8000-000000000001","balanceRial":750,"currency":"IRR"}
+```
 
-تنظیم سخت‌گیرانهٔ Jackson روی mapper برنامه اعمال می‌شود؛ کلید تکراری، فیلد ناشناخته و JSON اضافی را رد می‌کند. advice سراسری است چون خطای روش یا media ممکن است پیش از انتخاب controller رخ دهد. پیام خام parser، دامنه یا SQL وارد پاسخ نمی‌شود. احراز هویت، مالکیت، سقف تجاری، migration، انتخاب حساب تأمین، نوشتن posting و projection و serialize ماندگار هنوز پیاده نشده‌اند. مرز loopback مورداعتماد و شرط دسترسی CBS24–25 پابرجاست.
+موجودی به history اجراشده وابسته است؛ مقدار ۷۵۰، موجودی نهایی Alice در [walkthrough HTTP](HTTP-samples.md) است. حساب ناموجود 404 می‌گیرد و هیچ‌وقت صفر نمایش داده نمی‌شود. استعلام موجودی operation نمی‌سازد.
 
-شواهد و گام بعد در [گزارش adapter HTTP](HTTP-adapter-evidence.md) ثبت می‌شوند.
+## قرارداد خطا
 
-## نوع مشخص برای body پاسخ mutation
+problem شامل `status` HTTP، عنوان استاندارد `title`، متن امن `detail`، مسیر `instance` و `code` پایدار است. serializer فعلی نوع پیش‌فرض `about:blank` را در JSON نمی‌آورد. رد ماندگار mutation، فیلدهای `transactionId`، `operationType` و `currency` هم دارد.
 
-سه controller تغییردهنده و mapper موسوم به OperationResponses اکنون `ResponseEntity<OperationResponseBody>` برمی‌گردانند. این interface بسته record موفقیت `OperationResponse`، کلاس final موسوم به `OperationProblem` و پاسخ بایت‌محور `StoredOperationResponse` را مجاز می‌داند. OperationProblem از ProblemDetail اسپرینگ ارث می‌برد؛ فیلدهای استاندارد و propertyهای افزوده در سطح اول JSON حفظ می‌شوند. ابتدا problem رد کپی و سپس metadata تراکنش اضافه می‌شود. wrapper یا فیلد تشخیص نوع JSON اضافه نشده است. exceptionهای framework، سیاست پذیرش و خرابی فنی همچنان advice جدا دارند؛ این خانواده فقط بازگشت عادی mutation را مشخص می‌کند. رد کسب‌وکار همچنان مقدار بازگشتی است و مرز نگاشت پس از commit آینده حفظ می‌شود.
+| HTTP | کد | معنا و اثر روی هویت |
+| --- | --- | --- |
+| 400 | `INVALID_REQUEST` | ورودی/shape خراب، UUID/مبلغ نامعتبر یا self-transfer؛ بدون operation ماندگار. |
+| 400 | `UNSUPPORTED_CURRENCY` | شکست سیاست پذیرش عملیات تازه؛ بدون operation ماندگار. |
+| 404 | `ACCOUNT_NOT_FOUND` | حساب ناموجود در استعلام، یا رد ماندگار mutation برای حساب درخواست‌شدهٔ ناموجود. |
+| 409 | `TRANSACTION_ID_CONFLICT` | ID موجود با درخواست canonical متفاوت؛ پاسخ اصلی تغییر نمی‌کند. |
+| 409 | `INSUFFICIENT_FUNDS` | رد ماندگار debit/transfer؛ بدون تاریخچهٔ مالی. |
+| 409 | `TRANSACTION_LIMIT_EXCEEDED` | رد ماندگار مبلغ بالاتر از سقف تراکنش. |
+| 409 | `BALANCE_LIMIT_EXCEEDED` | رد ماندگار موجودی بالاتر از سقف مشتری. |
+| 409 | `BALANCE_OVERFLOW` | رد ماندگار projection خارج از محدودهٔ نمایش. |
+| 503 | `OPERATION_UNAVAILABLE` | execution غیرفعال، خطای طبقه‌بندی‌شدهٔ زیرساخت، پایان recovery یا commit حل‌نشده. |
+| 500 | `INTERNAL_ERROR` | defect پیش‌بینی‌نشده؛ فرض نکنید commit رخ نداده است. |
+| 405 / 406 / 415 | `METHOD_NOT_ALLOWED` / `NOT_ACCEPTABLE` / `UNSUPPORTED_MEDIA_TYPE` | شکست متد یا مذاکرهٔ representation در HTTP. |
+
+نمونهٔ رد ماندگار debit مبلغ ۶۵۱ در برابر موجودی ۶۵۰:
+
+```json
+{
+  "title": "Conflict",
+  "status": 409,
+  "detail": "Available funds are insufficient.",
+  "instance": "/api/v1/accounts/10000000-0000-4000-8000-000000000001/debits",
+  "code": "INSUFFICIENT_FUNDS",
+  "transactionId": "demo-v1-rejected-debit",
+  "operationType": "DEBIT",
+  "currency": "IRR"
+}
+```
+
+منطق client را بر اساس متن `detail` ننویسید؛ status/code را بررسی کنید. SQL داخلی، credential و stack trace جزو پاسخ نیستند. category/status/currency نامناسب حساب و funding داخلی ناموجود، API مدیریت حساب نیستند؛ تنظیمات و fixture سرور را بررسی کنید و هر خطای فنی را رد مشتری ندانید.
+
+## Replay و بازیابی خطا
+
+فضای نام `transactionId` میان همهٔ mutationها مشترک است. درخواست canonical ماندگار، نوع عملیات، حساب‌های مشتری/درگیر، مبلغ و ارز را در بر می‌گیرد. intent منطبق همان status، content type و body سریال‌شدهٔ اصلی را می‌گیرد؛ نوع/payload متفاوت تعارض دارد. replay، journal یا posting اضافه نمی‌کند و پاسخ را از موجودی یا سیاست جدید بازسازی نمی‌کند.
+
+رد نهایی کسب‌وکار هم ماندگار است. اگر `demo-v1-rejected-debit` مبلغ ۶۵۱ را در برابر ۶۵۰ درخواست کند و بعد credit جدا موجودی را به ۷۵۰ برساند، retry همان ID هنوز 409 اصلی را می‌گیرد. تلاش مالی تازه به ID تازه نیاز دارد.
+
+هر mutation موفق، operation، journal/posting متوازن immutable، همهٔ projectionها و پاسخ اصلی را اتمیک commit می‌کند. رد فقط تصمیم ماندگار را commit می‌کند. rollback قطعی می‌تواند retry محدود کل تراکنش با همان ID داشته باشد؛ commit نامعلوم به‌جای اجرای کور دوباره، recovery read دارد. **پاسخ 503 یا 500، timeout یا گم‌شدن پاسخ ثابت نمی‌کند که commit رخ نداده است. برای بازیابی، ID و payload اصلی را نگه دارید.** [Retry/recovery](Retry-execution.md).
+
+## تنظیمات و بررسی
+
+راه‌اندازی به schema migrate‌شده و credentialهای runtime با `DB_URL`، `DB_USERNAME` و `DB_PASSWORD` نیاز دارد. فعال‌سازی mutation علاوه بر آن، UUID/version معتبر funding می‌خواهد؛ فرمان‌ها در [walkthrough نمونه](HTTP-samples.md) آمده‌اند. با persistence آماده و mutation غیرفعال، استعلام موجودی همچنان در دسترس است. runtime خودکار migration اجرا نمی‌کند.
+
+[راهنمای پذیرش هسته](Core-acceptance.md)، شواهد واقعی HTTP تا SQL Server، rollback، replay، هم‌زمانی و restart process را ثبت می‌کند. checkpointهای تاریخی توسعه در [وضعیت پیاده‌سازی](Implementation-status.md) و صفحه‌های شواهد باقی‌اند. این مرجع فعلی جای توصیف‌های قبلیِ مسیرهای unavailable را می‌گیرد.

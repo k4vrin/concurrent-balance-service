@@ -6,103 +6,122 @@
 [![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927)](https://www.microsoft.com/sql-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A Java and Spring Boot service for moving money safely under concurrent requests. It combines an authoritative balance API, a double-entry ledger and durable request identity in one SQL Server database.
+A Java 21 / Spring Boot service for crediting, debiting and transferring whole rials safely under concurrent requests. SQL Server keeps the authoritative balance, double-entry history and original result of every completed financial command together.
 
-[فارسی](README.fa.md) · [API reference](docs/en/API-v1.md) · [Architecture](docs/en/Architecture.md) · [Setup](docs/en/Schema.md)
+If a transfer commits but its HTTP response is lost, retrying the same `transactionId` returns the original response without moving the money again. If a debit is rejected for insufficient funds, that decision still replays after a later top-up.
 
-The selected CBS20/G1 core is implemented and has passed automated acceptance: **421 portable + 212 real SQL Server tests**, plus a separate packaged-process scenario with real rollback, restart/replay and independent reconciliation. See the [reproducible acceptance guide](docs/en/Core-acceptance.md) for the command, measured results and completion boundary.
+[فارسی](README.fa.md) · [Run the HTTP samples](docs/en/HTTP-samples.md) · [API reference](docs/en/API-v1.md) · [Documentation index](docs/README.md)
 
-## First version
+## What is implemented
 
-The first version is a local-development JSON API for credit, debit, atomic transfer and balance lookup. Its release contract is described below. For the current checkout's implemented behavior and verification evidence, see [implementation status](docs/en/Implementation-status.md). [Credit classes and request flows](docs/en/Credit-class-walkthrough.md).
+The selected **CBS20/G1 core is complete**: four HTTP operations, durable success/rejection replay, atomic ledger writes, ordered account locks, bounded whole-transaction recovery and independent reconciliation. The [acceptance guide](docs/en/Core-acceptance.md) records **421 portable + 212 real SQL Server tests** and separate packaged-process rollback/restart evidence. [Verified core CI run](https://github.com/k4vrin/concurrent-balance-service/actions/runs/40886956745).
 
-| Operation | Endpoint | Responsibility |
+The application is intended for a **trusted local operator** and binds to `127.0.0.1:8080` by default. Authentication, account ownership and funding privileges must be added before shared or external access. Performance benchmarks, OTP, Redis, Kafka/outbox, CDC and FX are later scope.
+
+| Operation | Endpoint | Effect |
 | --- | --- | --- |
-| Credit | `POST /api/v1/accounts/{accountId}/credits` | Increase a customer's balance using a server-selected funding counterpart. |
-| Debit | `POST /api/v1/accounts/{accountId}/debits` | Decrease a customer's balance when sufficient funds are available. |
-| Transfer | `POST /api/v1/transfers` | Move an amount between two distinct accounts atomically. |
-| Balance | `GET /api/v1/accounts/{accountId}/balance` | Read the authoritative committed balance and currency. |
+| Credit | `POST /api/v1/accounts/{accountId}/credits` | Increase a customer balance with a server-selected funding counterpart. |
+| Debit | `POST /api/v1/accounts/{accountId}/debits` | Decrease a customer balance when funds are sufficient. |
+| Transfer | `POST /api/v1/transfers` | Move funds between two different customer accounts atomically. |
+| Balance | `GET /api/v1/accounts/{accountId}/balance` | Read the committed balance and currency. |
 
-Amounts are whole Iranian rials. One unit is one rial, represented by Java `long` and SQL Server `BIGINT`. The initial policy permits IRR and caps each mutation and customer balance at **10,000,000,000,000 rials**. Fractions, coercion and silent rounding are rejected.
+## Get started
 
-## Correctness model
+Requirements: **JDK 21**, Docker with Compose for SQL Server, and Bash for the local setup commands. The Maven wrapper is included; Python 3 is needed only for the automated core-acceptance harness. SQL Server containers target Linux x86-64; the documented ARM64 emulation experiment is unsupported by Microsoft.
 
-Each mutation carries a caller-supplied `transactionId`. A matching retry returns the original retained result; reuse with a different operation or payload conflicts. A lost response is recovered using the same ID. Terminal business rejections are retained too, so retry does not reevaluate them after funds or policy change.
+```bash
+git clone https://github.com/k4vrin/concurrent-balance-service.git
+cd concurrent-balance-service
+./mvnw verify
+```
 
-Every successful mutation commits one balanced journal, its immutable debit/credit postings, the affected balance projections and its result in one transaction. Rejection has no journal. Replay creates no additional postings. Nonzero account initialization uses an internal opening journal.
+This runs the portable suite without a database. On Windows, use `.\mvnw.cmd`; see the [Windows SQL Server guide](docs/en/Windows-sqlserver.md) for its separate setup path.
 
-All writers lock the complete participant set in the same application-defined UUID order before checking balances. Checked arithmetic prevents overflow. Deadlocks and lock timeouts require bounded whole-transaction recovery; an uncertain commit requires same-ID recovery. [Transaction protocol](docs/en/Transaction-protocol.md).
+To run the actual API, follow [the local HTTP walkthrough](docs/en/HTTP-samples.md). It covers the complete sequence:
 
-The four tables have distinct jobs:
+1. Copy `.env.example` to the ignored `.env.sqlserver`, set distinct secrets and accept the SQL Server Developer license.
+2. Start the pinned SQL Server container, provision separate identities, migrate `cbs_dev`/`cbs_test` and apply runtime grants.
+3. Run [the demo fixture](http/create-demo-accounts.sql) as the restricted initializer. It creates only zero-balance accounts and never resets balances or history.
+4. Launch the application with the runtime database credentials, `EXECUTION_POLICY_ENABLED=true` and the configured funding account.
+5. Open [balance-service.http](http/balance-service.http) in IntelliJ IDEA HTTP Client or VS Code REST Client and run the numbered requests.
 
-| Table | Purpose |
-| --- | --- |
-| `accounts` | Identity, account category, currency and synchronous balance projection. |
-| `operations` | Global request identity, canonical intent, policy evidence and retained result. |
-| `journals` | One accounting header for each successful operation. |
-| `postings` | Immutable debit and credit lines from which balances can be reconciled. |
+Spring Boot does **not** load `.env.sqlserver` automatically. A normal startup needs `DB_URL`, `DB_USERNAME` and `DB_PASSWORD`; the walkthrough supplies the exact launch commands. Mutations return 503 while execution is disabled. There is no public account-creation endpoint.
 
-## API example
+## Try a transfer
 
-The release-contract transfer request uses UUID account IDs and an exact, case-sensitive transaction ID:
+After the walkthrough has provisioned and credited the demo accounts, send:
 
 ```http
-POST /api/v1/transfers
+POST http://127.0.0.1:8080/api/v1/transfers
 Content-Type: application/json
 
 {
-  "transactionId": "transfer-001",
+  "transactionId": "demo-v1-transfer",
   "sourceAccountId": "10000000-0000-4000-8000-000000000001",
-  "destinationAccountId": "f0000000-0000-4000-8000-000000000002",
-  "amountRial": 150000,
+  "destinationAccountId": "20000000-0000-4000-8000-000000000002",
+  "amountRial": 250,
   "currency": "IRR"
 }
 ```
 
-Successful mutations acknowledge the committed operation. Errors use `application/problem+json` with stable application codes. The [API reference](docs/en/API-v1.md) defines parsing, outcomes and examples, and the [operation walkthrough](docs/en/Operation-flow.md) explains the complete request flow.
+A committed transfer returns HTTP 200:
 
-## Build and local setup
-
-Requirements: JDK 21; Docker for the SQL Server integration environment. Maven is supplied by the wrapper.
-
-```bash
-./mvnw verify
+```json
+{"transactionId":"demo-v1-transfer","operationType":"TRANSFER","currency":"IRR","status":"SUCCEEDED"}
 ```
 
-Portable verification requires no database. Follow the [SQL Server setup](docs/en/Docker.md) and [migration runbook](docs/en/Schema.md) to accept the applicable Developer license, provision separate identities and apply the schema. Supply secrets through environment variables or the ignored local configuration. Normal runtime uses restricted `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` settings and does not run migrations.
+Send the same body again to replay that result. Changing the amount under the same ID returns HTTP 409 `TRANSACTION_ID_CONFLICT`. The request file also demonstrates insufficient-funds rejection after top-up, missing accounts, self-transfer, fractional amounts and the transaction cap, with expected responses beside each request.
 
-```bash
-./mvnw -Pdb-migrate flyway:migrate flyway:validate
-./mvnw -Psqlserver-it verify
-./mvnw spring-boot:run
+## Money and consistency rules
+
+- **One unit is one Iranian rial.** `amountRial` and `balanceRial` use integer units, Java `long` and SQL Server `BIGINT`. Fractions, exponent tokens, numeric strings and silent rounding are rejected.
+- **Initial policy: IRR only.** The default transaction and customer-balance caps are each **10,000,000,000,000 rials**. Checked arithmetic also protects representation limits.
+- **One global request identity.** Transaction IDs are exact, case-sensitive strings. A matching retry replays the retained result; a different operation or payload conflicts.
+- **One financial commit.** Each success commits a balanced journal, its postings, all affected balance projections and the retained response together. A business rejection retains an operation with no journal or balance changes.
+- **Shared lock order.** All mutations acquire their full participant set in the same unsigned descending UUID order before funds checks. Credit/debit include the configured funding account; transfer has no funding leg.
+- **Conservative recovery.** Known rollback and uncertain commit have different recovery paths. A 503 or lost response does not establish that nothing committed; recover with the same transaction ID.
+
+## Architecture
+
+One Spring Boot application and one SQL Server database form the consistency boundary. Controllers call use-case handlers directly. Handlers coordinate domain calculations and persistence through application ports; the shared coordinator owns transaction completion and recovery.
+
+```text
+src/main/java/dev/kavrin/balance/
+  account/      Account domain, balance query and account persistence
+  ledger/       Journals, postings and projection calculations
+  money/        Integer money representation and checked arithmetic
+  operation/    Commands, handlers, identity, retry, HTTP and persistence adapters
+src/main/resources/db/migration/  Reviewed Flyway schema
+src/test/                        Portable and real SQL Server verification
+http/                            Executable requests and zero-account demo fixture
+scripts/                         Database setup and packaged-process acceptance
 ```
 
-The migration and integration commands require their separate explicit environment settings from the runbook. On Windows, use `.\mvnw.cmd`. SQL Server's local ARM64 emulation experiment is unsupported by Microsoft; see [environment evidence](docs/en/SQL-server-evidence.md).
+| Table | Responsibility |
+| --- | --- |
+| `accounts` | Account identity/category/currency and synchronous balance projection. |
+| `operations` | Canonical request, durable identity, policy evidence and retained result. |
+| `journals` | One accounting header for each successful operation. |
+| `postings` | Immutable debit/credit history from which balances are reconstructed. |
 
-## Scope and extensions
+The runtime identity cannot create schema or update/delete posting history. Flyway runs separately with migration credentials; zero-account initialization has its own identity. See [schema and permissions](docs/en/Schema.md), [the ledger](docs/en/Ledger.md) and [the architecture walkthrough](docs/en/Hexagonal-architecture.md).
 
-The first version assumes a trusted local operator and binds to loopback. Authentication, account ownership and privileged funding controls are required before shared or external access. No production-readiness or throughput claim is made.
+## Verification
 
-OTP transfer confirmation, Redis replay caching, Kafka/outbox events, Debezium CDC and future FX settlement follow the core release. SQL Server remains the financial authority; caches and asynchronous history do not decide whether money moves.
+| Command | What it checks | Requirements |
+| --- | --- | --- |
+| `./mvnw verify` | Portable domain, application and HTTP-boundary tests. | JDK 21. |
+| `./mvnw -Psqlserver-it verify` | Portable suite plus real SQL Server schema, permission, atomicity, replay, concurrency and recovery tests. | Migrated `cbs_test` and all three explicit test credential groups from the [schema guide](docs/en/Schema.md). |
+| `python3 scripts/verify-core.py --env-file .env.sqlserver` | Full suite, then a separate packaged JVM with real lock-timeout rollback, same-ID retry, restart/replay and independent JDBC reconciliation. | JDK 21, Python 3 and the configured SQL Server environment. |
 
-## Learn the design
+GitHub Actions runs portable verification, compilation with optional dependency profiles, and disposable SQL Server/package acceptance. Missing database settings fail integration verification rather than silently skipping it. The recorded baseline passed **633 tests with zero failures/errors/skips**; detailed counts and evidence limits live in [Core acceptance](docs/en/Core-acceptance.md). Timing is not a throughput or production-readiness claim.
 
-- [Core completion and reproducible acceptance](docs/en/Core-acceptance.md)
-- [Commit and response recovery evidence](docs/en/Recovery-acceptance.md)
-- [Opposite transfers and independent account progress](docs/en/Transfer-progress.md)
-- [Cross-instance transaction-ID races and retained results](docs/en/Cross-instance-replay.md)
-- [Concurrent distinct mutations and SQL Server evidence](docs/en/Concurrency-execution.md)
-- [Bounded transaction retry and uncertain-outcome recovery](docs/en/Retry-execution.md)
-- [Atomic transfer, replay and rollback evidence](docs/en/Transfer-execution.md)
-- [Durable debit, insufficient funds and SQL Server evidence](docs/en/Debit-execution.md)
-- [Hexagonal architecture, ports and adapters through this project](docs/en/Hexagonal-architecture.md)
-- [Why canonical requests and fingerprints are separate](docs/en/Canonical-design.md)
-- [Double-entry ledger and account categories](docs/en/Ledger.md)
-- [Journal calculation and balance projections](docs/en/Journal-projection.md)
-- [Database constraints and permissions](docs/en/Schema.md)
-- [Roadmap and implementation evidence](docs/en/Roadmap.md)
-- [Contribution and Git workflow](docs/en/Workflow.md)
+## Documentation
+
+Start with [HTTP samples and local startup](docs/en/HTTP-samples.md), [the current API contract](docs/en/API-v1.md) and [the documentation index](docs/README.md). For design and review, use [transaction/replay semantics](docs/en/Transaction-protocol.md), [journal projection](docs/en/Journal-projection.md), [recovery evidence](docs/en/Recovery-acceptance.md) and [core acceptance](docs/en/Core-acceptance.md). The [roadmap](docs/en/Roadmap.md) separates completed core scope from later extensions; dated evidence pages preserve historical checkpoints.
+
+Contributions follow [the engineering and Git workflow](docs/en/Workflow.md) and [AGENTS.md](AGENTS.md). English and Persian guides are maintained together.
 
 ## License
 
-[MIT](LICENSE). SQL Server and other dependencies retain their own licenses.
+[MIT](LICENSE). SQL Server and other dependencies retain their own licenses. SQL Server Developer edition is used for development/testing under its applicable license.

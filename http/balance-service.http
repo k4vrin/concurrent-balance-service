@@ -1,0 +1,238 @@
+# Open with IntelliJ IDEA HTTP Client or VS Code REST Client. Run requests in order.
+# Setup and expected results: docs/en/HTTP-samples.md (Persian: docs/fa/HTTP-samples.md).
+# These UUIDs match create-demo-accounts.sql; the server must use its funding UUID.
+# Keep runId stable for retries. Change it only for a NEW intentional financial attempt.
+# Fixed IDs make replays repeatable; do not use a per-request random UUID for runId.
+@baseUrl = http://127.0.0.1:8080
+@alice = 10000000-0000-4000-8000-000000000001
+@bob = 20000000-0000-4000-8000-000000000002
+@missing = 30000000-0000-4000-8000-000000000003
+@runId = demo-v1
+
+### 01 Health
+# 200; status UP.
+GET {{baseUrl}}/actuator/health
+Accept: application/json, application/problem+json
+
+### 02 Initial Alice balance
+# 200; balanceRial 0 on fresh demo accounts.
+GET {{baseUrl}}/api/v1/accounts/{{alice}}/balance
+Accept: application/json, application/problem+json
+
+### 03 Credit Alice
+# 200 SUCCEEDED; Alice 1000, funding 1000.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-credit-alice",
+  "amountRial": 1000,
+  "currency": "IRR"
+}
+
+### 04 Replay Alice credit
+# 200; identical retained body; Alice stays 1000.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-credit-alice",
+  "amountRial": 1000,
+  "currency": "IRR"
+}
+
+### 05 Credit Bob
+# 200 SUCCEEDED; Bob 500, funding 1500.
+POST {{baseUrl}}/api/v1/accounts/{{bob}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-credit-bob",
+  "amountRial": 500,
+  "currency": "IRR"
+}
+
+### 06 Debit Alice
+# 200 SUCCEEDED; Alice 900, funding 1400.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/debits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-debit-alice",
+  "amountRial": 100,
+  "currency": "IRR"
+}
+
+### 07 Transfer Alice to Bob
+# 200 SUCCEEDED; Alice 650, Bob 750; funding stays 1400.
+POST {{baseUrl}}/api/v1/transfers
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-transfer",
+  "amountRial": 250,
+  "currency": "IRR",
+  "sourceAccountId": "{{alice}}",
+  "destinationAccountId": "{{bob}}"
+}
+
+### 08 Replay transfer
+# 200; identical retained body; no second transfer.
+POST {{baseUrl}}/api/v1/transfers
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-transfer",
+  "amountRial": 250,
+  "currency": "IRR",
+  "sourceAccountId": "{{alice}}",
+  "destinationAccountId": "{{bob}}"
+}
+
+### 09 Conflict under original ID
+# 409 TRANSACTION_ID_CONFLICT; changing the amount cannot replace the original result.
+POST {{baseUrl}}/api/v1/transfers
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-transfer",
+  "amountRial": 251,
+  "currency": "IRR",
+  "sourceAccountId": "{{alice}}",
+  "destinationAccountId": "{{bob}}"
+}
+
+### 10 Alice after transfer
+# 200; balanceRial 650.
+GET {{baseUrl}}/api/v1/accounts/{{alice}}/balance
+Accept: application/json, application/problem+json
+
+### 11 Bob after transfer
+# 200; balanceRial 750.
+GET {{baseUrl}}/api/v1/accounts/{{bob}}/balance
+Accept: application/json, application/problem+json
+
+### 12 Insufficient debit
+# 409 INSUFFICIENT_FUNDS; retained rejection, no journal or balance change.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/debits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-rejected-debit",
+  "amountRial": 651,
+  "currency": "IRR"
+}
+
+### 13 Top up Alice
+# 200 SUCCEEDED; Alice 750, funding 1500.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-topup",
+  "amountRial": 100,
+  "currency": "IRR"
+}
+
+### 14 Replay rejected debit after top-up
+# 409 INSUFFICIENT_FUNDS even though Alice now has enough funds.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/debits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-rejected-debit",
+  "amountRial": 651,
+  "currency": "IRR"
+}
+
+### 15 Final Alice balance
+# 200; balanceRial 750.
+GET {{baseUrl}}/api/v1/accounts/{{alice}}/balance
+Accept: application/json, application/problem+json
+
+### 16 Final Bob balance
+# 200; balanceRial 750.
+GET {{baseUrl}}/api/v1/accounts/{{bob}}/balance
+Accept: application/json, application/problem+json
+
+### 17 Zero amount
+# 400 INVALID_REQUEST; no retained operation.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-invalid-zero",
+  "amountRial": 0,
+  "currency": "IRR"
+}
+
+### 18 Fractional rial
+# 400 INVALID_REQUEST; fractions are never rounded.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-invalid-fraction",
+  "amountRial": 1.5,
+  "currency": "IRR"
+}
+
+### 19 Self-transfer
+# 400 INVALID_REQUEST; no retained operation.
+POST {{baseUrl}}/api/v1/transfers
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-invalid-self",
+  "amountRial": 1,
+  "currency": "IRR",
+  "sourceAccountId": "{{alice}}",
+  "destinationAccountId": "{{alice}}"
+}
+
+### 20 Malformed UUID
+# 400 INVALID_REQUEST.
+GET {{baseUrl}}/api/v1/accounts/not-a-uuid/balance
+Accept: application/json, application/problem+json
+
+### 21 Missing account lookup
+# 404 ACCOUNT_NOT_FOUND; assumes the missing UUID was not provisioned.
+GET {{baseUrl}}/api/v1/accounts/{{missing}}/balance
+Accept: application/json, application/problem+json
+
+### 22 Missing account mutation
+# 404 ACCOUNT_NOT_FOUND; unlike lookup/validation, this is a retained business rejection.
+POST {{baseUrl}}/api/v1/accounts/{{missing}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-missing-credit",
+  "amountRial": 1,
+  "currency": "IRR"
+}
+
+### 23 Transaction cap
+# 409 TRANSACTION_LIMIT_EXCEEDED under default 10000000000000-rial policy; retained rejection.
+POST {{baseUrl}}/api/v1/accounts/{{alice}}/credits
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "transactionId": "{{runId}}-over-cap",
+  "amountRial": 10000000000001,
+  "currency": "IRR"
+}

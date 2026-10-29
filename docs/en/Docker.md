@@ -1,3 +1,5 @@
+> Current setup: follow [the complete HTTP walkthrough](HTTP-samples.md) for a fresh local API and runnable requests. The [CBS20 core](Core-acceptance.md) is complete; dated implementation statements below describe their original checkpoint.
+
 > CBS09 implementation update, 2026-10-23: V1 is applied and validated in the local development/test databases. [Schema/runbook](Schema.md) records actual constraints, grants and 240 portable + 94 SQL Server tests. Historical pre-migration statements below are superseded by this implementation evidence. Financial execution remains pending.
 
 # Local SQL Server with Docker Compose

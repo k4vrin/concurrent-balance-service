@@ -1,3 +1,5 @@
+> راه‌اندازی فعلی: برای API محلی و درخواست‌های اجرایی، [walkthrough کامل HTTP](HTTP-samples.md) را دنبال کنید. [هستهٔ CBS20](Core-acceptance.md) کامل است؛ توضیح‌های تاریخ‌دار زیر، checkpoint اولیهٔ خود را شرح می‌دهند.
+
 > به‌روزرسانی persistence: [شواهد CBS10](Persistence.md) اکنون نگاشت JPA، fixture افتتاحیهٔ committed و route موجودی SQL Server را تأیید می‌کند. mutation هنوز unavailable است. گفته‌های قبلی دربارهٔ 503 برای همهٔ routeها و شواهد فقط schema در ادامه تاریخی‌اند.
 
 # schema در CBS09 و راهنمای migration در SQL Server

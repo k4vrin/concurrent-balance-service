@@ -6,103 +6,122 @@
 [![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927)](https://www.microsoft.com/sql-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[کلاس‌های credit و جریان درخواست](docs/fa/Credit-class-walkthrough.md)
+سرویسی با Java 21 و Spring Boot برای credit، debit و انتقال ریال صحیح زیر درخواست‌های هم‌زمان. SQL Server موجودی مرجع، تاریخچهٔ حسابداری دوطرفه و پاسخ اصلی هر دستور مالی نهایی‌شده را کنار هم نگه می‌دارد.
 
-سرویس Java و Spring Boot برای جابه‌جایی درست پول زیر درخواست‌های هم‌زمان؛ API موجودی مرجع، دفترکل دوطرفه و هویت ماندگار درخواست را در یک SQL Server کنار هم قرار می‌دهد.
+اگر انتقال commit شود ولی پاسخ HTTP به فراخواننده نرسد، retry با همان `transactionId` پاسخ اصلی را برمی‌گرداند و پول را دوباره جابه‌جا نمی‌کند. اگر debit به‌خاطر کمبود موجودی رد شود، همان تصمیم بعد از افزایش موجودی هم replay می‌شود.
 
-[English](README.md) · [مرجع API](docs/fa/API-v1.md) · [معماری](docs/fa/Architecture.md) · [راه‌اندازی](docs/fa/Schema.md)
+[English](README.md) · [اجرای نمونه‌های HTTP](docs/fa/HTTP-samples.md) · [مرجع API](docs/fa/API-v1.md) · [فهرست مستندات](docs/README.md)
 
-هستهٔ منتخب CBS20/G1 پیاده‌سازی شده و پذیرش خودکار را گذرانده است: **۴۲۱ تست قابل‌حمل + ۲۱۲ تست واقعی SQL Server**، همراه با سناریوی process جدا برای rollback واقعی، restart/replay و reconciliation مستقل. فرمان اجرا، نتایج اندازه‌گیری‌شده و مرز تکمیل در [راهنمای پذیرش قابل‌بازتولید](docs/fa/Core-acceptance.md) آمده است.
+## چه چیزی پیاده‌سازی شده است؟
 
-## نسخهٔ اول
+**هستهٔ منتخب CBS20/G1 کامل شده است**: چهار عملیات HTTP، replay ماندگار موفقیت و رد، نوشتن اتمیک دفترکل، ترتیب مشترک قفل حساب‌ها، بازیابی محدود کل تراکنش و reconciliation مستقل. [راهنمای پذیرش](docs/fa/Core-acceptance.md)، نتیجهٔ **۴۲۱ تست قابل‌حمل + ۲۱۲ تست واقعی SQL Server** و شواهد rollback و restart در process جدا را ثبت می‌کند. [اجرای تأییدشدهٔ CI هسته](https://github.com/k4vrin/concurrent-balance-service/actions/runs/40886956745).
 
-نسخهٔ اول یک API محلی JSON برای افزایش موجودی، برداشت، انتقال اتمیک و استعلام موجودی است. این صفحه قرارداد نسخهٔ قابل‌تحویل را شرح می‌دهد. رفتار پیاده‌شده و شواهد نسخهٔ فعلی مخزن در [وضعیت پیاده‌سازی](docs/fa/Implementation-status.md) آمده است.
+برنامه برای **اپراتور محلی مورداعتماد** است و به‌صورت پیش‌فرض روی `127.0.0.1:8080` گوش می‌دهد. پیش از دسترسی مشترک یا خارجی، احراز هویت، مالکیت حساب و مجوز عملیات تأمین لازم‌اند. benchmark کارایی، OTP، Redis، Kafka/outbox، CDC و FX در محدودهٔ بعدی قرار دارند.
 
-| عملیات | endpoint | مسئولیت |
+| عملیات | endpoint | اثر |
 | --- | --- | --- |
 | Credit | `POST /api/v1/accounts/{accountId}/credits` | افزایش موجودی مشتری با حساب تأمین انتخاب‌شدهٔ سرور. |
 | Debit | `POST /api/v1/accounts/{accountId}/debits` | کاهش موجودی مشتری در صورت کفایت موجودی. |
-| Transfer | `POST /api/v1/transfers` | انتقال مبلغ میان دو حساب متمایز به‌صورت اتمیک. |
-| Balance | `GET /api/v1/accounts/{accountId}/balance` | خواندن موجودی و ارز committed از مرجع اصلی. |
+| Transfer | `POST /api/v1/transfers` | انتقال اتمیک میان دو حساب مشتری متمایز. |
+| Balance | `GET /api/v1/accounts/{accountId}/balance` | خواندن موجودی و ارز commit‌شده. |
 
-مبلغ، ریال صحیح است؛ هر واحد دقیقاً یک ریال است و با `long` در Java و `BIGINT` در SQL Server نمایش داده می‌شود. سیاست اولیه IRR را می‌پذیرد و سقف هر عملیات و موجودی مشتری **۱۰٬۰۰۰٬۰۰۰٬۰۰۰٬۰۰۰ ریال** است. مبلغ اعشاری، تبدیل ضمنی و گردکردن بی‌صدا رد می‌شوند.
+## شروع کار
 
-## مدل درستی
+پیش‌نیازها: **JDK 21**، Docker همراه Compose برای SQL Server و Bash برای فرمان‌های راه‌اندازی محلی. Maven wrapper در مخزن هست؛ فقط harness پذیرش خودکار هسته به Python 3 نیاز دارد. کانتینر SQL Server برای Linux x86-64 است؛ آزمایش مستندشدهٔ emulation روی ARM64 پشتیبانی Microsoft را ندارد.
 
-هر mutation یک `transactionId` از فراخواننده دارد. retry منطبق، نتیجهٔ اصلی ذخیره‌شده را برمی‌گرداند؛ استفادهٔ دوباره با نوع یا payload متفاوت تعارض دارد. پاسخ گم‌شده با همان شناسه بازیابی می‌شود. رد نهایی کسب‌وکار هم نگه داشته می‌شود تا retry پس از تغییر موجودی یا سیاست دوباره آن را ارزیابی نکند.
+```bash
+git clone https://github.com/k4vrin/concurrent-balance-service.git
+cd concurrent-balance-service
+./mvnw verify
+```
 
-هر mutation موفق، یک journal متوازن، postingهای تغییرناپذیر بدهکار و بستانکار، projection موجودی و نتیجه را در یک تراکنش commit می‌کند. رد journal ندارد و replay، posting تازه نمی‌سازد. موجودی اولیهٔ غیرصفر با journal افتتاحیهٔ داخلی ایجاد می‌شود.
+این فرمان تست‌های قابل‌حمل را بدون دیتابیس اجرا می‌کند. در Windows از `.\mvnw.cmd` استفاده کنید؛ مسیر جداگانهٔ راه‌اندازی در [راهنمای Windows و SQL Server](docs/fa/Windows-sqlserver.md) آمده است.
 
-همهٔ نویسنده‌ها پیش از بررسی موجودی، مجموعهٔ کامل حساب‌های درگیر را به ترتیب مشترک UUID در برنامه قفل می‌کنند. محاسبهٔ checked جلوی overflow را می‌گیرد. deadlock و timeout قفل، recovery محدود کل تراکنش می‌خواهند؛ commit نامطمئن با همان شناسه بازیابی می‌شود. [پروتکل تراکنش](docs/fa/Transaction-protocol.md).
+برای اجرای API واقعی، [راهنمای محلی HTTP](docs/fa/HTTP-samples.md) را دنبال کنید:
 
-| جدول | مسئولیت |
-| --- | --- |
-| `accounts` | هویت، دستهٔ حساب، ارز و projection هم‌زمان موجودی. |
-| `operations` | هویت سراسری درخواست، intent از نوع canonical، شواهد سیاست و نتیجهٔ ذخیره‌شده. |
-| `journals` | یک header حسابداری برای هر عملیات موفق. |
-| `postings` | خط‌های تغییرناپذیر بدهکار و بستانکار برای بازسازی و reconciliation موجودی. |
+1. `.env.example` را در فایل نادیده‌گرفته‌شدهٔ `.env.sqlserver` کپی کنید، secretهای مجزا بگذارید و مجوز SQL Server Developer را بپذیرید.
+2. کانتینر pin‌شدهٔ SQL Server را بالا بیاورید، identityهای جدا بسازید، `cbs_dev` و `cbs_test` را migrate کنید و grantهای runtime را اعمال کنید.
+3. [fixture نمونه](http/create-demo-accounts.sql) را با initializer محدود اجرا کنید. فقط حساب با موجودی صفر می‌سازد و موجودی یا history را reset نمی‌کند.
+4. برنامه را با credentialهای runtime، مقدار `EXECUTION_POLICY_ENABLED=true` و حساب funding مشخص راه‌اندازی کنید.
+5. فایل [balance-service.http](http/balance-service.http) را در IntelliJ IDEA HTTP Client یا VS Code REST Client باز کنید و درخواست‌های شماره‌دار را اجرا کنید.
 
-## نمونهٔ API
+Spring Boot فایل `.env.sqlserver` را **خودکار نمی‌خواند**. راه‌اندازی عادی به `DB_URL`، `DB_USERNAME` و `DB_PASSWORD` نیاز دارد؛ فرمان‌های دقیق در walkthrough آمده‌اند. تا وقتی execution غیرفعال است، mutationها پاسخ 503 می‌دهند. endpoint عمومی ساخت حساب نداریم.
 
-درخواست انتقال در قرارداد نسخهٔ اول، UUID حساب و شناسهٔ دقیق حساس به حروف دارد:
+## یک انتقال را امتحان کنید
+
+پس از ساخت و شارژ حساب‌های نمونه طبق walkthrough، این درخواست را بفرستید:
 
 ```http
-POST /api/v1/transfers
+POST http://127.0.0.1:8080/api/v1/transfers
 Content-Type: application/json
 
 {
-  "transactionId": "transfer-001",
+  "transactionId": "demo-v1-transfer",
   "sourceAccountId": "10000000-0000-4000-8000-000000000001",
-  "destinationAccountId": "f0000000-0000-4000-8000-000000000002",
-  "amountRial": 150000,
+  "destinationAccountId": "20000000-0000-4000-8000-000000000002",
+  "amountRial": 250,
   "currency": "IRR"
 }
 ```
 
-mutation موفق، عملیات committed را تأیید می‌کند. خطا با `application/problem+json` و کد پایدار برنامه برمی‌گردد. [مرجع API](docs/fa/API-v1.md) parsing و نتیجه‌ها را تعریف می‌کند؛ [راهنمای عملیات](docs/fa/Operation-flow.md) مسیر کامل درخواست را توضیح می‌دهد.
+انتقال commit‌شده با HTTP 200 پاسخ می‌دهد:
 
-## ساخت و راه‌اندازی محلی
-
-پیش‌نیاز، JDK 21 و برای محیط integration، Docker است. Maven از wrapper تأمین می‌شود.
-
-```bash
-./mvnw verify
+```json
+{"transactionId":"demo-v1-transfer","operationType":"TRANSFER","currency":"IRR","status":"SUCCEEDED"}
 ```
 
-verify مستقل از زیرساخت دیتابیس نمی‌خواهد. طبق [راه‌اندازی SQL Server](docs/fa/Docker.md) و [راهنمای migration](docs/fa/Schema.md)، مجوز Developer مربوط را بپذیرید، هویت‌های جدا را بسازید و schema را اعمال کنید. secret از متغیر محیطی یا تنظیم محلی ignored می‌آید. runtime با DB_URL، DB_USERNAME و DB_PASSWORD محدود اجرا می‌شود و migration انجام نمی‌دهد.
+همان body را دوباره بفرستید تا نتیجه replay شود. تغییر مبلغ با همان ID، پاسخ HTTP 409 با کد `TRANSACTION_ID_CONFLICT` دارد. فایل درخواست، رد کمبود موجودی پس از top-up، حساب ناموجود، self-transfer، مبلغ اعشاری و سقف تراکنش را هم با پاسخ موردانتظار نشان می‌دهد.
 
-```bash
-./mvnw -Pdb-migrate flyway:migrate flyway:validate
-./mvnw -Psqlserver-it verify
-./mvnw spring-boot:run
+## قواعد مبلغ و سازگاری
+
+- **هر واحد یک ریال است.** فیلدهای `amountRial` و `balanceRial` عدد صحیح‌اند؛ در Java از `long` و در SQL Server از `BIGINT` استفاده می‌شود. اعشار، token نمایی، رشتهٔ عددی و گردکردن بی‌صدا رد می‌شوند.
+- **سیاست اولیه فقط IRR را می‌پذیرد.** سقف پیش‌فرض هر تراکنش و موجودی مشتری **۱۰٬۰۰۰٬۰۰۰٬۰۰۰٬۰۰۰ ریال** است. محاسبهٔ checked از overflow محدودهٔ نمایش هم جلوگیری می‌کند.
+- **هویت درخواست سراسری است.** شناسه دقیق و حساس به بزرگی حروف است. retry منطبق پاسخ ذخیره‌شده را می‌گیرد؛ نوع یا payload متفاوت تعارض دارد.
+- **اثر مالی یک‌جا commit می‌شود.** هر موفقیت، journal متوازن، postingها، projectionهای درگیر و پاسخ ماندگار را با هم commit می‌کند. رد کسب‌وکار فقط operation دارد و journal یا تغییر موجودی ندارد.
+- **ترتیب قفل مشترک است.** همهٔ mutationها پیش از funds check، کل حساب‌های درگیر را با ترتیب unsigned descending UUID قفل می‌کنند. credit/debit شامل funding پیکربندی‌شده‌اند؛ transfer مسیر funding ندارد.
+- **بازیابی محافظه‌کارانه است.** rollback قطعی و commit نامعلوم مسیر یکسان ندارند. پاسخ 503 یا گم‌شدن پاسخ، ثابت نمی‌کند که commit رخ نداده است؛ بازیابی را با همان ID انجام دهید.
+
+## معماری
+
+مرز سازگاری، یک برنامهٔ Spring Boot و یک SQL Server است. controllerها مستقیم handlerهای use case را صدا می‌زنند. handlerها محاسبهٔ دامنه و persistence را از طریق portهای application هماهنگ می‌کنند؛ coordinator مشترک، پایان تراکنش و recovery را مدیریت می‌کند.
+
+```text
+src/main/java/dev/kavrin/balance/
+  account/      Account domain, balance query and account persistence
+  ledger/       Journals, postings and projection calculations
+  money/        Integer money representation and checked arithmetic
+  operation/    Commands, handlers, identity, retry, HTTP and persistence adapters
+src/main/resources/db/migration/  Reviewed Flyway schema
+src/test/                        Portable and real SQL Server verification
+http/                            Executable requests and zero-account demo fixture
+scripts/                         Database setup and packaged-process acceptance
 ```
 
-فرمان migration و integration تنظیم محیطی جدا و صریح راهنما را می‌خواهند. در Windows از `.\mvnw.cmd` استفاده کنید. آزمایش محلی emulation روی ARM64 در SQL Server پشتیبانی رسمی Microsoft ندارد؛ [شواهد محیط](docs/fa/SQL-server-evidence.md) را ببینید.
+| جدول | مسئولیت |
+| --- | --- |
+| `accounts` | هویت، دسته و ارز حساب و projection هم‌زمان موجودی. |
+| `operations` | درخواست canonical، هویت ماندگار، شواهد سیاست و پاسخ ذخیره‌شده. |
+| `journals` | یک header حسابداری برای هر عملیات موفق. |
+| `postings` | تاریخچهٔ immutable بدهکار/بستانکار برای بازسازی موجودی. |
 
-## دامنه و توسعه‌های بعدی
+identity برنامه نمی‌تواند schema بسازد یا تاریخچهٔ posting را تغییر/حذف کند. Flyway جداگانه با credential مهاجرت اجرا می‌شود؛ ساخت حساب صفر هم identity جدا دارد. [schema و مجوزها](docs/fa/Schema.md)، [دفترکل](docs/fa/Ledger.md) و [walkthrough معماری](docs/fa/Hexagonal-architecture.md) را ببینید.
 
-نسخهٔ اول اپراتور محلی مورداعتماد را فرض می‌کند و روی loopback اجرا می‌شود. احراز هویت، مالکیت حساب و کنترل اختیار funding پیش از دسترسی اشتراکی یا خارجی لازم‌اند. ادعای آمادگی production یا throughput نداریم.
+## بررسی درستی
 
-تأیید انتقال با OTP، cache نتیجه در Redis، رویداد Kafka/outbox، CDC با Debezium و تسویهٔ FX بعد از هسته می‌آیند. SQL Server مرجع مالی می‌ماند؛ cache و history غیرهم‌زمان تصمیم نمی‌گیرند پول دوباره جابه‌جا شود یا نه.
+| فرمان | چه چیزی را بررسی می‌کند؟ | پیش‌نیاز |
+| --- | --- | --- |
+| `./mvnw verify` | تست‌های قابل‌حمل دامنه، application و مرز HTTP. | JDK 21. |
+| `./mvnw -Psqlserver-it verify` | تست‌های قابل‌حمل و تست واقعی schema، مجوزها، atomicity، replay، هم‌زمانی و recovery در SQL Server. | `cbs_test` migrate‌شده و هر سه گروه credential صریح تست از [راهنمای schema](docs/fa/Schema.md). |
+| `python3 scripts/verify-core.py --env-file .env.sqlserver` | suite کامل، سپس JVM مستقل برای rollback واقعی timeout قفل، retry همان ID، restart/replay و reconciliation مستقل JDBC. | JDK 21، Python 3 و محیط SQL Server پیکربندی‌شده. |
 
-## راهنمای طراحی
+GitHub Actions بررسی قابل‌حمل، کامپایل با dependency profileهای اختیاری و پذیرش SQL Server موقت/artifact را اجرا می‌کند. نبود تنظیمات دیتابیس باعث شکست integration verification می‌شود و تست را بی‌صدا skip نمی‌کند. baseline ثبت‌شده، **۶۳۳ تست با صفر failure/error/skip** را گذرانده است؛ جزئیات و مرز شواهد در [پذیرش هسته](docs/fa/Core-acceptance.md) آمده‌اند. این زمان‌سنجی‌ها ادعای throughput یا آمادگی production نیستند.
 
-- [تکمیل هسته و پذیرش قابل‌تکرار](docs/fa/Core-acceptance.md)
-- [شواهد بازیابی commit و پاسخ](docs/fa/Recovery-acceptance.md)
-- [انتقال معکوس و پیشرفت حساب مستقل](docs/fa/Transfer-progress.md)
-- [رقابت transaction ID بین instanceها و پاسخ ماندگار](docs/fa/Cross-instance-replay.md)
-- [عملیات هم‌زمان با ID متفاوت و شواهد SQL Server](docs/fa/Concurrency-execution.md)
-- [retry محدود تراکنش و بازیابی نتیجهٔ نامعلوم](docs/fa/Retry-execution.md)
-- [انتقال اتمیک، replay و شواهد rollback](docs/fa/Transfer-execution.md)
-- [debit ماندگار، کسری وجه و شواهد SQL Server](docs/fa/Debit-execution.md)
-- [یادگیری Hexagonal Architecture، port و adapter با مثال‌های پروژه](docs/fa/Hexagonal-architecture.md)
-- [دلیل جدایی canonical request و fingerprint](docs/fa/Canonical-design.md)
-- [دفترکل دوطرفه و دستهٔ حساب](docs/fa/Ledger.md)
-- [محاسبهٔ journal و projection موجودی](docs/fa/Journal-projection.md)
-- [قید و مجوز دیتابیس](docs/fa/Schema.md)
-- [نقشهٔ راه و شواهد پیاده‌سازی](docs/fa/Roadmap.md)
-- [روند مشارکت و Git](docs/fa/Workflow.md)
+## مستندات
+
+از [نمونه‌های HTTP و راه‌اندازی محلی](docs/fa/HTTP-samples.md)، [قرارداد فعلی API](docs/fa/API-v1.md) و [فهرست مستندات](docs/README.md) شروع کنید. برای مرور طراحی، [معنای تراکنش و replay](docs/fa/Transaction-protocol.md)، [projection دفترکل](docs/fa/Journal-projection.md)، [شواهد recovery](docs/fa/Recovery-acceptance.md) و [پذیرش هسته](docs/fa/Core-acceptance.md) را ببینید. [نقشهٔ راه](docs/fa/Roadmap.md) هستهٔ تکمیل‌شده را از توسعه‌های بعدی جدا می‌کند؛ صفحه‌های شواهد تاریخ‌دار، checkpointهای تاریخی را نگه می‌دارند.
+
+مشارکت در پروژه از [راهنمای مهندسی و Git](docs/fa/Workflow.md) و [AGENTS.md](AGENTS.md) پیروی می‌کند. مستندات فارسی و انگلیسی با هم نگه‌داری می‌شوند.
 
 ## مجوز
 
-[MIT](LICENSE). SQL Server و وابستگی‌های دیگر مجوز خودشان را حفظ می‌کنند.
+[MIT](LICENSE). SQL Server و dependencyهای دیگر مجوز خودشان را دارند. نسخهٔ Developer از SQL Server برای توسعه و تست و طبق مجوز مربوط به آن استفاده می‌شود.

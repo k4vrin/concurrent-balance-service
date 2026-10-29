@@ -20,6 +20,11 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Checks transfer response encoding and fail-closed validation of retained JSON.
+ *
+ * <p>Identity, type, currency and outcome mismatches remain technical failures rather than accepted replays.
+ */
 class JsonTransferResponseEncoderTests {
     private final JsonMapper json = JsonMapper.builder().build();
     private final JsonTransferResponseEncoder encoder = new JsonTransferResponseEncoder(json);

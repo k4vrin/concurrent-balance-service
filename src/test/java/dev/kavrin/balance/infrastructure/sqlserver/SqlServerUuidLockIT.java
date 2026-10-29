@@ -16,6 +16,12 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Verifies native UUID account-lock semantics with real SQL Server connections.
+ *
+ * <p>Cases cover round trips, existing-key blocking, missing-key protection and consistent participant
+ * order. Probe-level evidence does not imply every JPA financial race has been tested.
+ */
 class SqlServerUuidLockIT {
     private static SqlServerTestDatabase database;
 

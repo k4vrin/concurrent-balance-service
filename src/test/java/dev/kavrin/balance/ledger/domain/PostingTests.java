@@ -15,6 +15,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks positive immutable posting lines and category-dependent balance deltas.
+ *
+ * <p>Debit/credit signs are verified for both account categories, including representable long boundaries.
+ */
 class PostingTests {
 
     private static final AccountId ID =

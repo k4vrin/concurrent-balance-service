@@ -6,6 +6,16 @@ import dev.kavrin.balance.account.domain.AccountCategory;
 import dev.kavrin.balance.account.domain.AccountId;
 import dev.kavrin.balance.money.Money;
 
+/**
+ * Represents one immutable, positive monetary line assigned to an account and accounting side.
+ *
+ * <p>The account category determines whether the line increases or decreases its projection.
+ * A posting alone does not prove a journal is balanced or persist any financial effect (ADR-007).
+ *
+ * @param accountId account receiving the line
+ * @param side debit or credit side, interpreted with the account category
+ * @param amount strictly positive amount and currency
+ */
 public record Posting(AccountId accountId, PostingSide side, Money amount) {
 
     public Posting {

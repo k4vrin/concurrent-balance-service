@@ -9,6 +9,11 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks exact nonblank Unicode identity text without normalization or ASCII-only restriction.
+ *
+ * <p>Malformed UTF-16 is rejected before fingerprint or policy encoding can replace characters.
+ */
 class IdentityTextTests {
     @ParameterizedTest
     @ValueSource(strings = {"execution-v1", " actor ", "سیاست-۱", "actor-\uD83D\uDE00"})

@@ -26,6 +26,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Adapts the four public JSON routes to typed commands and application handlers.
+ *
+ * <p>Request parsing and validation precede application calls. Optional handlers represent deliberately
+ * unavailable execution paths, which return unavailability. Transaction ownership, durable identity
+ * and financial writes remain in the application/persistence flow rather than in this controller.
+ */
 @RestController
 @RequestMapping("/api/v1")
 public final class BalanceController {

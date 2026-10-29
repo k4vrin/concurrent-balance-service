@@ -14,6 +14,13 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 // Media/method negotiation can fail before Spring selects a controller.
+/**
+ * Maps application and framework exceptions to stable HTTP problem responses.
+ *
+ * <p>Global advice also handles negotiation failures raised before controller selection. Technical
+ * responses avoid leaking internal failures and preserve same-ID recovery guidance when a mutation's
+ * commit may be uncertain; durable business decisions follow their separate retained-result path.
+ */
 @RestControllerAdvice
 public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidRequest.class)

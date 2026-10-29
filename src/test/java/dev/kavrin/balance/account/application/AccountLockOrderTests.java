@@ -9,6 +9,11 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks the unsigned, descending UUID account order independently of transfer direction.
+ *
+ * <p>These portable comparator cases do not acquire database locks or establish SQL Server GUID ordering.
+ */
 class AccountLockOrderTests {
 
     // Crossing the high-half sign bit exposes signed-long comparison: unsigned 0x8000...

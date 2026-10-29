@@ -16,6 +16,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks immutable execution snapshots and complete currency-specific funding selections.
+ *
+ * <p>Version, supported-set and map ownership cases ensure a prepared attempt cannot change when
+ * loader inputs change. Account existence and locked participant state are verified elsewhere.
+ */
 class ExecutionPolicyTests {
     private static final Currency IRR = Currency.getInstance("IRR");
     private static final Currency USD = Currency.getInstance("USD");

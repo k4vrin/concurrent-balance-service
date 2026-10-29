@@ -21,6 +21,11 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Checks debit response encoding and fail-closed validation of retained JSON.
+ *
+ * <p>Rejection reasons and success metadata must agree with the retained operation before replay.
+ */
 class JsonDebitResponseEncoderTests {
     private final JsonMapper json = JsonMapper.builder().build();
     private final JsonDebitResponseEncoder encoder = new JsonDebitResponseEncoder(json);

@@ -23,6 +23,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks exact projection calculation from immutable journal lines and account snapshots.
+ *
+ * <p>Cases cover category signs, wide intermediate totals, final bounds and invalid participants.
+ * These domain calculations neither persist balances nor prove database transaction semantics.
+ */
 class JournalProjectionTests {
 
     private static final Currency IRR = Currency.getInstance("IRR");

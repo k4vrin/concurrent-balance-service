@@ -5,6 +5,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Checks the explicit SQL Server test connection and isolated fixture transaction lifecycle.
+ *
+ * <p>Cases require the dedicated catalog and non-administrator identity, and distinguish attempt
+ * rollback from separately committed setup. Missing infrastructure fails rather than skipping tests.
+ */
 class SqlServerEnvironmentIT {
     private static SqlServerTestDatabase database;
 

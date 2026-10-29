@@ -33,6 +33,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Verifies JPA mappings, owned transactions, account locks and authoritative HTTP balance reads.
+ *
+ * <p>Journal-backed opening fixtures and independent SQL demonstrate committed effects and rollback
+ * boundaries on real SQL Server. The fixtures are controlled test setup, not a public initialization API.
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SqlServerPersistenceIT {
     @Autowired EntityManager entities;

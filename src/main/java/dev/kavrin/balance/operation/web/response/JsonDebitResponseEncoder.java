@@ -11,6 +11,12 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Serializes and validates the original response retained with a debit outcome.
+ *
+ * <p>Business problems retain the debit route and decision metadata. Stored JSON that disagrees with
+ * the retained identity, currency or outcome fails validation instead of becoming a replay.
+ */
 @Component
 public final class JsonDebitResponseEncoder implements DebitResponseEncoder {
     private final JsonMapper json;

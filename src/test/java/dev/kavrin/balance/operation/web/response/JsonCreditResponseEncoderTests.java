@@ -21,6 +21,11 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Checks credit response encoding and fail-closed validation of retained JSON.
+ *
+ * <p>Identity, outcome and malformed-payload cases prevent inconsistent stored bytes from becoming replay responses.
+ */
 class JsonCreditResponseEncoderTests {
     private final JsonMapper json = JsonMapper.builder().build();
     private final JsonCreditResponseEncoder encoder = new JsonCreditResponseEncoder(json);

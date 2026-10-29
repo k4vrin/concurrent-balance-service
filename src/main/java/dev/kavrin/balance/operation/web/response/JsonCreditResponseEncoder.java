@@ -11,6 +11,13 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Serializes and validates the original response retained with a credit outcome.
+ *
+ * <p>Success and business-rejection envelopes use their respective media types. Replay validation
+ * checks the stored identity, type, currency and outcome metadata before the response is returned;
+ * encoding alone does not confirm transaction commit.
+ */
 @Component
 public final class JsonCreditResponseEncoder implements CreditResponseEncoder {
     private final JsonMapper json;

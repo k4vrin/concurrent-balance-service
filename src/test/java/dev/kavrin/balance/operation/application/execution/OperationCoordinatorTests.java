@@ -13,6 +13,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Checks Spring transaction ownership and completion ordering with a recording manager.
+ *
+ * <p>Cases reject ambient transactions and prevent candidate results from escaping failed commits.
+ * Recorded lifecycle decisions do not simulate physical SQL Server locks or durable effects.
+ */
 class OperationCoordinatorTests {
     private final RecordingTransactionManager manager = new RecordingTransactionManager();
     private final OperationCoordinator coordinator = new OperationCoordinator(manager);

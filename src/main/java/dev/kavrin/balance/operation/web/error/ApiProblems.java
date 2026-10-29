@@ -4,6 +4,12 @@ import dev.kavrin.balance.operation.domain.RejectionReason;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 
+/**
+ * Builds consistent ProblemDetail responses with stable application error codes.
+ *
+ * <p>Business rejection reasons map to explicit status/code pairs. Creating a problem response does
+ * not reserve an operation or determine whether a decision was durably committed.
+ */
 public final class ApiProblems {
     private ApiProblems() { }
 

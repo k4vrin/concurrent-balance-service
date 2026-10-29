@@ -6,6 +6,12 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.DeserializationFeature;
 
+/**
+ * Configures the shared strict JSON boundary used by the balance HTTP API.
+ *
+ * <p>Parsing rules keep malformed or ambiguous request data out of application commands. This
+ * configuration supplies no financial handler, policy snapshot or persistence substitute.
+ */
 @Configuration(proxyBeanMethods = false)
 public class HttpAdapterConfiguration {
     @Bean

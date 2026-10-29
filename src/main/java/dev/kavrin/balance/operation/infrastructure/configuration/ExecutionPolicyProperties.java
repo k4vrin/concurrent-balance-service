@@ -11,6 +11,19 @@ import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
+/**
+ * Binds external execution settings before constructing an immutable validated domain policy.
+ *
+ * <p>Defaults describe the accepted local IRR policy, while funding identities remain explicit.
+ * Conversion checks the supported set, caps and counterpart selections; binding alone is not
+ * account-existence or locked participant validation.
+ *
+ * @param version retained execution-policy version
+ * @param supportedCurrencies configured currencies admitted for new intent
+ * @param maxTransactionAmount inclusive per-mutation amount cap
+ * @param maxCustomerBalance inclusive customer projection cap
+ * @param funding currency-specific counterpart settings
+ */
 @ConfigurationProperties("balance.execution")
 public record ExecutionPolicyProperties(
         @DefaultValue("execution-v1") String version,

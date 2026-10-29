@@ -12,6 +12,11 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+/**
+ * Checks exact whole-rial value arithmetic, currency compatibility and overflow rejection.
+ *
+ * <p>Signed values support ledger calculations; positive mutation amounts are validated separately.
+ */
 class MoneyTests {
 
     @ParameterizedTest

@@ -14,6 +14,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks immutable mutation intent and shape validation before identity reservation.
+ *
+ * <p>Cases preserve retry identity, direction and requested currency while rejecting invalid amounts
+ * or participants. Mutable policy and available funds remain application decisions.
+ */
 class MutationCommandTests {
 
     private static final Currency IRR = Currency.getInstance("IRR");

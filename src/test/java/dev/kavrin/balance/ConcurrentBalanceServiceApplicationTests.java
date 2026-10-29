@@ -23,6 +23,12 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Exercises the isolated HTTP smoke assembly without requiring SQL Server or financial handlers.
+ *
+ * <p>Health and unavailable routes validate bootstrap wiring only. These portable checks do not
+ * establish normal database-backed startup or financial execution.
+ */
 @SpringBootTest(classes = HttpSmokeConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "balance.execution.enabled=true")
 @ActiveProfiles("smoke")

@@ -5,6 +5,12 @@ import tools.jackson.core.JsonToken;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.ValueDeserializer;
 
+/**
+ * Accepts only integer JSON tokens representable as a Java long.
+ *
+ * <p>Rejecting fractional, textual and other coerced input prevents monetary truncation or implicit
+ * conversion. Positive-amount validation remains the DTO/command boundary's responsibility.
+ */
 public final class StrictAmountDeserializer extends ValueDeserializer<Long> {
     @Override
     public Long deserialize(JsonParser parser, DeserializationContext context) {

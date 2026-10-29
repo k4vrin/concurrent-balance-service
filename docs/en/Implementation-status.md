@@ -1,5 +1,19 @@
 # Implementation status
 
+## Repository-wide type Javadoc audit, 2026-10-29
+
+The Java compiler's DocTrees audit found 76 undocumented types among all 153 tracked/new Java types, including production classes, interfaces, records, enums, test classes/helpers and the standalone SQL Server probe. Added role-specific class-level Javadoc to those 76 types. The final audit reports 153 documented types and zero gaps; whole-project private Javadoc generation with doclint passed without warnings/errors. Comparing sources after removing Javadoc confirms these audit edits changed no executable code or other comments. Existing CBS17 behavior and its 421 portable + 178 SQL Server verification remain unchanged.
+
+
+## CBS17 cross-instance transaction-ID races, 2026-10-29
+
+Added 16 HTTP-to-SQL Server cases using two independently assembled application contexts, servers, transaction managers, persistence factories and connection pools. Both initial requests reach a bounded pre-reservation barrier; the losing adapter must expose an actual 2601/2627 collision on `uq_operations_transaction_id`. Cases cover matching success/rejection for every mutation type, differing amounts/customer IDs, all pairs of operation types and different transfer recipients. Independent SQL checks one terminal operation, correct history, retained response and reconciled balances before/after replay through both applications. [Exact evidence and limits](Cross-instance-replay.md).
+
+Full Java 21 `./mvnw -o -B -ntp -Psqlserver-it verify` passed **421 portable + 178 real SQL Server tests**, with **zero failures/errors/skips**, in **55.043 seconds**. Fresh Surefire/Failsafe XML totals were checked.
+
+CBS16 is merged into main and published at `773c451`. This checkpoint includes CBS17 on `test/cross-instance-idempotency-races` and the repository-wide type Javadoc audit. Contexts share one JVM; separate-process/network-fault evidence is not claimed. Opposite transfers, independent progress and broader response/commit faults remain CBS18–19, with learner acceptance separate.
+
+
 ## CBS16 distinct-operation concurrency, 2026-10-29
 
 Added five real HTTP-to-SQL Server cases for concurrent distinct IDs: credits to one customer or separate customers sharing funding, competing debits, competing transfers and mixed mutations. Bounded client/lock-entry barriers preserve real adapter locking; every worker outcome is collected. Independent SQL verifies exact retained outcomes, zero committed PENDING, one balanced two-posting journal per success, no history on rejection and projection reconstruction before/after concurrent replay. Insufficient-funds losers replay unchanged after top-up. Production code and schema are unchanged. [Scenarios and evidence limits](Concurrency-execution.md).

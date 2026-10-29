@@ -53,6 +53,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
+/**
+ * Verifies durable credit execution and HTTP replay against the dedicated real SQL Server database.
+ *
+ * <p>Cases cover committed accounting, retained decisions, duplicate reservation recovery and rollback
+ * at write boundaries. Independent SQL checks history and projections using restricted test identities.
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SqlServerCreditIT {
     private static final Currency IRR = Currency.getInstance("IRR");

@@ -16,6 +16,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks immutable balanced journal construction and exact monetary totals.
+ *
+ * <p>Cases cover both sides, currency consistency, overflow-resistant accumulation and selected
+ * projection outcomes. They provide domain evidence independently of storage and transaction behavior.
+ */
 class JournalTests {
 
     @Test

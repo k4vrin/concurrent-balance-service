@@ -9,6 +9,13 @@ import dev.kavrin.balance.account.domain.*;
 import dev.kavrin.balance.money.Money;
 import java.util.Currency;
 
+/**
+ * Maps an account's immutable identity metadata and mutable synchronous balance projection.
+ *
+ * <p>Projection updates preserve identity, category and currency. The owning financial transaction
+ * must lock the account and persist matching journal history and outcome; this entity does not
+ * establish those cross-row guarantees itself (ADR-007 and ADR-010).
+ */
 @Entity
 @Table(name = "accounts", schema = "dbo")
 public class AccountEntity {

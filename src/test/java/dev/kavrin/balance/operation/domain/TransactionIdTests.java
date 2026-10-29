@@ -8,6 +8,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks exact opaque transaction-ID syntax, length and case-sensitive value semantics.
+ *
+ * <p>Invalid values are rejected without trimming or normalization; SQL storage equivalence requires integration evidence.
+ */
 class TransactionIdTests {
 
     @ParameterizedTest

@@ -10,6 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Returns an account's authoritative projection within a read-only READ_COMMITTED transaction.
+ *
+ * <p>Missing accounts and unavailable persistence remain distinct application failures. The query
+ * creates no operation, journal or posting, and its transaction boundary is supplied by Spring's proxy.
+ */
 @Service
 public class GetBalanceHandler {
     private final BalanceReader balances;

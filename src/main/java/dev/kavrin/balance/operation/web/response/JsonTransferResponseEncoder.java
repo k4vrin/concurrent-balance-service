@@ -11,6 +11,12 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Serializes and validates the original response retained with a transfer outcome.
+ *
+ * <p>Business problems retain the transfer route. Identity, operation type, currency and success or
+ * rejection metadata must agree before stored JSON may be returned as a replay.
+ */
 @Component
 public final class JsonTransferResponseEncoder implements TransferResponseEncoder {
     private final JsonMapper json;

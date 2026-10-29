@@ -13,6 +13,11 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks immutable account snapshots, required fields and category-specific balance validation.
+ *
+ * <p>Domain construction does not establish database locking or projection/history atomicity.
+ */
 class AccountTests {
 
     private static final AccountId ID =

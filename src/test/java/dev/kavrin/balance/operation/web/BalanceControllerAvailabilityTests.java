@@ -21,6 +21,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Checks deliberately absent handler wiring at the HTTP boundary.
+ *
+ * <p>Balance lookup remains available when mutation execution is disabled, and unwired mutations
+ * return unavailability without borrowing the query handler as a persistence substitute.
+ */
 @WebMvcTest(BalanceController.class)
 @Import(HttpAdapterConfiguration.class)
 class BalanceControllerAvailabilityTests {

@@ -13,6 +13,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Verifies exact transaction-ID storage and uniqueness with the real SQL Server driver.
+ *
+ * <p>Unicode binding, binary collation, the ASCII allowlist and competing inserts are tested directly.
+ * Temporary fixtures isolate storage evidence from financial operation execution.
+ */
 class SqlServerTransactionIdIT {
     private static SqlServerTestDatabase database;
 

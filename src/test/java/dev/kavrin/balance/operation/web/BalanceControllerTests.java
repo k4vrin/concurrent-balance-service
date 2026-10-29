@@ -37,6 +37,12 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * Checks strict HTTP parsing, typed command dispatch and stable response/error contracts.
+ *
+ * <p>Mocked application handlers isolate adapter behavior, including uncertain-outcome guidance.
+ * Passing these cases does not establish database durability or financial correctness.
+ */
 @WebMvcTest(BalanceController.class)
 @Import(HttpAdapterConfiguration.class)
 class BalanceControllerTests {

@@ -11,6 +11,11 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks category-specific balance bounds for customer liabilities and synthetic funding.
+ *
+ * <p>Portable validation distinguishes prohibited customer overdrafts from permitted signed funding balances.
+ */
 class AccountCategoryTests {
 
     @ParameterizedTest

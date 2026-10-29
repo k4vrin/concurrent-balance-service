@@ -7,6 +7,11 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+/**
+ * Checks retained response metadata, defensive byte ownership and value equality.
+ *
+ * <p>Unknown formats and incompatible status/media envelopes fail validation before replay.
+ */
 class StoredResponseTests {
     @Test
     void retainsOriginalBytesWithoutSharingMutableArrays() {

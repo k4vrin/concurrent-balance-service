@@ -3,6 +3,12 @@ package dev.kavrin.balance.operation.application.policy;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
+/**
+ * Validates nonblank, well-formed Unicode text used in policy and actor identities.
+ *
+ * <p>Malformed UTF-16 is rejected before UTF-8 encoding could replace characters and collapse distinct
+ * identities. Valid text is preserved without trimming, normalization or an ASCII-only restriction.
+ */
 public final class IdentityText {
     private IdentityText() { }
 

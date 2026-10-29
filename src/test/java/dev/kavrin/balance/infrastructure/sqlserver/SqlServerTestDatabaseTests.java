@@ -11,6 +11,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+/**
+ * Checks explicit test-datasource guards without opening a connection.
+ *
+ * <p>Cases reject missing settings, runtime fallbacks, embedded credentials, unsupported engines and
+ * smoke profiles. Actual product/catalog validation belongs to the connected integration suite.
+ */
 class SqlServerTestDatabaseTests {
     @Test
     void acceptsExplicitTestSettingsWithoutConnecting() {

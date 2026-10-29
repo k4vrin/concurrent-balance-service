@@ -7,6 +7,11 @@ import org.junit.jupiter.params.provider.EnumSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks identity-bearing success and terminal rejection as distinct immutable business values.
+ *
+ * <p>Returning a rejection value permits its owning transaction to commit; these values alone do not prove commit.
+ */
 class OperationOutcomeTests {
 
     private static final TransactionId TRANSACTION_ID = new TransactionId("operation-001");

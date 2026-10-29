@@ -12,6 +12,12 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Checks explicit policy activation, external binding and invalid enabled-configuration failures.
+ *
+ * <p>Disabled execution requires no fabricated funding selection. These context tests do not connect
+ * to accounts or establish that configured counterparts are valid database participants.
+ */
 class ExecutionPolicyConfigurationTests {
     private static final String FUNDING_ID = "00000000-0000-4000-8000-000000000007";
     private final ApplicationContextRunner runner = new ApplicationContextRunner()

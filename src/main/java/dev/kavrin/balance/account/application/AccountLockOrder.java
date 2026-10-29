@@ -5,6 +5,13 @@ import java.util.UUID;
 
 import dev.kavrin.balance.account.domain.AccountId;
 
+/**
+ * Defines the shared descending total order for acquiring account locks.
+ *
+ * <p>Comparison treats both UUID halves as unsigned and is independent of transfer direction,
+ * Java UUID natural ordering and SQL Server GUID ordering. This utility orders identifiers; the
+ * persistence adapter must acquire locks sequentially in that order (ADR-009 and ADR-010).
+ */
 public final class AccountLockOrder {
 
     private static final Comparator<UUID> UNSIGNED_UUID_ORDER = (left, right) -> {

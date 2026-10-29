@@ -13,6 +13,11 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks immutable configured currency sets, including an explicitly empty admission policy.
+ *
+ * <p>Currency support is supplied by the snapshot rather than hardcoded into monetary value construction.
+ */
 class SupportedCurrenciesTests {
 
     private static final Currency IRR = Currency.getInstance("IRR");

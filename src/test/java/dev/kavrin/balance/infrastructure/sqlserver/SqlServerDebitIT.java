@@ -50,6 +50,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
+/**
+ * Verifies durable debit execution, insufficient-funds retention and rollback on real SQL Server.
+ *
+ * <p>HTTP and handler cases independently check committed history, projections, replay and restoration
+ * of failed attempts. Portable test doubles do not provide this database evidence.
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SqlServerDebitIT {
     private static final Currency IRR = Currency.getInstance("IRR");

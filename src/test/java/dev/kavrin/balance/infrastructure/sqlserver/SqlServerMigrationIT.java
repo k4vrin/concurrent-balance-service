@@ -18,6 +18,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Verifies the reviewed migration, named constraints and restricted permissions on real SQL Server.
+ *
+ * <p>Direct SQL exercises invalid row shapes and immutable history boundaries under the dedicated
+ * runtime, migration and initializer identities. Schema checks do not prove cross-row financial invariants.
+ */
 class SqlServerMigrationIT {
     private static SqlServerTestDatabase runtime;
     private static SqlServerTestDatabase migrator;

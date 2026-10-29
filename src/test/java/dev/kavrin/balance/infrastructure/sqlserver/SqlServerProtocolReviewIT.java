@@ -11,6 +11,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Measures native SQL Server comparison and locking behavior in isolated temporary fixtures.
+ *
+ * <p>Cases distinguish plain committed reads from retained update/serializable locks and show why a
+ * 1222 timeout needs whole-transaction cleanup. These probes do not certify the complete financial protocol.
+ */
 class SqlServerProtocolReviewIT {
     private static SqlServerTestDatabase database;
 

@@ -19,6 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+/**
+ * Checks versioned canonical intent and retained-funding fingerprints against independent vectors.
+ *
+ * <p>Cases preserve exact identity distinctions, unambiguous encoding and defensive byte ownership.
+ * Canonical values do not themselves provide durable idempotency or reserve transaction IDs.
+ */
 class CanonicalRequestTests {
     private static final AccountId A = id("00000000-0000-0000-0000-000000000001");
     private static final AccountId B = id("00000000-0000-0000-0000-000000000002");

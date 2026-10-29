@@ -1,3 +1,5 @@
+> Current CBS17 slice, 2026-10-29: [Cross-instance transaction-ID races](Cross-instance-replay.md) now have 16 coordinated HTTP/SQL cases with actual named-key collision evidence, retained-result checks and reconciliation. Full regression passed 421 portable + 178 real SQL Server tests, zero failures/errors/skips. Opposite transfers, independent progress and broader faults remain CBS18–19.
+
 > Current CBS16 slice, 2026-10-29: [Concurrent distinct mutations](Concurrency-execution.md) now have five coordinated HTTP-to-SQL Server cases, exact retained/history counts and independent reconciliation before/after replay. Full regression passed 421 portable + 162 real SQL Server tests, zero failures/errors/skips. Cross-instance races and later CBS17–19 gates remain open.
 
 > Current CBS15 update, 2026-10-29: [Bounded transaction retry and uncertain-outcome recovery](Retry-execution.md) are implemented for credit, debit and transfer. Full verification passed 421 portable + 157 real SQL Server tests, zero failures/errors/skips. Next are CBS16–19 broader concurrency and recovery evidence; learner acceptance remains separate.

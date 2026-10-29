@@ -1,5 +1,19 @@
 # وضعیت پیاده‌سازی
 
+## بررسی Javadoc سطح type در کل مخزن، ۲۰۲۶-۱۰-۲۹
+
+بررسی DocTrees با compiler جاوا، از میان همهٔ ۱۵۳ type موجود یا تازهٔ Java، برای ۷۶ مورد Javadoc پیدا نکرد. دامنه شامل کلاس، interface، record و enum تولیدی، تست‌ها/helperها و probe مستقل SQL Server بود. برای هر ۷۶ مورد Javadoc متناسب با نقش آن اضافه شد. بررسی نهایی ۱۵۳ type مستند و صفر شکاف دارد؛ تولید Javadoc کل پروژه با دسترسی private و doclint بدون warning/error موفق بود. مقایسهٔ source پس از حذف Javadoc تأیید کرد این ویرایش‌ها کد اجرایی یا کامنت‌های دیگر را تغییر نداده‌اند. رفتار CBS17 و بررسی ۴۲۱ تست قابل‌حمل و ۱۷۸ تست SQL Server آن بدون تغییر می‌ماند.
+
+
+## رقابت transaction ID بین instanceها در CBS17، ۲۰۲۶-۱۰-۲۹
+
+شانزده تست HTTP تا SQL Server با دو context، سرور، transaction manager، persistence factory و connection pool مستقل اضافه شد. هر دو درخواست اولیه به barrier محدود پیش از رزرو می‌رسند؛ adapter بازنده باید تعارض واقعی 2601/2627 روی `uq_operations_transaction_id` را نشان دهد. حالت‌ها شامل موفقیت/رد همسان برای هر mutation، مبلغ/مشتری متفاوت، همهٔ جفت‌های نوع عملیات و مقصد انتقال متفاوت‌اند. SQL مستقل یک عملیات نهایی، history درست، پاسخ ماندگار و reconciliation موجودی را پیش و پس از replay از هر دو برنامه بررسی می‌کند. [شواهد دقیق و محدودیت‌ها](Cross-instance-replay.md).
+
+اجرای کامل Java 21 با `./mvnw -o -B -ntp -Psqlserver-it verify`، تعداد **۴۲۱ تست قابل‌حمل و ۱۷۸ تست واقعی SQL Server** را با **صفر failure، error و skip** در **55.043 ثانیه** گذراند. مجموع XMLهای تازهٔ Surefire/Failsafe بررسی شد.
+
+CBS16 وارد main و با `773c451` منتشر شد. این checkpoint شامل CBS17 روی `test/cross-instance-idempotency-races` و بررسی Javadoc سطح type در کل مخزن است. contextها یک JVM مشترک دارند؛ شواهد process جدا یا fault واقعی شبکه ادعا نمی‌شود. انتقال معکوس، پیشرفت مستقل و خطاهای گسترده‌تر پاسخ/commit در CBS18–19 می‌مانند و پذیرش یادگیری جداست.
+
+
 ## هم‌زمانی عملیات با IDهای متفاوت در CBS16، ۲۰۲۶-۱۰-۲۹
 
 پنج تست واقعی HTTP تا SQL Server برای IDهای متفاوت اضافه شد: credit به یک مشتری یا مشتری‌های جدا با funding مشترک، برداشت‌های رقیب، انتقال‌های رقیب و mutationهای ترکیبی. barrierهای محدود client و ورود به قفل، خود قفل‌گیری adapter واقعی را نگه می‌دارند؛ نتیجهٔ همهٔ workerها جمع می‌شود. SQL مستقل، تعداد دقیق outcomeها، نبود PENDING ماندگار، یک journal متوازن با دو posting برای هر موفقیت، نبود history برای رد و بازسازی projection پیش و پس از replay هم‌زمان را بررسی می‌کند. بازنده‌های کسری وجه بعد از شارژ هم همان تصمیم را replay می‌کنند. کد تولیدی و schema تغییر نکرده‌اند. [سناریوها و محدودیت شواهد](Concurrency-execution.md).

@@ -8,6 +8,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+/**
+ * Checks inclusive transaction and customer-balance caps as independent policy settings.
+ *
+ * <p>Positive configured bounds and exact-cap cases are portable policy evidence, not persisted rejection tests.
+ */
 class AmountLimitsTests {
     private static final long CAP = 10_000_000_000_000L;
     private final AmountLimits limits = new AmountLimits(CAP, CAP);

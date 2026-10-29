@@ -29,6 +29,11 @@ import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Checks typed mutation response mapping and Spring-compatible business-problem serialization.
+ *
+ * <p>Cases retain route, operation identity and business reason without executing financial transactions.
+ */
 @WebMvcTest(BalanceController.class)
 @Import(HttpAdapterConfiguration.class)
 class OperationResponsesTests {

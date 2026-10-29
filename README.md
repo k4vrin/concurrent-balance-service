@@ -85,6 +85,7 @@ OTP transfer confirmation, Redis replay caching, Kafka/outbox events, Debezium C
 
 ## Learn the design
 
+- [Cross-instance transaction-ID races and retained results](docs/en/Cross-instance-replay.md)
 - [Concurrent distinct mutations and SQL Server evidence](docs/en/Concurrency-execution.md)
 - [Bounded transaction retry and uncertain-outcome recovery](docs/en/Retry-execution.md)
 - [Atomic transfer, replay and rollback evidence](docs/en/Transfer-execution.md)

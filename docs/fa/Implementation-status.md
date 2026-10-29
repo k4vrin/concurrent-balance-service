@@ -1,5 +1,14 @@
 # وضعیت پیاده‌سازی
 
+## انتقال معکوس و پیشرفت مستقل در CBS18، ۲۰۲۶-۱۰-۲۹
+
+ده تست واقعی HTTP تا SQL Server اضافه شد: دو جفت مبلغ انتقال معکوس و پیشرفت credit/debit/transfer/balance از همان برنامه یا برنامهٔ دوم، در حالی که قفل خارجی حساب، انتقال دیگری را متوقف کرده است. مشاهده‌های غیرفعال رفتار واقعی adapter را نگه می‌دارند؛ پاسخ مستقل و بررسی SQL commit‌شده پیش از آزادشدن قفل تمام می‌شوند. هر دو انتقال معکوس ترتیب participant مشترک را گزارش می‌کنند و یک بار commit می‌شوند. همهٔ اثرها پیش و پس از replay پاسخ ماندگار reconcile می‌شوند. [شواهد، هماهنگی و محدودیت‌ها](Transfer-progress.md).
+
+اجرای کامل Java 21 با `./mvnw -o -B -ntp -Psqlserver-it verify`، تعداد **۴۲۱ تست قابل‌حمل و ۱۸۸ تست واقعی SQL Server** را با **صفر failure، error و skip** گذراند. Maven زمان کل **01:00 min** را گزارش کرد. مجموع XMLهای تازهٔ Surefire/Failsafe بررسی شد.
+
+بررسی کامل Javadoc همراه CBS17 با `9ea7d1f` روی `test/cross-instance-idempotency-races` منتشر شد. این checkpoint شامل CBS18 روی شاخهٔ وابستهٔ `test/transfer-locking-and-independent-progress` است. کد تولیدی/schema تغییر نکرده‌اند؛ faultهای گسترده‌تر commit/response در CBS19 می‌مانند و پذیرش یادگیری جداست.
+
+
 ## بررسی Javadoc سطح type در کل مخزن، ۲۰۲۶-۱۰-۲۹
 
 بررسی DocTrees با compiler جاوا، از میان همهٔ ۱۵۳ type موجود یا تازهٔ Java، برای ۷۶ مورد Javadoc پیدا نکرد. دامنه شامل کلاس، interface، record و enum تولیدی، تست‌ها/helperها و probe مستقل SQL Server بود. برای هر ۷۶ مورد Javadoc متناسب با نقش آن اضافه شد. بررسی نهایی ۱۵۳ type مستند و صفر شکاف دارد؛ تولید Javadoc کل پروژه با دسترسی private و doclint بدون warning/error موفق بود. مقایسهٔ source پس از حذف Javadoc تأیید کرد این ویرایش‌ها کد اجرایی یا کامنت‌های دیگر را تغییر نداده‌اند. رفتار CBS17 و بررسی ۴۲۱ تست قابل‌حمل و ۱۷۸ تست SQL Server آن بدون تغییر می‌ماند.

@@ -85,6 +85,7 @@ verify مستقل از زیرساخت دیتابیس نمی‌خواهد. طبق
 
 ## راهنمای طراحی
 
+- [انتقال معکوس و پیشرفت حساب مستقل](docs/fa/Transfer-progress.md)
 - [رقابت transaction ID بین instanceها و پاسخ ماندگار](docs/fa/Cross-instance-replay.md)
 - [عملیات هم‌زمان با ID متفاوت و شواهد SQL Server](docs/fa/Concurrency-execution.md)
 - [retry محدود تراکنش و بازیابی نتیجهٔ نامعلوم](docs/fa/Retry-execution.md)

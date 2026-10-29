@@ -1,5 +1,14 @@
 # Implementation status
 
+## CBS18 opposite transfers and independent progress, 2026-10-29
+
+Added ten real HTTP-to-SQL Server cases: two opposite-transfer amount pairs and credit/debit/transfer/balance progress through either the same or a second application while an external account lock stalls another transfer. Passive observations retain real adapter behavior; independent responses and committed SQL checks precede blocker release. Both opposite transfers report the shared participant order and commit once. All effects reconcile before/after retained-response replay. [Evidence, coordination and limits](Transfer-progress.md).
+
+Full Java 21 `./mvnw -o -B -ntp -Psqlserver-it verify` passed **421 portable + 188 real SQL Server tests**, with **zero failures/errors/skips**. Maven reported total time **01:00 min**. Fresh Surefire/Failsafe XML totals were checked.
+
+The full Javadoc audit was published with CBS17 as `9ea7d1f` on `test/cross-instance-idempotency-races`. This checkpoint includes CBS18 on the dependent `test/transfer-locking-and-independent-progress` branch. Production code/schema are unchanged; broader commit/response faults remain CBS19 and learner acceptance remains separate.
+
+
 ## Repository-wide type Javadoc audit, 2026-10-29
 
 The Java compiler's DocTrees audit found 76 undocumented types among all 153 tracked/new Java types, including production classes, interfaces, records, enums, test classes/helpers and the standalone SQL Server probe. Added role-specific class-level Javadoc to those 76 types. The final audit reports 153 documented types and zero gaps; whole-project private Javadoc generation with doclint passed without warnings/errors. Comparing sources after removing Javadoc confirms these audit edits changed no executable code or other comments. Existing CBS17 behavior and its 421 portable + 178 SQL Server verification remain unchanged.

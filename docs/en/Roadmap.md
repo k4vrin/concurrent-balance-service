@@ -1,3 +1,5 @@
+> Current CBS18 slice, 2026-10-29: [Opposite transfers and independent progress](Transfer-progress.md) now have ten real HTTP/SQL cases with bounded coordination, retained history and reconciliation. Full regression passed 421 portable + 188 real SQL Server tests, zero failures/errors/skips. Broader commit/response faults remain CBS19.
+
 > Current CBS17 slice, 2026-10-29: [Cross-instance transaction-ID races](Cross-instance-replay.md) now have 16 coordinated HTTP/SQL cases with actual named-key collision evidence, retained-result checks and reconciliation. Full regression passed 421 portable + 178 real SQL Server tests, zero failures/errors/skips. Opposite transfers, independent progress and broader faults remain CBS18–19.
 
 > Current CBS16 slice, 2026-10-29: [Concurrent distinct mutations](Concurrency-execution.md) now have five coordinated HTTP-to-SQL Server cases, exact retained/history counts and independent reconciliation before/after replay. Full regression passed 421 portable + 162 real SQL Server tests, zero failures/errors/skips. Cross-instance races and later CBS17–19 gates remain open.

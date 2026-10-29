@@ -14,6 +14,7 @@ import org.springframework.core.env.MapPropertySource;
  *
  * <p>The server binds to an ephemeral loopback port and uses only explicit, validated test database
  * credentials. Each context receives the same funding policy and its own test reservation spies.
+ * An optional passive account-lock probe supports progress/order tests without changing SQL work.
  * Closing the fixture stops its HTTP server and connection pool. Multiple contexts share a JVM
  * and SQL Server database, so this is not evidence of separate operating-system processes or hosts.
  */
@@ -23,6 +24,10 @@ final class RunningLedgerApplication implements AutoCloseable {
     private RunningLedgerApplication(ConfigurableApplicationContext context) { this.context = context; }
 
     static RunningLedgerApplication start(String name, AccountId funding, ReservationRaceGate gate) throws Exception {
+        return start(name, funding, gate, null);
+    }
+
+    static RunningLedgerApplication start(String name, AccountId funding, ReservationRaceGate gate, AccountLockProbe probe) throws Exception {
         try (var connection = SqlServerTestDatabase.fromEnvironment().openConnection()) {
             if (!connection.isValid(5)) { throw new IllegalStateException("Test database is unavailable"); }
         }
@@ -39,8 +44,10 @@ final class RunningLedgerApplication implements AutoCloseable {
                             Map.entry("balance.execution.enabled", "true"),
                             Map.entry("balance.execution.funding[IRR].account-id", funding.value().toString()),
                             Map.entry("balance.execution.funding[IRR].policy-version", "cbs17-funding-v1"))));
-                    application.addBeanFactoryPostProcessor(factory ->
-                            factory.addBeanPostProcessor(new ReservationGatePostProcessor(gate)));
+                    application.addBeanFactoryPostProcessor(factory -> {
+                        factory.addBeanPostProcessor(new ReservationGatePostProcessor(gate));
+                        if (probe != null) { factory.addBeanPostProcessor(new AccountLockProbePostProcessor(probe)); }
+                    });
                 }).run();
         return new RunningLedgerApplication(context);
     }

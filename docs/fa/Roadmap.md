@@ -1,3 +1,5 @@
+> بخش فعلی CBS18، ۲۰۲۶-۱۰-۲۹: [انتقال معکوس و پیشرفت مستقل](Transfer-progress.md) اکنون ده تست واقعی HTTP/SQL با هماهنگی محدود، history ماندگار و reconciliation دارد. regression کامل با ۴۲۱ تست قابل‌حمل و ۱۸۸ تست واقعی SQL Server و صفر failure/error/skip موفق بود. faultهای گسترده‌تر commit/response در CBS19 می‌مانند.
+
 > بخش فعلی CBS17، ۲۰۲۶-۱۰-۲۹: [رقابت transaction ID بین instanceها](Cross-instance-replay.md) اکنون ۱۶ تست هماهنگ HTTP/SQL با شاهد واقعی تعارض constraint نام‌دار، پاسخ ماندگار و reconciliation دارد. regression کامل با ۴۲۱ تست قابل‌حمل و ۱۷۸ تست واقعی SQL Server و صفر failure/error/skip موفق بود. انتقال معکوس، پیشرفت مستقل و faultهای گسترده‌تر در CBS18–19 می‌مانند.
 
 > بخش فعلی CBS16، ۲۰۲۶-۱۰-۲۹: [mutationهای هم‌زمان با ID متفاوت](Concurrency-execution.md) اکنون پنج تست هماهنگ HTTP تا SQL Server، شمارش دقیق outcome/history و reconciliation مستقل پیش و پس از replay دارند. regression کامل با ۴۲۱ تست قابل‌حمل و ۱۶۲ تست واقعی SQL Server و صفر failure/error/skip موفق بود. رقابت بین instanceها و معیارهای بعدی CBS17–19 باز می‌مانند.

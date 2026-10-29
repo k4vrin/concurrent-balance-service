@@ -1,3 +1,5 @@
+> CBS18 evidence update, 2026-10-29: [Opposite transfers and independent progress](Transfer-progress.md) now verify selected two-way transfer and unrelated HTTP progress cases while an external account lock remains held. Broader commit/response fault and core acceptance gates remain open.
+
 > CBS17 evidence update, 2026-10-29: [Cross-instance identity races](Cross-instance-replay.md) now verify matching success/rejection and conflicting payload/account/type requests through two HTTP contexts and separate pools. Separate-process faults and later concurrency gates remain open.
 
 > CBS16 evidence update, 2026-10-29: [Distinct-operation concurrency](Concurrency-execution.md) now verifies selected simultaneous credit, debit, transfer and mixed-operation cases. The design matrix below retains its historical scope; broader concurrency and release gates remain separate.

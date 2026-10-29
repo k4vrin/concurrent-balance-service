@@ -8,7 +8,6 @@ import dev.kavrin.balance.ledger.domain.Journal;
 import dev.kavrin.balance.ledger.domain.Posting;
 import dev.kavrin.balance.ledger.domain.PostingSide;
 import dev.kavrin.balance.operation.application.command.TransferCommand;
-import dev.kavrin.balance.operation.application.execution.DuplicateOperation;
 import dev.kavrin.balance.operation.application.execution.OperationCoordinator;
 import dev.kavrin.balance.operation.application.identity.CanonicalFingerprint;
 import dev.kavrin.balance.operation.application.identity.CanonicalRequest;
@@ -31,7 +30,17 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionException;
 
-/** Transfers between customer liabilities in one owned transaction, without a funding leg (ADR-007/010). */
+/**
+ * Moves funds between two customer liabilities within one owned transaction, without a funding leg.
+ *
+ * <p>Replay precedes current policy evaluation. Both participants are locked in the shared account
+ * order before checking funds and recipient capacity. Success commits balanced history, both
+ * projections and the retained response atomically; business rejection retains only its decision
+ * (ADR-007 and ADR-010).
+ *
+ * <p>{@link OperationCoordinator} manages bounded whole-attempt recovery using the same prepared
+ * identities and policy. Uncertain completion requires retained-result recovery before any response.
+ */
 @Service
 @ConditionalOnProperty(prefix = "balance.execution", name = "enabled", havingValue = "true")
 public final class TransferHandler {
@@ -52,23 +61,20 @@ public final class TransferHandler {
         try {
             var canonical = CanonicalRequest.transfer(command, Optional.empty());
             // ADR-010: replay the original decision before evaluating mutable admission policy.
-            var existing = coordinator.execute(() -> recover(command, canonical.fingerprint()));
-            if (existing.isPresent()) { return existing.get(); }
-            if (!policy.supportedCurrencies().currencies().contains(command.amount().currency())) {
-                throw new OperationFailure(OperationFailureReason.UNSUPPORTED_CURRENCY);
-            }
-            var attempt = new TransferAttempt(UUID.randomUUID(), UUID.randomUUID(), command, canonical, policy);
-            try {
-                return coordinator.execute(() -> execute(attempt));
-            } catch (DuplicateOperation duplicate) {
-                // Recover only after the losing reservation's entire transaction has rolled back.
-                return coordinator.execute(() -> recover(command, canonical.fingerprint()))
-                        .orElseThrow(() -> new OperationFailure(OperationFailureReason.UNAVAILABLE));
-            }
+            return coordinator.executeRecovering(
+                    () -> recover(command, canonical.fingerprint()),
+                    () -> prepareAttempt(command, canonical), this::execute);
         } catch (DataAccessException | TransactionException unavailable) {
             // A failed acknowledgement can be uncertain; the caller must keep this transaction ID.
             throw new OperationFailure(OperationFailureReason.UNAVAILABLE, unavailable);
         }
+    }
+
+    private TransferAttempt prepareAttempt(TransferCommand command, CanonicalRequest canonical) {
+        if (!policy.supportedCurrencies().currencies().contains(command.amount().currency())) {
+            throw new OperationFailure(OperationFailureReason.UNSUPPORTED_CURRENCY);
+        }
+        return new TransferAttempt(UUID.randomUUID(), UUID.randomUUID(), command, canonical, policy);
     }
 
     private Optional<MutationResult> recover(TransferCommand command, CanonicalFingerprint canonical) {

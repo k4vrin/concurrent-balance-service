@@ -1,3 +1,5 @@
+> CBS15 update, 2026-10-29: mutations now use [bounded whole-transaction retry and conservative uncertain-outcome recovery](Retry-execution.md). Earlier statements below that retry is unimplemented describe the previous checkpoint. `execute` remains a single-transaction primitive; mutation handlers use `executeRecovering`.
+
 # Durable debit execution and CBS13 evidence
 
 [فارسی](../fa/Debit-execution.md) · [Credit execution](Credit-execution.md) · [Transaction ownership](Operation-coordinator.md) · [API](API-v1.md) · [Hexagonal architecture](Hexagonal-architecture.md)

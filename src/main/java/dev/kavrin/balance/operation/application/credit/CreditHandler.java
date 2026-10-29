@@ -8,7 +8,6 @@ import dev.kavrin.balance.ledger.domain.Journal;
 import dev.kavrin.balance.ledger.domain.Posting;
 import dev.kavrin.balance.ledger.domain.PostingSide;
 import dev.kavrin.balance.operation.application.command.CreditCommand;
-import dev.kavrin.balance.operation.application.execution.DuplicateOperation;
 import dev.kavrin.balance.operation.application.execution.OperationCoordinator;
 import dev.kavrin.balance.operation.application.identity.CanonicalFingerprint;
 import dev.kavrin.balance.operation.application.identity.CanonicalRequest;
@@ -32,14 +31,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionException;
 
 /**
- * Executes the durable credit use case when {@code balance.execution.enabled=true}.
- * Checks retained request identity before current policy, then reserves new intent and uses
- * locked customer/funding snapshots to calculate balanced history and projections. Success
- * commits history, projections and the retained response together; terminal rejection retains
- * its outcome without a journal (ADR-007 and ADR-010).
+ * Executes durable credits between a customer liability and its server-selected funding counterpart.
  *
- * <p>Transaction ownership belongs to {@link OperationCoordinator}. A duplicate reservation
- * triggers a separate recovery transaction; general deadlock/timeout retries are not implemented here.
+ * <p>Retained canonical intent is checked before current policy. New intent uses locked participant
+ * snapshots to calculate balanced history and every projection before monetary writes. Success
+ * commits history, projections and the retained response together; business rejection commits only
+ * its original decision, without a journal (ADR-007 and ADR-010).
+ *
+ * <p>{@link OperationCoordinator} owns transaction completion and bounded recovery. The prepared
+ * operation identity, journal identity, policy and funding selection remain fixed across retries.
  */
 @Service
 @ConditionalOnProperty(prefix = "balance.execution", name = "enabled", havingValue = "true")
@@ -84,8 +84,7 @@ public final class CreditHandler {
     }
 
     /**
-     * Checks replay first, selects current policy only for new intent, and executes one new
-     * attempt. A duplicate reservation is recovered after the failed transaction has exited.
+     * Checks replay first and fixes identities and policy before bounded whole-attempt recovery.
      *
      * @param command credit intent to canonicalize and resolve
      * @return the retained or newly committed result
@@ -93,11 +92,9 @@ public final class CreditHandler {
     private MutationResult process(CreditCommand command) {
         var canonical = CanonicalRequest.credit(command, Optional.empty());
         // ADR-010: completed identity is authoritative before current currency, cap or funding policy.
-        var existing = coordinator.execute(() -> recover(command, canonical.fingerprint()));
-        if (existing.isPresent()) { return existing.get(); }
-
-        var attempt = prepareAttempt(command, canonical);
-        return executeOrRecover(attempt);
+        return coordinator.executeRecovering(
+                () -> recover(command, canonical.fingerprint()),
+                () -> prepareAttempt(command, canonical), this::execute);
     }
 
     /**
@@ -116,22 +113,6 @@ public final class CreditHandler {
             throw new IllegalStateException("Funding counterpart must differ from the customer");
         }
         return new CreditAttempt(UUID.randomUUID(), UUID.randomUUID(), command, canonical, policy, funding);
-    }
-
-    /**
-     * Executes one writing transaction, recovering a reservation race in a fresh transaction.
-     *
-     * @param attempt prepared credit with stable identities and policy
-     * @return the committed result, or the competing operation's matching retained result
-     */
-    private MutationResult executeOrRecover(CreditAttempt attempt) {
-        try {
-            return coordinator.execute(() -> execute(attempt));
-        } catch (DuplicateOperation duplicate) {
-            // The failed reservation has left its transaction before committed-result recovery.
-            return coordinator.execute(() -> recover(attempt.command(), attempt.canonical().fingerprint()))
-                    .orElseThrow(() -> new OperationFailure(OperationFailureReason.UNAVAILABLE));
-        }
     }
 
     /**

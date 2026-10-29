@@ -85,6 +85,7 @@ verify مستقل از زیرساخت دیتابیس نمی‌خواهد. طبق
 
 ## راهنمای طراحی
 
+- [retry محدود تراکنش و بازیابی نتیجهٔ نامعلوم](docs/fa/Retry-execution.md)
 - [انتقال اتمیک، replay و شواهد rollback](docs/fa/Transfer-execution.md)
 - [debit ماندگار، کسری وجه و شواهد SQL Server](docs/fa/Debit-execution.md)
 - [یادگیری Hexagonal Architecture، port و adapter با مثال‌های پروژه](docs/fa/Hexagonal-architecture.md)

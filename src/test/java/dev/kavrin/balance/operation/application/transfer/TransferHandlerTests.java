@@ -50,6 +50,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
+/**
+ * Checks transfer decisions, proposed accounting changes and recovery orchestration without a database.
+ *
+ * <p>Mocked stores and encoders cover replay, conflicts, participant validity, funds and recipient
+ * limits, while a recording manager exposes completion and rollback ordering. Real SQL Server
+ * semantics and committed financial effects require the separate integration suite.
+ */
 class TransferHandlerTests {
     private static final Currency IRR = Currency.getInstance("IRR");
     private static final AccountId SOURCE = new AccountId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
@@ -251,7 +258,8 @@ class TransferHandlerTests {
         });
 
         verify(store).complete(any(), any(), eq(response));
-        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit",
+                "begin", "commit", "begin", "commit", "begin", "commit");
     }
 
     @ParameterizedTest

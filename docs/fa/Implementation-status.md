@@ -1,5 +1,14 @@
 # وضعیت پیاده‌سازی
 
+## بازیابی محدود کل تراکنش در CBS15، ۲۰۲۶-۱۰-۲۹
+
+credit، debit و transfer اکنون از `executeRecovering` مشترک استفاده می‌کنند: identity، سیاست و funding ثابت، طبقه‌بندی کد vendor پس از rollback گزارش‌شده، بازیابی تازهٔ همان ID و jitter محدود بیرون از تراکنش. پایان نامعلوم و گم‌شدن تأیید commit فقط خواندن بازیابی دارند؛ lookup خالی مجوز اجرای کور دوباره نیست. تنظیمات retry اعتبارسنجی می‌شوند؛ ساخت اتصال pool، timeout قفل و محدودیت login/socket در driver را اعمال می‌کند. [مسیر، تنظیمات، شواهد و محدودیت‌ها](Retry-execution.md).
+
+اجرای Java 21 با `./mvnw -o -B -ntp -Psqlserver-it verify`، تعداد **۴۲۱ تست قابل‌حمل و ۱۵۷ تست واقعی SQL Server** را با **صفر failure، error و skip** در **43.636 ثانیه** گذراند. مجموع XMLهای تازهٔ Surefire/Failsafe بررسی شد.
+
+سه تست واقعی تازه، rollback/retry انتقال با خطای واقعی 1222 و reconciliation، قربانی واقعی 1205 در fixture مستقل JDBC و گم‌شدن شبیه‌سازی‌شدهٔ تأیید پس از commit واقعی انتقال را می‌سنجند. رقابت‌های گستردهٔ duplicate/معکوس/ترکیبی بین instanceها و faultهای بیشتر پاسخ/commit در CBS16–19 می‌مانند. پذیرش مستقل یادگیری جداست. این checkpoint شامل پیاده‌سازی CBS15 و Javadoc سطح کلاس برای همهٔ typeهای Java تازه یا ویرایش‌شده است. checkpointهای پایین محدودهٔ شواهد تاریخی خود را دارند.
+
+
 ## اتصال مستقیم کنترلر به handlerها، ۲۰۲۶-۱۰-۲۶
 
 interface موسوم به `BalanceOperations`، پیاده‌سازی `HandlerBalanceOperations` و factory به نام `stagedOperations` حذف شدند. `BalanceController` چهار handler را با پارامترهای Optional در سازنده می‌گیرد و متد `handle` هرکدام را مستقیم صدا می‌زند. Optional بیانگر نبود عمدی bean است: execution غیرفعال، استعلام موجودی را نگه می‌دارد و mutationها 503 می‌دهند؛ assembly مستقل از زیرساخت smoke هم برای همهٔ routeهای بدون handler همان 503 را می‌دهد. `HttpAdapterConfiguration` فقط parsing سخت‌گیرانهٔ JSON را تنظیم می‌کند. ObjectProvider یا سرویس forwarding جایگزین نداریم. مالکیت تراکنش در handler/coordinator مانده و خطای تراکنش خواندن موجودی همان نگاشت unavailable را دارد.

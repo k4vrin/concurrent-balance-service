@@ -1,3 +1,5 @@
+> به‌روزرسانی CBS15، ۲۰۲۶-۱۰-۲۹: mutationها اکنون [retry محدود کل تراکنش و بازیابی محافظه‌کارانهٔ نتیجهٔ نامعلوم](Retry-execution.md) دارند. عبارت‌های پایین دربارهٔ نبود retry مربوط به checkpoint قبلی‌اند. `execute` همچنان یک تراکنش اجرا می‌کند؛ handlerهای mutation از `executeRecovering` استفاده می‌کنند.
+
 # اجرای انتقال اتمیک و شواهد CBS14
 
 [English](../en/Transfer-execution.md) · [برداشت](Debit-execution.md) · [مالکیت تراکنش](Operation-coordinator.md) · [API](API-v1.md)

@@ -9,6 +9,10 @@ spring:
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
       connection-timeout: 5000
+      connection-init-sql: SET LOCK_TIMEOUT 1000
+      data-source-properties:
+        loginTimeout: 5
+        socketTimeout: 5000
   jpa:
     open-in-view: false
     hibernate:
@@ -20,6 +24,10 @@ spring:
     clean-disabled: true
 
 balance:
+  retry:
+    max-attempts: ${BALANCE_RETRY_MAX_ATTEMPTS:3}
+    budget-millis: ${BALANCE_RETRY_BUDGET_MILLIS:20000}
+    backoff-millis: ${BALANCE_RETRY_BACKOFF_MILLIS:50}
   execution:
     enabled: ${EXECUTION_POLICY_ENABLED:false}
     funding:

@@ -10,6 +10,9 @@ import dev.kavrin.balance.operation.application.command.CreditCommand;
 import dev.kavrin.balance.operation.application.command.TransferCommand;
 import dev.kavrin.balance.operation.application.credit.CreditHandler;
 import dev.kavrin.balance.operation.application.execution.OperationCoordinator;
+import dev.kavrin.balance.operation.application.execution.RetryPolicy;
+import org.springframework.transaction.PlatformTransactionManager;
+import java.util.concurrent.atomic.AtomicInteger;
 import dev.kavrin.balance.operation.application.policy.AmountLimits;
 import dev.kavrin.balance.operation.application.policy.ExecutionPolicy;
 import dev.kavrin.balance.operation.application.policy.SupportedCurrencies;
@@ -54,12 +57,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
+/**
+ * Verifies transfer behavior through the application and HTTP boundary against the dedicated SQL Server test database.
+ *
+ * <p>Committed fixtures and independent SQL checks cover retained responses, terminal rejections,
+ * atomic rollback, posting counts and balance reconciliation. Retry coverage includes an actual
+ * account-lock timeout and simulated acknowledgement loss after a real transfer commit.
+ *
+ * <p>Store spies inject failures only in tests. The acknowledgement wrapper does not simulate a
+ * physical network partition, and these cases do not establish broad multi-instance concurrency.
+ */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SqlServerTransferIT {
     private static final Currency IRR = Currency.getInstance("IRR");
     private static final long CAP = 10_000_000_000_000L;
     private static final AccountId FUNDING = new AccountId(UUID.randomUUID());
     @Autowired TransferHandler handler;
+    @Autowired PlatformTransactionManager transactionManager;
     @Autowired EntityManager entities;
     @Autowired CreditHandler credits;
     @Autowired OperationCoordinator coordinator;
@@ -335,6 +349,60 @@ class SqlServerTransferIT {
         }
         assertCounts(new TransferCommand(id, source, customer(), new Money(1, IRR)), 0, 0, 0);
         assertThat(balance(source)).isEqualTo(100);
+    }
+
+    @Test
+    void realLockTimeoutRollsBackReservationThenRetriesTheSamePreparedTransfer() throws Exception {
+        var source = fundedCustomer(100);
+        var command = command(source, 40);
+        var reservations = new java.util.ArrayList<dev.kavrin.balance.operation.application.transfer.TransferAttempt>();
+        doAnswer(call -> { reservations.add(call.getArgument(0)); return call.callRealMethod(); })
+                .when(store).reserve(any());
+        try (var blocker = SqlServerTestDatabase.fromEnvironment().openConnection()) {
+            blocker.setAutoCommit(false);
+            try (var statement = blocker.prepareStatement("UPDATE dbo.accounts SET balance=balance WHERE account_id=CAST(? AS uniqueidentifier)")) {
+                statement.setString(1, source.value().toString());
+                assertThat(statement.executeUpdate()).isEqualTo(1);
+            }
+            var pauses = new AtomicInteger();
+            var runtime = new CallbackRecoveryRuntime(() -> {
+                pauses.incrementAndGet();
+                try {
+                    assertCounts(command, 0, 0, 0);
+                    blocker.rollback();
+                } catch (Exception failure) { throw new AssertionError(failure); }
+            });
+            var retrying = new TransferHandler(new OperationCoordinator(transactionManager, RetryPolicy.defaults(), runtime),
+                    policy, store, encoder);
+            assertThat(retrying.handle(command).storedResponse().orElseThrow().status()).isEqualTo(200);
+            assertThat(pauses).hasValue(1);
+            assertThat(reservations).hasSize(2);
+            assertThat(reservations.get(1)).isSameAs(reservations.getFirst());
+        }
+        assertCounts(command, 1, 1, 2);
+        assertThat(balance(source)).isEqualTo(60);
+        assertThat(balance(command.destinationAccountId())).isEqualTo(40);
+        assertBalanced(command);
+        assertReconciles(source);
+        assertReconciles(command.destinationAccountId());
+    }
+
+    @Test
+    void realCommittedTransferWithLostAcknowledgementRecoversTheRetainedResponse() throws Exception {
+        var source = fundedCustomer(100);
+        var command = command(source, 40);
+        var recovering = new TransferHandler(new OperationCoordinator(new LostCommitAcknowledgementManager(transactionManager)),
+                policy, store, encoder);
+        var result = recovering.handle(command);
+        assertThat(result.storedResponse().orElseThrow().body()).isEqualTo(retainedBody(command));
+        assertThat(post(command).body()).isEqualTo(retainedBody(command));
+        assertCounts(command, 1, 1, 2);
+        assertThat(balance(source)).isEqualTo(60);
+        assertThat(balance(command.destinationAccountId())).isEqualTo(40);
+        assertBalanced(command);
+        assertReconciles(source);
+        assertReconciles(command.destinationAccountId());
+        Mockito.verify(store, Mockito.times(1)).reserve(any());
     }
 
     private AccountId fundedCustomer(long amount) throws Exception {

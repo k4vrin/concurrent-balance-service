@@ -1,3 +1,5 @@
+> به‌روزرسانی CBS15، ۲۰۲۶-۱۰-۲۹: mutationها اکنون [retry محدود کل تراکنش و بازیابی محافظه‌کارانهٔ نتیجهٔ نامعلوم](Retry-execution.md) دارند. عبارت‌های پایین دربارهٔ نبود retry مربوط به checkpoint قبلی‌اند. `execute` همچنان یک تراکنش اجرا می‌کند؛ handlerهای mutation از `executeRecovering` استفاده می‌کنند.
+
 # طراحی coordinator عملیات و قفل‌گذاری SQL Server
 
 اجزای production دیگر شرط حذف در smoke ندارند. assembly مستقل HTTP فقط در source تست تعریف شده است. [راهنمای کلاس‌ها](Credit-class-walkthrough.md) مسئولیت‌ها، wiring و جریان درخواست را توضیح می‌دهد. یادداشت‌های تاریخی پایین صفحه wiring قبلی را شرح می‌دهند.

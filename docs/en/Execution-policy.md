@@ -1,3 +1,5 @@
+> CBS15 update, 2026-10-29: mutations now use [bounded whole-transaction retry and conservative uncertain-outcome recovery](Retry-execution.md). Earlier statements below that retry is unimplemented describe the previous checkpoint. `execute` remains a single-transaction primitive; mutation handlers use `executeRecovering`.
+
 # Execution policy snapshots and credit limits
 
 [فارسی](../fa/Execution-policy.md) · [Amount decisions](Amount-limits.md) · [Coordinator](Operation-coordinator.md) · [Persistence contract](CBS09-contract.md)

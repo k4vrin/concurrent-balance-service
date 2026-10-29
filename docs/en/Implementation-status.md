@@ -1,5 +1,14 @@
 # Implementation status
 
+## CBS15 bounded whole-transaction recovery, 2026-10-29
+
+Credit, debit and transfer now share `executeRecovering`: fixed identities/policy/funding, confirmed-rollback vendor classification, fresh same-ID recovery and bounded jitter outside transactions. Unknown completion and lost commit acknowledgement allow recovery reads only, never blind reexecution after empty reads. Retry configuration is validated; pool initialization sets the selected lock timeout and driver login/socket limits. See [flow, settings, evidence and limitations](Retry-execution.md).
+
+Java 21 `./mvnw -o -B -ntp -Psqlserver-it verify` passed **421 portable + 157 real SQL Server tests**, with **zero failures/errors/skips**, in **43.636 seconds**. Fresh Surefire/Failsafe XML totals were checked.
+
+The three new real cases cover transfer rollback/retry on actual 1222 with reconciliation, an actual 1205 victim in an isolated JDBC fixture, and simulated acknowledgement loss after a real committed transfer. Broad multi-instance duplicate/opposite/mixed races and additional response/commit faults remain CBS16–19. Formal learner acceptance remains separate. This checkpoint includes the CBS15 implementation and class-level Javadoc for every created or edited Java type. Earlier checkpoints below retain their original evidence scope.
+
+
 ## Direct controller-to-handler wiring, 2026-10-26
 
 Removed `BalanceOperations`, `HandlerBalanceOperations` and the `stagedOperations` factory. `BalanceController` now constructor-injects the four use-case handlers through Optional parameters and calls their `handle` methods directly. Optionality represents intentionally absent beans: disabled execution keeps balance lookup and returns 503 for mutations; the infrastructure-free smoke assembly returns 503 for all unwired routes. `HttpAdapterConfiguration` only configures strict JSON parsing. There is no ObjectProvider or replacement forwarding service. Transaction ownership remains in the handlers/coordinator, and balance transaction failures retain their unavailable HTTP mapping.

@@ -1,3 +1,5 @@
+> CBS15 update, 2026-10-29: mutations now use [bounded whole-transaction retry and conservative uncertain-outcome recovery](Retry-execution.md). Earlier statements below that retry is unimplemented describe the previous checkpoint. `execute` remains a single-transaction primitive; mutation handlers use `executeRecovering`.
+
 # Operation coordinator and SQL Server locking
 
 Production components no longer carry smoke-profile exclusions. The standalone HTTP assembly is defined only in test sources. See the [class walkthrough](Credit-class-walkthrough.md) for wiring, class responsibilities and request flows. Historical checkpoint notes below describe the earlier wiring.

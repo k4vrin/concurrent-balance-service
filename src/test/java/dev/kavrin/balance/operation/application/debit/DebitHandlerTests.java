@@ -49,6 +49,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
+/**
+ * Checks debit decisions and orchestration with mocked persistence and response ports.
+ *
+ * <p>Cases distinguish retained insufficient-funds decisions from technical failures and inspect
+ * proposed balanced history, projection changes and transaction lifecycle ordering. The recording
+ * manager supplies portable Spring evidence, not SQL Server locking or durability guarantees.
+ */
 class DebitHandlerTests {
     private static final Currency IRR = Currency.getInstance("IRR");
     private static final AccountId CUSTOMER = new AccountId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
@@ -224,7 +231,8 @@ class DebitHandlerTests {
         });
 
         verify(store).complete(any(), any(), eq(response));
-        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit",
+                "begin", "commit", "begin", "commit", "begin", "commit");
     }
 
     @ParameterizedTest

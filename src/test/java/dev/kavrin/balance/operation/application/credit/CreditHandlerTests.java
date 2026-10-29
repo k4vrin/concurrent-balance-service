@@ -48,6 +48,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
+/**
+ * Checks credit decisions and orchestration with mocked persistence and response ports.
+ *
+ * <p>The recording transaction manager exposes Spring lifecycle ordering for replay, completion,
+ * rollback and uncertain-result recovery. Assertions also cover balanced proposed history and
+ * projections before completion. These portable tests do not prove SQL Server locking or durability.
+ */
 class CreditHandlerTests {
     private static final Currency IRR = Currency.getInstance("IRR");
     private static final AccountId CUSTOMER = new AccountId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
@@ -223,7 +230,8 @@ class CreditHandlerTests {
         });
 
         verify(store).complete(any(), any(), eq(response));
-        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit");
+        assertThat(manager.events()).containsExactly("begin", "commit", "begin", "commit",
+                "begin", "commit", "begin", "commit", "begin", "commit");
     }
 
     @ParameterizedTest

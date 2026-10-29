@@ -7,13 +7,23 @@ import org.springframework.transaction.TransactionSystemException;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 import org.springframework.transaction.support.DefaultTransactionStatus;
 
-/** Records Spring lifecycle decisions only; it does not simulate database locks or durability. */
+/**
+ * Records Spring transaction lifecycle decisions for portable orchestration tests.
+ *
+ * <p>Each begin, commit and rollback appends an event. Configurable commit and rollback failures
+ * exercise uncertainty and cleanup paths through Spring's synchronization machinery. The manager
+ * has no database, locks or durable state and cannot prove physical transaction outcomes.
+ *
+ * <p>Mutable event and failure state belongs to one test instance; concurrent use is unsupported.
+ */
 public final class RecordingTransactionManager extends AbstractPlatformTransactionManager {
     private final List<String> events = new ArrayList<>();
+    private boolean failRollback;
     private int commits;
     private int failingCommit;
     private TransactionSystemException commitFailure;
 
+    public void failRollback() { failRollback = true; }
     public List<String> events() { return events; }
     public void failCommitOn(int number) { failingCommit = number; }
     public void failCommit(TransactionSystemException failure) { commitFailure = failure; }
@@ -33,5 +43,8 @@ public final class RecordingTransactionManager extends AbstractPlatformTransacti
     }
 
     @Override
-    protected void doRollback(DefaultTransactionStatus status) { events.add("rollback"); }
+    protected void doRollback(DefaultTransactionStatus status) {
+        events.add("rollback");
+        if (failRollback) { throw new TransactionSystemException("rollback completion unknown"); }
+    }
 }

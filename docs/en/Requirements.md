@@ -1,3 +1,5 @@
+> CBS16 evidence update, 2026-10-29: [Distinct-operation concurrency](Concurrency-execution.md) now verifies selected simultaneous credit, debit, transfer and mixed-operation cases. The design matrix below retains its historical scope; broader concurrency and release gates remain separate.
+
 # V1 requirement and failure matrix
 
 [فارسی](../fa/Requirements.md) · [API contract](API-v1.md) · [Decisions](Decisions.md) · [Constraint review](Database-review.md) · [Business outcomes and commit boundary](Operation-outcomes.md)

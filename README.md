@@ -85,6 +85,7 @@ OTP transfer confirmation, Redis replay caching, Kafka/outbox events, Debezium C
 
 ## Learn the design
 
+- [Concurrent distinct mutations and SQL Server evidence](docs/en/Concurrency-execution.md)
 - [Bounded transaction retry and uncertain-outcome recovery](docs/en/Retry-execution.md)
 - [Atomic transfer, replay and rollback evidence](docs/en/Transfer-execution.md)
 - [Durable debit, insufficient funds and SQL Server evidence](docs/en/Debit-execution.md)

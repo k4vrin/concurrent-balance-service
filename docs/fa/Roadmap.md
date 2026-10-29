@@ -1,3 +1,5 @@
+> بخش فعلی CBS16، ۲۰۲۶-۱۰-۲۹: [mutationهای هم‌زمان با ID متفاوت](Concurrency-execution.md) اکنون پنج تست هماهنگ HTTP تا SQL Server، شمارش دقیق outcome/history و reconciliation مستقل پیش و پس از replay دارند. regression کامل با ۴۲۱ تست قابل‌حمل و ۱۶۲ تست واقعی SQL Server و صفر failure/error/skip موفق بود. رقابت بین instanceها و معیارهای بعدی CBS17–19 باز می‌مانند.
+
 > به‌روزرسانی فعلی CBS15، ۲۰۲۶-۱۰-۲۹: [retry محدود تراکنش و بازیابی نتیجهٔ نامعلوم](Retry-execution.md) برای credit، debit و transfer پیاده شد. بررسی کامل با ۴۲۱ تست قابل‌حمل و ۱۵۷ تست واقعی SQL Server و صفر failure/error/skip موفق بود. مرحلهٔ بعد شواهد گسترده‌تر concurrency و بازیابی در CBS16–19 است؛ پذیرش یادگیری مستقل می‌ماند.
 
 > به‌روزرسانی CBS14، ۲۰۲۶-۱۰-۲۶: [انتقال اتمیک](Transfer-execution.md) کنار credit، debit و استعلام موجودی مرجع پیاده شده است. regression کامل، ۳۸۵ تست قابل‌حمل و ۱۵۴ تست واقعی SQL Server، شامل هر ۲۰ تست انتقال را با صفر failure/error/skip گذراند. معیارهای retry، رقابت گسترده‌تر و پذیرش مستقل یادگیری باز هستند. گفته‌های قبلی دربارهٔ unavailable بودن مسیرها در ادامه تاریخی‌اند.

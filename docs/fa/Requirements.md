@@ -1,3 +1,5 @@
+> شواهد CBS16، ۲۰۲۶-۱۰-۲۹: [هم‌زمانی عملیات با ID متفاوت](Concurrency-execution.md) اکنون سناریوهای منتخب credit، debit، transfer و عملیات ترکیبی را بررسی می‌کند. ماتریس طراحی پایین محدودهٔ تاریخی خود را دارد؛ هم‌زمانی گسترده‌تر و معیارهای انتشار جدا می‌مانند.
+
 # ماتریس نیازمندی و خطای V1
 
 [English](../en/Requirements.md) · [قرارداد API](API-v1.md) · [تصمیم‌ها](Decisions.md) · [مرور قیدها](Database-review.md) · [نتیجهٔ کسب‌وکار و مرز commit](Operation-outcomes.md)

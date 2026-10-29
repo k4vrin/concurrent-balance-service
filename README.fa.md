@@ -85,6 +85,7 @@ verify مستقل از زیرساخت دیتابیس نمی‌خواهد. طبق
 
 ## راهنمای طراحی
 
+- [عملیات هم‌زمان با ID متفاوت و شواهد SQL Server](docs/fa/Concurrency-execution.md)
 - [retry محدود تراکنش و بازیابی نتیجهٔ نامعلوم](docs/fa/Retry-execution.md)
 - [انتقال اتمیک، replay و شواهد rollback](docs/fa/Transfer-execution.md)
 - [debit ماندگار، کسری وجه و شواهد SQL Server](docs/fa/Debit-execution.md)

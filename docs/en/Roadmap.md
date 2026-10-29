@@ -1,3 +1,5 @@
+> Current CBS16 slice, 2026-10-29: [Concurrent distinct mutations](Concurrency-execution.md) now have five coordinated HTTP-to-SQL Server cases, exact retained/history counts and independent reconciliation before/after replay. Full regression passed 421 portable + 162 real SQL Server tests, zero failures/errors/skips. Cross-instance races and later CBS17–19 gates remain open.
+
 > Current CBS15 update, 2026-10-29: [Bounded transaction retry and uncertain-outcome recovery](Retry-execution.md) are implemented for credit, debit and transfer. Full verification passed 421 portable + 157 real SQL Server tests, zero failures/errors/skips. Next are CBS16–19 broader concurrency and recovery evidence; learner acceptance remains separate.
 
 > Current CBS14 update, 2026-10-26: [Atomic transfer](Transfer-execution.md) is implemented alongside credit, debit and authoritative balance lookup. Full regression passed 385 portable plus 154 real SQL Server tests, zero failures/errors/skips, including all 20 transfer cases. Core retry, broader concurrency and learner-acceptance gates remain open. Earlier availability statements below are historical.

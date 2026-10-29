@@ -1,5 +1,14 @@
 # Implementation status
 
+## CBS16 distinct-operation concurrency, 2026-10-29
+
+Added five real HTTP-to-SQL Server cases for concurrent distinct IDs: credits to one customer or separate customers sharing funding, competing debits, competing transfers and mixed mutations. Bounded client/lock-entry barriers preserve real adapter locking; every worker outcome is collected. Independent SQL verifies exact retained outcomes, zero committed PENDING, one balanced two-posting journal per success, no history on rejection and projection reconstruction before/after concurrent replay. Insufficient-funds losers replay unchanged after top-up. Production code and schema are unchanged. [Scenarios and evidence limits](Concurrency-execution.md).
+
+Full Java 21 `./mvnw -o -B -ntp -Psqlserver-it verify` passed **421 portable + 162 real SQL Server tests**, with **zero failures/errors/skips**, in **45.449 seconds**. Fresh Surefire/Failsafe XML totals were checked.
+
+This checkpoint includes the first CBS16 distinct-operation concurrency slice. CBS15 is published at `6f6cc61`. Cross-instance duplicate/conflict races, opposite transfers, independent progress and further response/commit faults remain CBS17–19; learner acceptance stays separate.
+
+
 ## CBS15 bounded whole-transaction recovery, 2026-10-29
 
 Credit, debit and transfer now share `executeRecovering`: fixed identities/policy/funding, confirmed-rollback vendor classification, fresh same-ID recovery and bounded jitter outside transactions. Unknown completion and lost commit acknowledgement allow recovery reads only, never blind reexecution after empty reads. Retry configuration is validated; pool initialization sets the selected lock timeout and driver login/socket limits. See [flow, settings, evidence and limitations](Retry-execution.md).

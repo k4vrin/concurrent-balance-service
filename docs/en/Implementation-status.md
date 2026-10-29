@@ -1,5 +1,18 @@
 # Implementation status
 
+## CBS19–20 core engineering acceptance, 2026-10-29
+
+CBS19 adds 24 real SQL Server cases for before/after-commit failure, masked recovery visibility and withheld HTTP responses across success/rejection for every mutation. CBS20 adds a reproducible packaged-JAR process scenario with all four HTTP operations, real lock-timeout rollback and same-ID retry, process restart and independent JDBC reconciliation. Production financial behavior/schema remain unchanged. [Recovery evidence](Recovery-acceptance.md) · [Acceptance/runbook and limits](Core-acceptance.md).
+
+Full Java 21 Maven `-Psqlserver-it verify` passed **421 portable + 212 real SQL Server tests**, with **zero failures/errors/skips**, in **01:05 min** on 2026-10-29. Fresh Surefire/Failsafe XML totals were checked.
+
+The default acceptance entry point then passed the separate packaged-JAR scenario: **7 terminal operations, 6 successes, 1 rejection, 6 journals and 12 postings**; customer balances **725/775**, funding **1500**. Actual process restart, real lock-timeout rollback and same-ID retry passed. The measured artifact SHA-256 was `54c6816d6da294ef477e4a8bfa95c77290e2f95686e20312f65c95870686d730`. The report records the parent source HEAD and a dirty tree because this acceptance preceded publication of the final test/documentation changes.
+
+The selected core implementation and automated engineering acceptance are complete. configured for pushes and pull requests; remote run status must be checked for the published commit. Independent learner acceptance is not inferred, and authentication/ownership, performance and optional integrations remain later scope.
+
+
+The final compiler audit covers **163 Java types with zero missing class-level Javadocs**. Whole-project private Javadoc generation passed doclint without warnings/errors; the source scan found **zero nested/local/anonymous types in 161 source files**.
+
 ## CBS18 opposite transfers and independent progress, 2026-10-29
 
 Added ten real HTTP-to-SQL Server cases: two opposite-transfer amount pairs and credit/debit/transfer/balance progress through either the same or a second application while an external account lock stalls another transfer. Passive observations retain real adapter behavior; independent responses and committed SQL checks precede blocker release. Both opposite transfers report the shared participant order and commit once. All effects reconcile before/after retained-response replay. [Evidence, coordination and limits](Transfer-progress.md).

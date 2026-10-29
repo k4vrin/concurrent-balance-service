@@ -21,3 +21,37 @@ jobs:
         run: ./mvnw -B -ntp verify
       - name: Compile staged integration dependencies
         run: ./mvnw -B -ntp -Predis,kafka,security -DskipTests package
+
+  sqlserver-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Prepare disposable SQL Server identities
+        run: python3 scripts/acceptance/prepare-ci.py --accept-developer-license
+      - name: Start pinned SQL Server and provision restricted identities
+        run: |
+          docker compose --env-file .env.sqlserver up -d --wait --wait-timeout 360 sqlserver
+          docker compose --env-file .env.sqlserver exec -T sqlserver bash /cbs-bootstrap/bootstrap.sh
+          bash scripts/sqlserver/provision-migration-local.sh
+      - name: Migrate and validate both dedicated catalogs
+        run: |
+          ./mvnw -B -ntp -Pdb-migrate flyway:migrate flyway:validate
+          MIGRATION_DB_URL="$SQLSERVER_TEST_URL" ./mvnw -B -ntp -Pdb-migrate flyway:migrate flyway:validate
+          bash scripts/sqlserver/grant-runtime-local.sh
+      - name: Verify real SQL Server and separate packaged process
+        run: python3 scripts/verify-core.py
+      - name: Retain sanitized core acceptance summary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-acceptance-summary
+          path: target/core-acceptance/summary.json
+      - name: Stop disposable SQL Server
+        if: always()
+        run: docker compose --env-file .env.sqlserver down

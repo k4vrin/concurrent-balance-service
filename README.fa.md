@@ -12,6 +12,8 @@
 
 [English](README.md) · [مرجع API](docs/fa/API-v1.md) · [معماری](docs/fa/Architecture.md) · [راه‌اندازی](docs/fa/Schema.md)
 
+هستهٔ منتخب CBS20/G1 پیاده‌سازی شده و پذیرش خودکار را گذرانده است: **۴۲۱ تست قابل‌حمل + ۲۱۲ تست واقعی SQL Server**، همراه با سناریوی process جدا برای rollback واقعی، restart/replay و reconciliation مستقل. فرمان اجرا، نتایج اندازه‌گیری‌شده و مرز تکمیل در [راهنمای پذیرش قابل‌بازتولید](docs/fa/Core-acceptance.md) آمده است.
+
 ## نسخهٔ اول
 
 نسخهٔ اول یک API محلی JSON برای افزایش موجودی، برداشت، انتقال اتمیک و استعلام موجودی است. این صفحه قرارداد نسخهٔ قابل‌تحویل را شرح می‌دهد. رفتار پیاده‌شده و شواهد نسخهٔ فعلی مخزن در [وضعیت پیاده‌سازی](docs/fa/Implementation-status.md) آمده است.
@@ -85,6 +87,8 @@ verify مستقل از زیرساخت دیتابیس نمی‌خواهد. طبق
 
 ## راهنمای طراحی
 
+- [تکمیل هسته و پذیرش قابل‌تکرار](docs/fa/Core-acceptance.md)
+- [شواهد بازیابی commit و پاسخ](docs/fa/Recovery-acceptance.md)
 - [انتقال معکوس و پیشرفت حساب مستقل](docs/fa/Transfer-progress.md)
 - [رقابت transaction ID بین instanceها و پاسخ ماندگار](docs/fa/Cross-instance-replay.md)
 - [عملیات هم‌زمان با ID متفاوت و شواهد SQL Server](docs/fa/Concurrency-execution.md)

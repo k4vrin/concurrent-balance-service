@@ -15,6 +15,7 @@ import org.springframework.core.env.MapPropertySource;
  * <p>The server binds to an ephemeral loopback port and uses only explicit, validated test database
  * credentials. Each context receives the same funding policy and its own test reservation spies.
  * An optional passive account-lock probe supports progress/order tests without changing SQL work.
+ * Optional test-only fault instrumentation exercises real commit/rollback and withheld responses.
  * Closing the fixture stops its HTTP server and connection pool. Multiple contexts share a JVM
  * and SQL Server database, so this is not evidence of separate operating-system processes or hosts.
  */
@@ -28,6 +29,11 @@ final class RunningLedgerApplication implements AutoCloseable {
     }
 
     static RunningLedgerApplication start(String name, AccountId funding, ReservationRaceGate gate, AccountLockProbe probe) throws Exception {
+        return start(name, funding, gate, probe, null);
+    }
+
+    static RunningLedgerApplication start(String name, AccountId funding, ReservationRaceGate gate,
+            AccountLockProbe probe, ApplicationFaultPlan faults) throws Exception {
         try (var connection = SqlServerTestDatabase.fromEnvironment().openConnection()) {
             if (!connection.isValid(5)) { throw new IllegalStateException("Test database is unavailable"); }
         }
@@ -45,9 +51,14 @@ final class RunningLedgerApplication implements AutoCloseable {
                             Map.entry("balance.execution.funding[IRR].account-id", funding.value().toString()),
                             Map.entry("balance.execution.funding[IRR].policy-version", "cbs17-funding-v1"))));
                     application.addBeanFactoryPostProcessor(factory -> {
-                        factory.addBeanPostProcessor(new ReservationGatePostProcessor(gate));
+                        factory.addBeanPostProcessor(new ReservationGatePostProcessor(gate, faults));
                         if (probe != null) { factory.addBeanPostProcessor(new AccountLockProbePostProcessor(probe)); }
+                        if (faults != null) { factory.addBeanPostProcessor(new CommitFaultPostProcessor(faults)); }
                     });
+                    if (faults != null) {
+                        var filter = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(new ResponseLossFilter(faults));
+                        application.getBeanFactory().registerSingleton("testResponseLossFilter", filter);
+                    }
                 }).run();
         return new RunningLedgerApplication(context);
     }

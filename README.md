@@ -10,6 +10,8 @@ A Java and Spring Boot service for moving money safely under concurrent requests
 
 [فارسی](README.fa.md) · [API reference](docs/en/API-v1.md) · [Architecture](docs/en/Architecture.md) · [Setup](docs/en/Schema.md)
 
+The selected CBS20/G1 core is implemented and has passed automated acceptance: **421 portable + 212 real SQL Server tests**, plus a separate packaged-process scenario with real rollback, restart/replay and independent reconciliation. See the [reproducible acceptance guide](docs/en/Core-acceptance.md) for the command, measured results and completion boundary.
+
 ## First version
 
 The first version is a local-development JSON API for credit, debit, atomic transfer and balance lookup. Its release contract is described below. For the current checkout's implemented behavior and verification evidence, see [implementation status](docs/en/Implementation-status.md). [Credit classes and request flows](docs/en/Credit-class-walkthrough.md).
@@ -85,6 +87,8 @@ OTP transfer confirmation, Redis replay caching, Kafka/outbox events, Debezium C
 
 ## Learn the design
 
+- [Core completion and reproducible acceptance](docs/en/Core-acceptance.md)
+- [Commit and response recovery evidence](docs/en/Recovery-acceptance.md)
 - [Opposite transfers and independent account progress](docs/en/Transfer-progress.md)
 - [Cross-instance transaction-ID races and retained results](docs/en/Cross-instance-replay.md)
 - [Concurrent distinct mutations and SQL Server evidence](docs/en/Concurrency-execution.md)

@@ -34,6 +34,7 @@ Executable collection: [balance-service.http](../http/balance-service.http). Zer
 | Topic / موضوع | English | فارسی |
 | --- | --- | --- |
 | Completed core and reproducible verification / پذیرش هسته | [Core acceptance](en/Core-acceptance.md) | [پذیرش هسته](fa/Core-acceptance.md) |
+| SQL Server lock and access-path experiments / آزمایش قفل و مسیر دسترسی | [SQL Server knobs](en/SQL-server-knobs.md) | [تنظیمات SQL Server](fa/SQL-server-knobs.md) |
 | Cross-instance duplicate/conflict races / race هویت | [Cross-instance replay](en/Cross-instance-replay.md) | [replay میان instanceها](fa/Cross-instance-replay.md) |
 | Opposite transfers and independent progress / انتقال معکوس و پیشرفت | [Transfer progress](en/Transfer-progress.md) | [پیشرفت انتقال](fa/Transfer-progress.md) |
 | Commit/response faults / fault مرز commit و پاسخ | [Recovery acceptance](en/Recovery-acceptance.md) | [پذیرش recovery](fa/Recovery-acceptance.md) |
